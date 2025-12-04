@@ -854,17 +854,22 @@ export async function registerRoutes(
 
   // Create PIX withdrawal - with PIX rate limiting
   app.post("/api/pix/withdraw", requireAuth, pixLimiter, async (req, res) => {
+    let amountDebited = false;
+    let userId: string | undefined;
+    let amount: string | undefined;
+    
     try {
       const withdrawSchema = z.object({
         pixKeyId: z.string(),
         amount: z.string().refine((val) => parseFloat(val) >= 1, "Minimum amount is R$ 1.00"),
       });
 
-      const { pixKeyId, amount } = withdrawSchema.parse(req.body);
-      const userId = getUserId(req)!;
+      const parsed = withdrawSchema.parse(req.body);
+      amount = parsed.amount;
+      userId = getUserId(req)!;
 
       // Get PIX key
-      const pixKey = await storage.getPixKey(pixKeyId);
+      const pixKey = await storage.getPixKey(parsed.pixKeyId);
       if (!pixKey || pixKey.userId !== userId) {
         return res.status(404).json({ error: "PIX key not found" });
       }
@@ -875,13 +880,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Insufficient balance" });
       }
 
-      // Debit wallet immediately
+      // Debit wallet - track that we've debited so we can refund on any error
       await storage.debitWallet(userId, "BRL", amount);
+      amountDebited = true;
 
       // Create withdrawal record
       const withdrawal = await storage.createPixWithdrawal({
         userId,
-        pixKeyId,
+        pixKeyId: parsed.pixKeyId,
         amount,
         status: "processing",
       });
@@ -905,65 +911,61 @@ export async function registerRoutes(
       notificationService.notifyWithdrawalPending(userId, amount)
         .catch(err => console.error("Failed to send withdrawal pending notification:", err));
 
-      try {
-        // Send PIX via Banco Inter
-        const interClient = getInterClient();
-        const result = await interClient.sendPixWithdrawal({
-          valor: parseFloat(amount).toFixed(2),
-          chave: pixKey.keyValue,
-          descricao: "Saque Otsem Pay",
-        });
+      // Send PIX via Banco Inter
+      const interClient = getInterClient();
+      const result = await interClient.sendPixWithdrawal({
+        valor: parseFloat(amount).toFixed(2),
+        chave: pixKey.keyValue,
+        descricao: "Saque Otsem Pay",
+      });
 
-        // Update withdrawal with e2e ID
-        await storage.updatePixWithdrawal(withdrawal.id, {
-          endToEndId: result.endToEndId,
-          status: "completed",
-          processedAt: new Date(),
-        });
+      // Update withdrawal with e2e ID - PIX was successful
+      await storage.updatePixWithdrawal(withdrawal.id, {
+        endToEndId: result.endToEndId,
+        status: "completed",
+        processedAt: new Date(),
+      });
 
-        await storage.updateTransactionStatus(transaction.id, "completed", result.endToEndId);
+      await storage.updateTransactionStatus(transaction.id, "completed", result.endToEndId);
+      amountDebited = false; // PIX successful, don't refund
 
-        // Send notification for completed withdrawal
-        notificationService.notifyWithdrawalCompleted(userId, amount)
-          .catch(err => console.error("Failed to send withdrawal completed notification:", err));
+      // Send notification for completed withdrawal
+      notificationService.notifyWithdrawalCompleted(userId, amount)
+        .catch(err => console.error("Failed to send withdrawal completed notification:", err));
 
-        res.json({
-          id: withdrawal.id,
-          amount,
-          status: "completed",
-          endToEndId: result.endToEndId,
-        });
-      } catch (apiError: any) {
-        console.error("Inter API withdrawal error:", apiError.response?.data || apiError.message);
-
-        // Mark as failed and refund
-        await storage.updatePixWithdrawal(withdrawal.id, {
-          status: "failed",
-          failureReason: apiError.response?.data?.message || "API error",
-        });
-
-        await storage.updateTransactionStatus(transaction.id, "failed");
-
-        // Refund the balance
-        await storage.creditWallet(userId, "BRL", amount);
-
-        // Send notification for failed withdrawal
-        notificationService.notifyWithdrawalFailed(userId, amount)
-          .catch(err => console.error("Failed to send withdrawal failed notification:", err));
-
-        res.status(500).json({ 
-          error: "Withdrawal failed",
-          reason: "Unable to process PIX transfer. Your balance has been refunded.",
-        });
-      }
+      res.json({
+        id: withdrawal.id,
+        amount,
+        status: "completed",
+        endToEndId: result.endToEndId,
+      });
     } catch (error: any) {
+      console.error("Withdrawal error:", error.response?.data || error.message);
+      
+      // Refund the balance if we debited it and the withdrawal failed
+      if (amountDebited && userId && amount) {
+        try {
+          await storage.creditWallet(userId, "BRL", amount);
+          console.log(`[Withdrawal] Refunded R$ ${amount} to user ${userId}`);
+          
+          // Send notification for failed withdrawal
+          notificationService.notifyWithdrawalFailed(userId, amount)
+            .catch(err => console.error("Failed to send withdrawal failed notification:", err));
+        } catch (refundError) {
+          console.error("CRITICAL: Failed to refund balance:", refundError);
+        }
+      }
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors[0].message });
       }
       if (error.message === "Insufficient balance") {
         return res.status(400).json({ error: error.message });
       }
-      res.status(500).json({ error: "Failed to process withdrawal" });
+      res.status(500).json({ 
+        error: "Withdrawal failed",
+        reason: "Unable to process PIX transfer. Your balance has been refunded.",
+      });
     }
   });
 
