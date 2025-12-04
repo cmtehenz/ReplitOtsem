@@ -81,19 +81,17 @@ export default function AuthPage() {
         </div>
 
         <Card className="w-full max-w-md border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">
-              {showEmailForm 
-                ? (isLogin ? t("auth.login") : t("auth.register"))
-                : t("auth.welcome")
-              }
-            </CardTitle>
-            <CardDescription className="text-center">
-              {showEmailForm 
-                ? (isLogin ? t("auth.loginDescription") : t("auth.registerDescription"))
-                : t("auth.chooseMethod")
-              }
-            </CardDescription>
+          <CardHeader className="space-y-1 pb-2">
+            {showEmailForm && (
+              <>
+                <CardTitle className="text-2xl text-center">
+                  {isLogin ? t("auth.login") : t("auth.register")}
+                </CardTitle>
+                <CardDescription className="text-center">
+                  {isLogin ? t("auth.loginDescription") : t("auth.registerDescription")}
+                </CardDescription>
+              </>
+            )}
           </CardHeader>
           
           <AnimatePresence mode="wait">
