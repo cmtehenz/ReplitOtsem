@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, RefreshCw, Wallet, CreditCard } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, RefreshCw, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
@@ -8,23 +8,23 @@ import { getTransactions } from "@/lib/api";
 const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   deposit: {
     icon: ArrowDownLeft,
-    color: "text-green-400",
-    bg: "bg-green-400/10",
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/12",
   },
   withdrawal: {
     icon: ArrowUpRight,
-    color: "text-white",
-    bg: "bg-white/10",
+    color: "text-foreground/80",
+    bg: "bg-white/[0.06]",
   },
   exchange: {
     icon: RefreshCw,
     color: "text-blue-400",
-    bg: "bg-blue-400/10",
+    bg: "bg-blue-500/12",
   },
   transfer: {
     icon: Wallet,
     color: "text-purple-400",
-    bg: "bg-purple-400/10",
+    bg: "bg-purple-500/12",
   },
 };
 
@@ -36,28 +36,53 @@ export function TransactionHistory() {
 
   if (isLoading) {
     return (
-      <div className="space-y-2 pb-20">
-        <div className="flex items-center justify-between px-1 mb-2">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Recent Activity</h3>
+      <div className="space-y-4 pb-24">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="section-title">Recent Activity</h3>
         </div>
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] animate-pulse">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-xl bg-white/[0.06]" />
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-white/[0.06] rounded" />
+                  <div className="h-3 w-20 bg-white/[0.04] rounded" />
+                </div>
+              </div>
+              <div className="h-4 w-16 bg-white/[0.06] rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!transactions || transactions.length === 0) {
+    return (
+      <div className="space-y-4 pb-24">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="section-title">Recent Activity</h3>
+        </div>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground/60 text-sm">No transactions yet</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2 pb-20">
-      <div className="flex items-center justify-between px-1 mb-2">
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Recent Activity</h3>
-        <button className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">View all</button>
+    <div className="space-y-4 pb-24">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="section-title">Recent Activity</h3>
+        <button className="text-[11px] text-primary hover:text-primary/80 font-semibold transition-colors tracking-wide">View all</button>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-2">
         {transactions?.map((tx, index) => {
           const config = typeConfig[tx.type];
           const Icon = config.icon;
           
-          // Format amount based on transaction type
           let displayAmount = "";
           if (tx.type === "deposit" && tx.toAmount) {
             displayAmount = `+${tx.toAmount} ${tx.toCurrency}`;
@@ -70,22 +95,22 @@ export function TransactionHistory() {
           return (
             <motion.div
               key={tx.id}
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 + 0.1 }}
-              className="flex items-center justify-between p-3 hover:bg-white/5 rounded-2xl transition-colors cursor-pointer active:scale-[0.99]"
+              transition={{ delay: index * 0.04, duration: 0.3 }}
+              className="flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.05] rounded-2xl border border-transparent hover:border-white/[0.06] transition-all duration-200 cursor-pointer group"
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  "w-11 h-11 rounded-xl flex items-center justify-center border border-white/[0.06]",
                   config.bg, config.color
                 )}>
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" strokeWidth={2.5} />
                 </div>
                 
                 <div className="space-y-0.5">
-                  <h4 className="font-bold text-sm text-white">{tx.description}</h4>
-                  <span className="text-xs text-muted-foreground block">
+                  <h4 className="font-semibold text-sm text-foreground line-clamp-1">{tx.description}</h4>
+                  <span className="text-[11px] text-muted-foreground/60 font-medium block">
                     {format(new Date(tx.createdAt), "MMM d, HH:mm")}
                   </span>
                 </div>
@@ -93,8 +118,8 @@ export function TransactionHistory() {
               
               <div className="text-right">
                 <span className={cn(
-                  "font-bold text-sm tracking-wide", 
-                  displayAmount.startsWith("+") ? "text-green-400" : "text-white"
+                  "font-semibold text-sm tracking-wide", 
+                  displayAmount.startsWith("+") ? "text-emerald-400" : "text-foreground"
                 )}>
                   {displayAmount}
                 </span>

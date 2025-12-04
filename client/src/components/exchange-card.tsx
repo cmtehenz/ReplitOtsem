@@ -127,11 +127,18 @@ export function ExchangeCard() {
 
   if (ratesError) {
     return (
-      <div className="glass-card rounded-3xl p-6 relative overflow-hidden" data-testid="exchange-error">
+      <div className="premium-card rounded-3xl p-8 relative overflow-hidden" data-testid="exchange-error">
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-          <AlertCircle className="w-12 h-12 text-destructive" />
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
           <p className="text-muted-foreground">{t("exchange.ratesUnavailable")}</p>
-          <Button variant="outline" onClick={() => refetchRates()} data-testid="button-retry-rates">
+          <Button 
+            variant="outline" 
+            onClick={() => refetchRates()} 
+            className="rounded-xl border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08]"
+            data-testid="button-retry-rates"
+          >
             <RefreshCw className="w-4 h-4 mr-2" />
             {t("common.retry")}
           </Button>
@@ -141,36 +148,36 @@ export function ExchangeCard() {
   }
 
   return (
-    <div id="exchange-section" className="glass-card rounded-3xl p-6 space-y-6 relative overflow-hidden" data-testid="exchange-card">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent opacity-50" />
+    <div id="exchange-section" className="premium-card rounded-3xl p-6 space-y-5 relative overflow-hidden" data-testid="exchange-card">
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-display font-medium">{t("exchange.title")}</h3>
+        <h3 className="text-lg font-display font-semibold">{t("exchange.title")}</h3>
         <div className="flex items-center gap-2">
           {ratesLoading ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded-lg">
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-white/[0.04] px-3 py-1.5 rounded-xl border border-white/[0.06]">
               <RefreshCw className="w-3 h-3 animate-spin" />
               <span>{t("exchange.loadingRate")}</span>
             </div>
           ) : (
-            <div 
-              className="flex items-center gap-2 text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+            <button 
+              className="flex items-center gap-2 text-[11px] text-muted-foreground bg-white/[0.04] px-3 py-1.5 rounded-xl cursor-pointer hover:bg-white/[0.08] transition-all duration-200 border border-white/[0.06]"
               onClick={() => refetchRates()}
               data-testid="rate-display"
             >
               <Info className="w-3 h-3" />
-              <span>1 USDT ≈ R$ {currentRate.toFixed(2)}</span>
-              <RefreshCw className="w-3 h-3" />
-            </div>
+              <span className="font-medium">1 USDT ≈ R$ {currentRate.toFixed(2)}</span>
+              <RefreshCw className="w-3 h-3 opacity-60" />
+            </button>
           )}
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="bg-background/50 border border-white/5 rounded-2xl p-4 space-y-2 transition-colors focus-within:border-primary/30">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{t("exchange.youPay")}</span>
-            <span>{t("exchange.balance")}: {getBalance(fromCurrency)} {fromCurrency}</span>
+      <div className="space-y-1">
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5 space-y-3 transition-all duration-200 focus-within:border-primary/30 focus-within:bg-white/[0.05]">
+          <div className="flex justify-between text-[11px] text-muted-foreground">
+            <span className="font-medium uppercase tracking-wider">{t("exchange.youPay")}</span>
+            <span className="font-medium">{t("exchange.balance")}: {getBalance(fromCurrency)} {fromCurrency}</span>
           </div>
           <div className="flex items-center gap-4">
             <input
@@ -178,39 +185,39 @@ export function ExchangeCard() {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              className="bg-transparent text-2xl font-medium focus:outline-none w-full placeholder:text-muted-foreground/30"
+              className="bg-transparent text-2xl font-semibold focus:outline-none w-full placeholder:text-muted-foreground/20"
               data-testid="input-exchange-amount"
             />
-            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl shrink-0">
+            <div className="flex items-center gap-2.5 bg-white/[0.06] px-4 py-2 rounded-xl shrink-0 border border-white/[0.06]">
               {mode === "buy" ? (
-                <span className="w-6 h-6 flex items-center justify-center text-lg">🇧🇷</span>
+                <span className="w-6 h-6 flex items-center justify-center text-base">🇧🇷</span>
               ) : (
-                <span className="w-6 h-6 flex items-center justify-center text-lg bg-[#26A17B] rounded-full text-white font-bold text-[10px]">T</span>
+                <span className="w-6 h-6 flex items-center justify-center bg-[#26A17B] rounded-full text-white font-bold text-[10px]">T</span>
               )}
-              <span className="font-medium">{fromCurrency}</span>
+              <span className="font-semibold text-sm">{fromCurrency}</span>
             </div>
           </div>
           {hasInsufficientBalance && (
-            <p className="text-xs text-destructive" data-testid="text-insufficient-balance">
+            <p className="text-xs text-destructive font-medium" data-testid="text-insufficient-balance">
               {t("exchange.insufficientBalance")}
             </p>
           )}
         </div>
 
-        <div className="flex justify-center -my-4 relative z-10">
+        <div className="flex justify-center -my-3 relative z-10">
           <button 
             onClick={handleSwap}
-            className="bg-card border border-white/10 p-2 rounded-xl hover:border-primary/50 hover:text-primary transition-all shadow-lg"
+            className="bg-card border border-white/[0.1] p-3 rounded-xl hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-200 shadow-lg"
             data-testid="button-swap-direction"
           >
-            <ArrowUpDown className="w-5 h-5" />
+            <ArrowUpDown className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="bg-background/50 border border-white/5 rounded-2xl p-4 space-y-2">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{t("exchange.youReceive")}</span>
-            <span>{t("exchange.estimated")}</span>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5 space-y-3">
+          <div className="flex justify-between text-[11px] text-muted-foreground">
+            <span className="font-medium uppercase tracking-wider">{t("exchange.youReceive")}</span>
+            <span className="font-medium">{t("exchange.estimated")}</span>
           </div>
           <div className="flex items-center gap-4">
             <input
@@ -218,30 +225,30 @@ export function ExchangeCard() {
               value={calculateOutput()}
               readOnly
               placeholder="0.00"
-              className="bg-transparent text-2xl font-medium focus:outline-none w-full placeholder:text-muted-foreground/30 text-primary"
+              className="bg-transparent text-2xl font-semibold focus:outline-none w-full placeholder:text-muted-foreground/20 text-primary"
               data-testid="input-exchange-output"
             />
-            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-xl shrink-0">
+            <div className="flex items-center gap-2.5 bg-white/[0.06] px-4 py-2 rounded-xl shrink-0 border border-white/[0.06]">
               {mode === "buy" ? (
-                <span className="w-6 h-6 flex items-center justify-center text-lg bg-[#26A17B] rounded-full text-white font-bold text-[10px]">T</span>
+                <span className="w-6 h-6 flex items-center justify-center bg-[#26A17B] rounded-full text-white font-bold text-[10px]">T</span>
               ) : (
-                <span className="w-6 h-6 flex items-center justify-center text-lg">🇧🇷</span>
+                <span className="w-6 h-6 flex items-center justify-center text-base">🇧🇷</span>
               )}
-              <span className="font-medium">{toCurrency}</span>
+              <span className="font-semibold text-sm">{toCurrency}</span>
             </div>
           </div>
         </div>
       </div>
 
       {rates && (
-        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-          <span>{t("exchange.fee")}: {rates.fee}%</span>
-          <span>{t("exchange.minimum")}: {rates.minUsdt} USDT (≈ R$ {minBrlAmount.toFixed(2)})</span>
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground/70 px-1">
+          <span className="font-medium">{t("exchange.fee")}: {rates.fee}%</span>
+          <span className="font-medium">{t("exchange.minimum")}: {rates.minUsdt} USDT (≈ R$ {minBrlAmount.toFixed(2)})</span>
         </div>
       )}
 
       <Button 
-        className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium shadow-[0_0_20px_rgba(50,188,173,0.2)]"
+        className="w-full h-14 text-base premium-button rounded-2xl"
         onClick={handleExchange}
         disabled={exchangeMutation.isPending || !amount || !isAmountValid || hasInsufficientBalance || ratesLoading}
         data-testid="button-exchange"

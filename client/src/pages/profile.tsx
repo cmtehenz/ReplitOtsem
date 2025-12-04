@@ -26,65 +26,67 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      <div className="max-w-md mx-auto p-6 space-y-8">
+      <div className="max-w-md mx-auto px-5 py-8 space-y-6">
         <h1 className="text-2xl font-display font-bold tracking-tight">{t("profile.title")}</h1>
 
         <div 
-          className="glass-card rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group"
+          className="premium-card rounded-2xl p-5 flex items-center gap-4 hover:bg-white/[0.02] transition-all duration-200 cursor-pointer group"
           onClick={() => setLocation("/personal-info")}
           data-testid="link-personal-info"
         >
           <div className="relative">
-            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors shadow-lg">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/[0.1] p-0.5 group-hover:border-primary/40 transition-all duration-200 bg-white/[0.03]">
               {user?.profilePhoto ? (
-                <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-xl" />
               ) : (
-                <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <div className="w-full h-full rounded-xl bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center">
                   <span className="text-lg font-bold text-primary">
                     {(user?.name || user?.username || "U").charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
             </div>
-            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-background shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
           </div>
-          <div className="flex-1 space-y-0.5">
-            <h2 className="text-lg font-bold font-display" data-testid="text-profile-name">
+          <div className="flex-1 space-y-1">
+            <h2 className="text-lg font-semibold font-display" data-testid="text-profile-name">
               {user?.name || user?.username || "User"}
             </h2>
-            <p className="text-xs text-muted-foreground" data-testid="text-profile-email">
+            <p className="text-xs text-muted-foreground/70" data-testid="text-profile-email">
               {user?.email || ""}
             </p>
             {user?.verified && (
-              <div className="flex items-center gap-1 mt-1 text-[10px] text-[#26A17B] bg-[#26A17B]/10 px-2 py-0.5 rounded-full w-fit border border-[#26A17B]/20 uppercase font-bold tracking-wide">
+              <div className="flex items-center gap-1 mt-1.5 text-[10px] text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full w-fit border border-emerald-500/20 uppercase font-semibold tracking-wider">
                 <BadgeCheck className="w-3 h-3" />
                 <span>{t("profile.verified")}</span>
               </div>
             )}
           </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform group-hover:text-primary" />
+          <ChevronRight className="w-5 h-5 text-muted-foreground/40 group-hover:translate-x-1 transition-transform group-hover:text-primary" />
         </div>
 
         <div 
-          className="bg-gradient-to-br from-primary/20 to-transparent rounded-2xl p-4 border border-primary/20 cursor-pointer hover:bg-primary/5 transition-all active:scale-[0.98] group shadow-[0_0_20px_rgba(139,92,246,0.1)]" 
+          className="relative overflow-hidden rounded-2xl p-5 cursor-pointer hover:bg-primary/[0.08] transition-all duration-200 active:scale-[0.99] group border border-primary/20"
+          style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(139,92,246,0.05) 100%)' }}
           onClick={() => setLocation("/kyc")}
           data-testid="link-kyc"
         >
-          <div className="flex justify-between items-start mb-3">
-            <h3 className="font-bold text-primary font-display text-base">{t("profile.limits")}</h3>
-            <span className="text-[10px] bg-background/50 px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-md border border-white/5">
-              Level 2 <ChevronRight className="w-3 h-3 text-muted-foreground" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+          <div className="flex justify-between items-start mb-4">
+            <h3 className="font-semibold text-primary font-display text-base">{t("profile.limits")}</h3>
+            <span className="text-[10px] bg-background/60 backdrop-blur-sm px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-white/[0.06] font-medium">
+              Level 2 <ChevronRight className="w-3 h-3 text-muted-foreground/60" />
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex justify-between text-xs font-medium">
-              <span className="text-muted-foreground">{t("profile.pixDeposit")}</span>
-              <span>R$ 4.250 / R$ 50.000</span>
+              <span className="text-muted-foreground/70">{t("profile.pixDeposit")}</span>
+              <span className="text-foreground">R$ 4.250 / R$ 50.000</span>
             </div>
-            <div className="h-1.5 bg-background/50 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-gradient-to-r from-primary to-accent w-[8%] shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+            <div className="h-2 bg-background/40 rounded-full overflow-hidden border border-white/[0.04]">
+              <div className="h-full bg-gradient-to-r from-primary to-primary/70 w-[8%] shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
             </div>
-            <p className="text-[10px] text-primary/80 mt-1 text-center font-medium group-hover:text-primary transition-colors">{t("profile.upgradeButton")}</p>
+            <p className="text-[11px] text-primary/80 text-center font-medium group-hover:text-primary transition-colors tracking-wide">{t("profile.upgradeButton")}</p>
           </div>
         </div>
 
@@ -120,7 +122,7 @@ export default function Profile() {
 
         <Button 
           variant="outline" 
-          className="w-full h-12 text-red-400 border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/50 mt-4 rounded-xl font-bold text-sm transition-all hover:shadow-lg hover:shadow-red-500/20 active:scale-[0.98]"
+          className="w-full h-13 text-red-400 border-red-500/20 bg-red-500/[0.06] hover:bg-red-500/15 hover:text-red-300 hover:border-red-500/40 mt-4 rounded-2xl font-semibold text-sm transition-all active:scale-[0.99]"
           onClick={handleLogout}
           disabled={loggingOut}
           data-testid="button-logout"
@@ -143,44 +145,44 @@ function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: str
   return (
     <button 
       onClick={onClick}
-      className="w-full flex items-center justify-between p-3 bg-card/40 hover:bg-card/70 border border-white/10 rounded-xl transition-all duration-300 group active:scale-[0.98] hover:shadow-lg hover:shadow-white/5"
+      className="w-full flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl transition-all duration-200 group active:scale-[0.99]"
     >
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
-          <Icon className="w-5 h-5" />
+      <div className="flex items-center gap-3.5">
+        <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center text-muted-foreground/60 group-hover:text-foreground group-hover:bg-primary/10 transition-all duration-200 border border-white/[0.04] group-hover:border-primary/20">
+          <Icon className="w-[18px] h-[18px]" strokeWidth={2} />
         </div>
         <span className="font-medium text-sm">{label}</span>
         {badge && (
-          <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wide border border-primary/30">
+          <span className="text-[9px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider border border-primary/20">
             {badge}
           </span>
         )}
       </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform group-hover:text-primary" />
+      <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:translate-x-1 transition-transform group-hover:text-primary" />
     </button>
   );
 }
 
 function LanguageToggle({ language, setLanguage, t }: any) {
   return (
-    <div className="w-full flex items-center justify-between p-3 bg-card/40 hover:bg-card/70 border border-white/10 rounded-xl transition-all duration-300 group hover:shadow-lg hover:shadow-white/5">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 transition-all duration-300 border border-white/5 group-hover:border-primary/30">
-          <Globe className="w-5 h-5" />
+    <div className="w-full flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04] hover:border-white/[0.08] rounded-2xl transition-all duration-200 group">
+      <div className="flex items-center gap-3.5">
+        <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center text-muted-foreground/60 group-hover:text-foreground group-hover:bg-primary/10 transition-all duration-200 border border-white/[0.04] group-hover:border-primary/20">
+          <Globe className="w-[18px] h-[18px]" strokeWidth={2} />
         </div>
         <span className="font-medium text-sm">{t("profile.language")}</span>
       </div>
-      <div className="flex gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
+      <div className="flex gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.04]">
         <button 
           onClick={() => setLanguage("en")}
-          className={`px-2.5 py-1 rounded-md font-bold text-[10px] transition-all ${language === "en" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
+          className={`px-3 py-1.5 rounded-lg font-semibold text-[10px] transition-all tracking-wide ${language === "en" ? "bg-primary text-white shadow-[0_2px_8px_rgba(139,92,246,0.4)]" : "text-muted-foreground/60 hover:text-foreground"}`}
           data-testid="button-lang-en"
         >
           EN
         </button>
         <button 
           onClick={() => setLanguage("pt-BR")}
-          className={`px-2.5 py-1 rounded-md font-bold text-[10px] transition-all ${language === "pt-BR" ? "bg-primary text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
+          className={`px-3 py-1.5 rounded-lg font-semibold text-[10px] transition-all tracking-wide ${language === "pt-BR" ? "bg-primary text-white shadow-[0_2px_8px_rgba(139,92,246,0.4)]" : "text-muted-foreground/60 hover:text-foreground"}`}
           data-testid="button-lang-pt"
         >
           PT

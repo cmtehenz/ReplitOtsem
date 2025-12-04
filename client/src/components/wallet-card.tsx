@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Copy, Wallet, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, Wallet, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getWallets } from "@/lib/api";
@@ -12,7 +12,6 @@ export function WalletCard() {
     queryFn: () => getWallets(),
   });
 
-  // Calculate total balance in BRL
   const calculateTotalBalance = () => {
     if (!wallets) return "0,00";
     
@@ -22,9 +21,9 @@ export function WalletCard() {
       if (wallet.currency === "BRL") {
         total += balance;
       } else if (wallet.currency === "USDT") {
-        total += balance * 5.15; // USDT to BRL rate
+        total += balance * 5.15;
       } else if (wallet.currency === "BTC") {
-        total += balance * 345201; // BTC to BRL rate
+        total += balance * 345201;
       }
     });
     
@@ -33,41 +32,51 @@ export function WalletCard() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a1b26] to-[#0f0f16] border border-white/5 shadow-lg"
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="relative w-full overflow-hidden"
     >
-      <div className="p-6 flex flex-col gap-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <Wallet className="w-4 h-4 text-primary" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/10 rounded-[28px] blur-xl opacity-60" />
+      
+      <div className="relative premium-card rounded-[28px] p-7">
+        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        
+        <div className="flex justify-between items-start mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.15)]">
+              <Wallet className="w-5 h-5 text-primary" />
             </div>
-            <span className="text-sm font-medium text-muted-foreground">Total Balance</span>
+            <div>
+              <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-[0.12em]">Total Balance</span>
+            </div>
           </div>
           <button 
             onClick={() => setIsVisible(!isVisible)}
-            className="text-muted-foreground hover:text-white transition-colors"
+            className="w-9 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all duration-200 border border-white/[0.06]"
           >
-            {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            {isVisible ? <Eye className="w-4 h-4 text-muted-foreground" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
           </button>
         </div>
 
-        {/* Balance */}
-        <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-white">
-            {isVisible ? `R$ ${calculateTotalBalance()}` : "••••••••"}
-          </h1>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="flex items-center gap-1 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-md text-xs font-medium">
-              <TrendingUp className="w-3 h-3" />
-              <span>+R$ 1.250 (12.5%)</span>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h1 className="text-[38px] font-display font-bold tracking-tight text-foreground leading-none">
+              {isVisible ? `R$ ${calculateTotalBalance()}` : "••••••••"}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-500/20">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+R$ 1.250</span>
+              <span className="text-emerald-400/70">(12.5%)</span>
             </div>
-            <span className="text-xs text-muted-foreground">this month</span>
+            <span className="text-[11px] text-muted-foreground/60 font-medium">this month</span>
           </div>
         </div>
+        
+        <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
     </motion.div>
   );
