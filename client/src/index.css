@@ -37,7 +37,7 @@
   --color-input: hsl(260 20% 18%);
   --color-ring: hsl(265 90% 65%);
 
-  --radius: 1.5rem; /* More rounded for modern feel */
+  --radius: 0.75rem; /* More rounded for modern feel */
 }
 
 /* Global Reset & Base Styles */

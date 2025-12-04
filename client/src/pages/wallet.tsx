@@ -58,14 +58,14 @@ export default function Wallet() {
             </ResponsiveContainer>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 pt-4">
-            <Button className="bg-gradient-to-br from-primary to-[#7c3aed] text-white hover:from-primary hover:to-[#6d28d9] border border-primary/40 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <Button className="bg-gradient-to-br from-primary to-[#7c3aed] text-white hover:from-primary hover:to-[#6d28d9] border border-primary/40 h-12 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-[0.98]">
               <Plus className="w-5 h-5" /> Deposit
             </Button>
-            <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+            <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-12 rounded-xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 transition-all active:scale-[0.98]">
               <Send className="w-5 h-5" /> Send
             </Button>
-            <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+            <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-12 rounded-xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 transition-all active:scale-[0.98]">
               <ArrowDownLeft className="w-5 h-5" /> Receive
             </Button>
           </div>
