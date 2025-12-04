@@ -28,10 +28,12 @@ export default function Profile() {
         </div>
 
         {/* Verification Status */}
-        <div className="bg-gradient-to-br from-primary/20 to-transparent rounded-2xl p-4 border border-primary/20">
+        <div className="bg-gradient-to-br from-primary/20 to-transparent rounded-2xl p-4 border border-primary/20 cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => window.location.href = "/kyc"}>
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-medium text-primary">Daily Limits</h3>
-            <span className="text-xs bg-background/50 px-2 py-1 rounded-md">Level 2</span>
+            <span className="text-xs bg-background/50 px-2 py-1 rounded-md flex items-center gap-1">
+              Level 2 <ChevronRight className="w-3 h-3" />
+            </span>
           </div>
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -41,6 +43,7 @@ export default function Profile() {
             <div className="h-1.5 bg-background/50 rounded-full overflow-hidden">
               <div className="h-full bg-primary w-[8%]" />
             </div>
+            <p className="text-xs text-primary/80 mt-2 text-center font-medium">Tap to upgrade limits</p>
           </div>
         </div>
 
