@@ -1030,6 +1030,304 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== VIRTUAL CARDS ====================
+
+  // Get user's virtual card
+  app.get("/api/cards", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      let card = await storage.getUserCard(userId);
+      
+      if (!card) {
+        const user = await storage.getUser(userId);
+        const last4 = Math.floor(1000 + Math.random() * 9000).toString();
+        const cardNumber = `4532${Math.floor(100000000000 + Math.random() * 899999999999)}`;
+        const expiryYear = (new Date().getFullYear() + 4).toString();
+        const expiryMonth = String(Math.floor(1 + Math.random() * 12)).padStart(2, '0');
+        const cvv = Math.floor(100 + Math.random() * 900).toString();
+        
+        card = await storage.createVirtualCard({
+          userId,
+          cardNumber,
+          last4,
+          expiryMonth,
+          expiryYear,
+          cvv,
+          cardholderName: user?.name?.toUpperCase() || "CARDHOLDER",
+          status: "active",
+          monthlyLimit: "5000",
+          dailyWithdrawalLimit: "1000",
+        });
+      }
+      
+      res.json({
+        ...card,
+        cardNumber: `**** **** **** ${card.last4}`,
+      });
+    } catch (error) {
+      console.error("Get card error:", error);
+      res.status(500).json({ error: "Failed to fetch card" });
+    }
+  });
+
+  // Get full card details (authenticated reveal)
+  app.get("/api/cards/details", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const card = await storage.getUserCard(userId);
+      
+      if (!card) {
+        return res.status(404).json({ error: "Card not found" });
+      }
+      
+      res.json(card);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch card details" });
+    }
+  });
+
+  // Freeze/unfreeze card
+  app.patch("/api/cards/status", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { status } = req.body;
+      
+      if (!["active", "frozen"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+      
+      const card = await storage.getUserCard(userId);
+      if (!card) {
+        return res.status(404).json({ error: "Card not found" });
+      }
+      
+      const updated = await storage.updateCardStatus(card.id, status);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update card status" });
+    }
+  });
+
+  // ==================== KYC ====================
+
+  // Get KYC status
+  app.get("/api/kyc", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      let submission = await storage.getKycSubmission(userId);
+      
+      if (!submission) {
+        submission = await storage.createKycSubmission({
+          userId,
+          status: "not_started",
+        });
+      }
+      
+      res.json(submission);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch KYC status" });
+    }
+  });
+
+  // Update KYC (upload document)
+  app.patch("/api/kyc", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { step } = req.body;
+      
+      let updates: any = {};
+      
+      if (step === "id_front") {
+        updates.idFrontUploaded = true;
+      } else if (step === "id_back") {
+        updates.idBackUploaded = true;
+      } else if (step === "selfie") {
+        updates.selfieUploaded = true;
+      }
+      
+      let submission = await storage.getKycSubmission(userId);
+      if (!submission) {
+        submission = await storage.createKycSubmission({
+          userId,
+          status: "not_started",
+          ...updates,
+        });
+      } else {
+        submission = await storage.updateKycSubmission(userId, updates);
+      }
+      
+      res.json(submission);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update KYC" });
+    }
+  });
+
+  // Submit KYC for review
+  app.post("/api/kyc/submit", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const submission = await storage.getKycSubmission(userId);
+      
+      if (!submission) {
+        return res.status(404).json({ error: "KYC submission not found" });
+      }
+      
+      if (!submission.idFrontUploaded || !submission.idBackUploaded || !submission.selfieUploaded) {
+        return res.status(400).json({ error: "All documents must be uploaded" });
+      }
+      
+      const updated = await storage.updateKycSubmission(userId, {
+        status: "in_review",
+        submittedAt: new Date(),
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to submit KYC" });
+    }
+  });
+
+  // ==================== SECURITY SETTINGS ====================
+
+  // Get security settings
+  app.get("/api/security", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      let settings = await storage.getSecuritySettings(userId);
+      
+      if (!settings) {
+        settings = await storage.createSecuritySettings({
+          userId,
+          twoFactorEnabled: false,
+          biometricEnabled: true,
+          loginAlertsEnabled: true,
+          transactionAlertsEnabled: true,
+        });
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch security settings" });
+    }
+  });
+
+  // Update security settings
+  app.patch("/api/security", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { twoFactorEnabled, biometricEnabled, loginAlertsEnabled, transactionAlertsEnabled } = req.body;
+      
+      let settings = await storage.getSecuritySettings(userId);
+      if (!settings) {
+        settings = await storage.createSecuritySettings({
+          userId,
+          twoFactorEnabled: twoFactorEnabled ?? false,
+          biometricEnabled: biometricEnabled ?? true,
+          loginAlertsEnabled: loginAlertsEnabled ?? true,
+          transactionAlertsEnabled: transactionAlertsEnabled ?? true,
+        });
+      } else {
+        const updates: any = {};
+        if (twoFactorEnabled !== undefined) updates.twoFactorEnabled = twoFactorEnabled;
+        if (biometricEnabled !== undefined) updates.biometricEnabled = biometricEnabled;
+        if (loginAlertsEnabled !== undefined) updates.loginAlertsEnabled = loginAlertsEnabled;
+        if (transactionAlertsEnabled !== undefined) updates.transactionAlertsEnabled = transactionAlertsEnabled;
+        
+        settings = await storage.updateSecuritySettings(userId, updates);
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update security settings" });
+    }
+  });
+
+  // ==================== ACTIVE SESSIONS ====================
+
+  // Get active sessions
+  app.get("/api/sessions", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const sessions = await storage.getUserSessions(userId);
+      res.json(sessions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sessions" });
+    }
+  });
+
+  // Delete a session (logout from device)
+  app.delete("/api/sessions/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      await storage.deleteSession(req.params.id, userId);
+      res.json({ message: "Session terminated" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to terminate session" });
+    }
+  });
+
+  // Logout from all other devices
+  app.post("/api/sessions/logout-all", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { exceptCurrent } = req.body;
+      await storage.deleteAllUserSessions(userId, exceptCurrent);
+      res.json({ message: "All other sessions terminated" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to terminate sessions" });
+    }
+  });
+
+  // ==================== REFERRALS ====================
+
+  // Get referral code and stats
+  app.get("/api/referrals", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const [code, stats, referralsList] = await Promise.all([
+        storage.getUserReferralCode(userId),
+        storage.getReferralStats(userId),
+        storage.getUserReferrals(userId),
+      ]);
+      
+      const recentReferrals = await Promise.all(
+        referralsList.slice(0, 10).map(async (r) => {
+          const referredUser = r.referredId ? await storage.getUser(r.referredId) : null;
+          return {
+            id: r.id,
+            name: referredUser?.name || "User",
+            date: r.createdAt,
+            status: r.status,
+            earned: r.rewardAmount,
+          };
+        })
+      );
+      
+      res.json({
+        code,
+        stats,
+        recentReferrals,
+      });
+    } catch (error) {
+      console.error("Referral error:", error);
+      res.status(500).json({ error: "Failed to fetch referrals" });
+    }
+  });
+
+  // ==================== ANALYTICS ====================
+
+  // Get transaction stats
+  app.get("/api/stats", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const days = req.query.days ? parseInt(req.query.days as string) : 7;
+      const stats = await storage.getTransactionStats(userId, days);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
   // ==================== PIX WEBHOOK ====================
 
   // PIX payment webhook from Banco Inter
