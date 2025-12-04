@@ -3,16 +3,46 @@ import { ArrowDown, ArrowUpDown, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { executeExchange, getWallets } from "@/lib/api";
+import { toast } from "sonner";
 
 export function ExchangeCard() {
   const [mode, setMode] = useState<"buy" | "sell">("buy"); // buy USDT or sell USDT
   const [amount, setAmount] = useState("");
+  const queryClient = useQueryClient();
   
   // Mock exchange rate
   const usdtRate = 5.15; // 1 USDT = 5.15 BRL
 
+  const { data: wallets } = useQuery({
+    queryKey: ["wallets"],
+    queryFn: () => getWallets(),
+  });
+
+  const exchangeMutation = useMutation({
+    mutationFn: (data: { fromCurrency: string; toCurrency: string; fromAmount: string; toAmount: string }) =>
+      executeExchange(data.fromCurrency, data.toCurrency, data.fromAmount, data.toAmount),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success("Exchange completed successfully!");
+      setAmount("");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Exchange failed");
+    },
+  });
+
   const fromCurrency = mode === "buy" ? "BRL" : "USDT";
   const toCurrency = mode === "buy" ? "USDT" : "BRL";
+  
+  const getBalance = (currency: string) => {
+    const wallet = wallets?.find(w => w.currency === currency);
+    if (!wallet) return "0.00";
+    const balance = parseFloat(wallet.balance);
+    return balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
   
   const calculateOutput = () => {
     if (!amount) return "";
@@ -29,6 +59,23 @@ export function ExchangeCard() {
   const handleSwap = () => {
     setMode(mode === "buy" ? "sell" : "buy");
     setAmount("");
+  };
+
+  const handleExchange = async () => {
+    const fromAmount = amount;
+    const toAmount = calculateOutput();
+    
+    if (!fromAmount || !toAmount || parseFloat(fromAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    exchangeMutation.mutate({
+      fromCurrency,
+      toCurrency,
+      fromAmount,
+      toAmount,
+    });
   };
 
   return (
@@ -48,7 +95,7 @@ export function ExchangeCard() {
         <div className="bg-background/50 border border-white/5 rounded-2xl p-4 space-y-2 transition-colors focus-within:border-primary/30">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>You pay</span>
-            <span>Balance: {mode === "buy" ? "R$ 4.250,00" : "1,420.00 USDT"}</span>
+            <span>Balance: {getBalance(fromCurrency)} {fromCurrency}</span>
           </div>
           <div className="flex items-center gap-4">
             <input
@@ -107,9 +154,10 @@ export function ExchangeCard() {
 
       <Button 
         className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium shadow-[0_0_20px_rgba(50,188,173,0.2)]"
-        onClick={() => window.location.href = "/exchange-success"}
+        onClick={handleExchange}
+        disabled={exchangeMutation.isPending || !amount || parseFloat(amount) <= 0}
       >
-        {mode === "buy" ? "Buy USDT" : "Sell USDT"}
+        {exchangeMutation.isPending ? "Processing..." : mode === "buy" ? "Buy USDT" : "Sell USDT"}
       </Button>
     </div>
   );

@@ -4,6 +4,9 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { useEffect } from "react";
+import { initDemo } from "@/lib/api";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Activity from "@/pages/activity";
@@ -45,11 +48,17 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Initialize demo user and data on first load
+    initDemo().catch(console.error);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <TooltipProvider>
           <Toaster />
+          <Sonner />
           <Router />
         </TooltipProvider>
       </LanguageProvider>

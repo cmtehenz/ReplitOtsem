@@ -1,9 +1,35 @@
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Copy, Wallet, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getWallets } from "@/lib/api";
 
 export function WalletCard() {
   const [isVisible, setIsVisible] = useState(true);
+  
+  const { data: wallets } = useQuery({
+    queryKey: ["wallets"],
+    queryFn: () => getWallets(),
+  });
+
+  // Calculate total balance in BRL
+  const calculateTotalBalance = () => {
+    if (!wallets) return "0,00";
+    
+    let total = 0;
+    wallets.forEach(wallet => {
+      const balance = parseFloat(wallet.balance);
+      if (wallet.currency === "BRL") {
+        total += balance;
+      } else if (wallet.currency === "USDT") {
+        total += balance * 5.15; // USDT to BRL rate
+      } else if (wallet.currency === "BTC") {
+        total += balance * 345201; // BTC to BRL rate
+      }
+    });
+    
+    return total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   return (
     <motion.div
@@ -32,7 +58,7 @@ export function WalletCard() {
         {/* Balance */}
         <div>
           <h1 className="text-3xl font-display font-bold tracking-tight text-white">
-            {isVisible ? "R$ 14.250,42" : "••••••••"}
+            {isVisible ? `R$ ${calculateTotalBalance()}` : "••••••••"}
           </h1>
           <div className="flex items-center gap-2 mt-2">
             <div className="flex items-center gap-1 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-md text-xs font-medium">
