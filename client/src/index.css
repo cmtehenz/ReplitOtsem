@@ -36,6 +36,9 @@
   --color-ring: #000000;
 
   --radius: 1.25rem;
+
+  --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+  --shadow-floating: 0 12px 32px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 @layer base {
@@ -52,14 +55,6 @@
 }
 
 @layer utilities {
-  .shadow-soft {
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
-  }
-  
-  .shadow-floating {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03);
-  }
-
   .glass-panel {
     @apply bg-white/80 backdrop-blur-xl border border-white/40 shadow-soft;
   }
