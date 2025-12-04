@@ -32,7 +32,7 @@ export default function Wallet() {
         <div className="glass-card rounded-3xl p-6 space-y-6">
           <div>
             <p className="text-sm text-muted-foreground font-medium">Total Balance</p>
-            <h2 className="text-3xl font-bold font-display tracking-tight mt-1">R$ 44.263,00</h2>
+            <h2 className="text-2xl font-bold font-display tracking-tight mt-1">R$ 44.263,00</h2>
             <div className="flex items-center gap-2 mt-2 text-green-500 text-sm bg-green-500/10 w-fit px-2 py-1 rounded-lg border border-green-500/20">
               <TrendingUp className="w-4 h-4" />
               <span className="font-bold">+R$ 2.150 (5.2%)</span>
@@ -60,13 +60,13 @@ export default function Wallet() {
 
           <div className="grid grid-cols-3 gap-4 pt-4">
             <Button className="bg-gradient-to-br from-primary to-[#7c3aed] text-white hover:from-primary hover:to-[#6d28d9] border border-primary/40 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
-              <Plus className="w-6 h-6" /> Deposit
+              <Plus className="w-5 h-5" /> Deposit
             </Button>
             <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
-              <Send className="w-6 h-6" /> Send
+              <Send className="w-5 h-5" /> Send
             </Button>
             <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
-              <ArrowDownLeft className="w-6 h-6" /> Receive
+              <ArrowDownLeft className="w-5 h-5" /> Receive
             </Button>
           </div>
         </div>

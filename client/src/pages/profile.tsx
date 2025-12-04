@@ -13,19 +13,19 @@ export default function Profile() {
         <h1 className="text-2xl font-display font-bold tracking-tight">{t("profile.title")}</h1>
 
         {/* User Card */}
-        <div className="glass-card rounded-3xl p-6 flex items-center gap-5 hover:bg-white/5 transition-colors cursor-pointer group">
+        <div className="glass-card rounded-3xl p-5 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors shadow-lg">
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors shadow-lg">
               <img src={avatar} alt="User" className="w-full h-full object-cover rounded-full" />
             </div>
-            <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-background" />
+            <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
           </div>
-          <div className="flex-1 space-y-1">
-            <h2 className="text-xl font-bold font-display">Alex Morgan</h2>
-            <p className="text-sm text-muted-foreground">alex.morgan@example.com</p>
-            <div className="flex items-center gap-1.5 mt-2 text-xs text-[#26A17B] bg-[#26A17B]/10 px-3 py-1 rounded-full w-fit border border-[#26A17B]/20">
-              <BadgeCheck className="w-3.5 h-3.5" />
-              <span className="font-medium">{t("profile.verified")}</span>
+          <div className="flex-1 space-y-0.5">
+            <h2 className="text-lg font-bold font-display">Alex Morgan</h2>
+            <p className="text-xs text-muted-foreground">alex.morgan@example.com</p>
+            <div className="flex items-center gap-1 mt-1.5 text-[10px] text-[#26A17B] bg-[#26A17B]/10 px-2.5 py-0.5 rounded-full w-fit border border-[#26A17B]/20 uppercase font-bold tracking-wide">
+              <BadgeCheck className="w-3 h-3" />
+              <span>{t("profile.verified")}</span>
             </div>
           </div>
         </div>
@@ -92,43 +92,43 @@ function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: str
   return (
     <button 
       onClick={onClick}
-      className="w-full flex items-center justify-between p-5 bg-card/40 hover:bg-card/70 border border-white/10 rounded-3xl transition-all duration-300 group active:scale-[0.98] shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10"
+      className="w-full flex items-center justify-between p-4 bg-card/40 hover:bg-card/70 border border-white/10 rounded-2xl transition-all duration-300 group active:scale-[0.98] shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10"
     >
-      <div className="flex items-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
-          <Icon className="w-6 h-6" />
+      <div className="flex items-center gap-4">
+        <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
+          <Icon className="w-5 h-5" />
         </div>
-        <span className="font-bold text-lg">{label}</span>
+        <span className="font-bold text-base">{label}</span>
         {badge && (
-          <span className="text-[11px] bg-primary/20 text-primary px-3 py-1.5 rounded-full font-extrabold uppercase tracking-wider animate-pulse border border-primary/30 shadow-lg shadow-primary/20">
+          <span className="text-[10px] bg-primary/20 text-primary px-2 py-1 rounded-full font-extrabold uppercase tracking-wider animate-pulse border border-primary/30 shadow-lg shadow-primary/20">
             {badge}
           </span>
         )}
       </div>
-      <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:translate-x-2 transition-transform group-hover:text-primary" />
+      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform group-hover:text-primary" />
     </button>
   );
 }
 
 function LanguageToggle({ language, setLanguage, t }: any) {
   return (
-    <div className="w-full flex items-center justify-between p-5 bg-card/40 hover:bg-card/70 border border-white/10 rounded-3xl transition-all duration-300 group shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10">
-      <div className="flex items-center gap-5">
-        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
-          <Globe className="w-6 h-6" />
+    <div className="w-full flex items-center justify-between p-4 bg-card/40 hover:bg-card/70 border border-white/10 rounded-2xl transition-all duration-300 group shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10">
+      <div className="flex items-center gap-4">
+        <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
+          <Globe className="w-5 h-5" />
         </div>
-        <span className="font-bold text-lg">{t("profile.language")}</span>
+        <span className="font-bold text-base">{t("profile.language")}</span>
       </div>
-      <div className="flex gap-1.5 bg-black/20 p-1.5 rounded-xl border border-white/5">
+      <div className="flex gap-1 bg-black/20 p-1 rounded-lg border border-white/5">
         <button 
           onClick={() => setLanguage("en")}
-          className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${language === "en" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+          className={`px-2.5 py-1 rounded-md font-bold text-[10px] transition-all ${language === "en" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
         >
           EN
         </button>
         <button 
           onClick={() => setLanguage("pt-BR")}
-          className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${language === "pt-BR" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
+          className={`px-2.5 py-1 rounded-md font-bold text-[10px] transition-all ${language === "pt-BR" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
         >
           PT
         </button>
