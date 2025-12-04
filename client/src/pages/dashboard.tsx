@@ -26,7 +26,10 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="p-2 rounded-full hover:bg-white/5 transition-colors relative">
+            <button 
+              className="p-2 rounded-full hover:bg-white/5 transition-colors relative"
+              onClick={() => setLocation("/notifications")}
+            >
               <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-background" />
             </button>

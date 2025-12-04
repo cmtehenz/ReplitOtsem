@@ -9,6 +9,11 @@ import Activity from "@/pages/activity";
 import KYCVerification from "@/pages/kyc";
 import Auth from "@/pages/auth";
 import ReferralProgram from "@/pages/referral";
+import TransactionDetails from "@/pages/transaction-details";
+import PixKeys from "@/pages/pix-keys";
+import Notifications from "@/pages/notifications";
+import Security from "@/pages/security";
+import ExchangeSuccess from "@/pages/exchange-success";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +25,11 @@ function Router() {
       <Route path="/activity" component={Activity} />
       <Route path="/kyc" component={KYCVerification} />
       <Route path="/referral" component={ReferralProgram} />
+      <Route path="/transaction/:id" component={TransactionDetails} />
+      <Route path="/pix-keys" component={PixKeys} />
+      <Route path="/notifications" component={Notifications} />
+      <Route path="/security" component={Security} />
+      <Route path="/exchange-success" component={ExchangeSuccess} />
       <Route component={NotFound} />
     </Switch>
   );

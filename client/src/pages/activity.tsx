@@ -138,6 +138,7 @@ function TransactionItem({ tx, index }: { tx: any, index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className="flex items-center justify-between group cursor-pointer"
+      onClick={() => window.location.href = "/transaction/1"}
     >
       <div className="flex items-center gap-4">
         <div className={cn(

@@ -56,8 +56,16 @@ export default function Profile() {
             onClick={() => window.location.href = "/referral"}
             badge="Earn Money"
           />
-          <MenuItem icon={CreditCard} label="Saved Pix Keys" />
-          <MenuItem icon={Shield} label="Security & 2FA" />
+          <MenuItem 
+            icon={CreditCard} 
+            label="Saved Pix Keys" 
+            onClick={() => window.location.href = "/pix-keys"}
+          />
+          <MenuItem 
+            icon={Shield} 
+            label="Security & 2FA" 
+            onClick={() => window.location.href = "/security"}
+          />
           <MenuItem icon={HelpCircle} label="Help & Support" />
         </div>
 

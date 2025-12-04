@@ -105,7 +105,10 @@ export function ExchangeCard() {
         </div>
       </div>
 
-      <Button className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium shadow-[0_0_20px_rgba(50,188,173,0.2)]">
+      <Button 
+        className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-medium shadow-[0_0_20px_rgba(50,188,173,0.2)]"
+        onClick={() => window.location.href = "/exchange-success"}
+      >
         {mode === "buy" ? "Buy USDT" : "Sell USDT"}
       </Button>
     </div>
