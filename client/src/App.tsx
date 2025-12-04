@@ -1,12 +1,11 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { useEffect } from "react";
-import { initDemo } from "@/lib/api";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Activity from "@/pages/activity";
@@ -23,44 +22,86 @@ import Cards from "@/pages/cards";
 import Feed from "@/pages/feed";
 import Welcome from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
+import { Loader2 } from "lucide-react";
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+
+  return <Component />;
+}
 
 function Router() {
   return (
     <Switch>
       <Route path="/welcome" component={Welcome} />
       <Route path="/auth" component={Auth} />
-      <Route path="/" component={Dashboard} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/activity" component={Activity} />
-      <Route path="/kyc" component={KYCVerification} />
-      <Route path="/referral" component={ReferralProgram} />
-      <Route path="/transaction/:id" component={TransactionDetails} />
-      <Route path="/pix-keys" component={PixKeys} />
-      <Route path="/notifications" component={Notifications} />
-      <Route path="/security" component={Security} />
-      <Route path="/exchange-success" component={ExchangeSuccess} />
-      <Route path="/wallet" component={Wallet} />
-      <Route path="/cards" component={Cards} />
-      <Route path="/feed" component={Feed} />
+      <Route path="/">
+        {() => <ProtectedRoute component={Dashboard} />}
+      </Route>
+      <Route path="/profile">
+        {() => <ProtectedRoute component={Profile} />}
+      </Route>
+      <Route path="/activity">
+        {() => <ProtectedRoute component={Activity} />}
+      </Route>
+      <Route path="/kyc">
+        {() => <ProtectedRoute component={KYCVerification} />}
+      </Route>
+      <Route path="/referral">
+        {() => <ProtectedRoute component={ReferralProgram} />}
+      </Route>
+      <Route path="/transaction/:id">
+        {() => <ProtectedRoute component={TransactionDetails} />}
+      </Route>
+      <Route path="/pix-keys">
+        {() => <ProtectedRoute component={PixKeys} />}
+      </Route>
+      <Route path="/notifications">
+        {() => <ProtectedRoute component={Notifications} />}
+      </Route>
+      <Route path="/security">
+        {() => <ProtectedRoute component={Security} />}
+      </Route>
+      <Route path="/exchange-success">
+        {() => <ProtectedRoute component={ExchangeSuccess} />}
+      </Route>
+      <Route path="/wallet">
+        {() => <ProtectedRoute component={Wallet} />}
+      </Route>
+      <Route path="/cards">
+        {() => <ProtectedRoute component={Cards} />}
+      </Route>
+      <Route path="/feed">
+        {() => <ProtectedRoute component={Feed} />}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
 }
 
 function App() {
-  useEffect(() => {
-    // Initialize demo user and data on first load
-    initDemo().catch(console.error);
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

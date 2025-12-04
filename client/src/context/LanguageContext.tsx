@@ -20,11 +20,31 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Wallet
     "wallet.title": "Wallet",
+    "wallet.subtitle": "The future of crypto payments",
     "wallet.balance": "Total Balance",
     "wallet.deposit": "Deposit",
     "wallet.send": "Send",
     "wallet.receive": "Receive",
     "wallet.assets": "Your Assets",
+    
+    // Auth
+    "auth.login": "Sign In",
+    "auth.register": "Sign Up",
+    "auth.loginDescription": "Enter your credentials to access your wallet",
+    "auth.registerDescription": "Create an account to start trading",
+    "auth.name": "Full Name",
+    "auth.namePlaceholder": "Your full name",
+    "auth.username": "Username",
+    "auth.usernameOrEmail": "Username or Email",
+    "auth.usernamePlaceholder": "Choose a username",
+    "auth.usernameOrEmailPlaceholder": "Your username or email",
+    "auth.email": "Email",
+    "auth.emailPlaceholder": "your@email.com",
+    "auth.password": "Password",
+    "auth.optional": "optional",
+    "auth.cpfHelp": "Required for PIX withdrawals to your own account",
+    "auth.noAccount": "Don't have an account?",
+    "auth.hasAccount": "Already have an account?",
     
     // Feed
     "feed.title": "Feed",
@@ -87,11 +107,31 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Wallet
     "wallet.title": "Carteira",
+    "wallet.subtitle": "O futuro dos pagamentos cripto",
     "wallet.balance": "Saldo Total",
     "wallet.deposit": "Depositar",
     "wallet.send": "Enviar",
     "wallet.receive": "Receber",
     "wallet.assets": "Seus Ativos",
+    
+    // Auth
+    "auth.login": "Entrar",
+    "auth.register": "Criar Conta",
+    "auth.loginDescription": "Digite suas credenciais para acessar sua carteira",
+    "auth.registerDescription": "Crie uma conta para começar a negociar",
+    "auth.name": "Nome Completo",
+    "auth.namePlaceholder": "Seu nome completo",
+    "auth.username": "Nome de Usuário",
+    "auth.usernameOrEmail": "Usuário ou Email",
+    "auth.usernamePlaceholder": "Escolha um nome de usuário",
+    "auth.usernameOrEmailPlaceholder": "Seu usuário ou email",
+    "auth.email": "Email",
+    "auth.emailPlaceholder": "seu@email.com",
+    "auth.password": "Senha",
+    "auth.optional": "opcional",
+    "auth.cpfHelp": "Necessário para saques PIX para sua própria conta",
+    "auth.noAccount": "Não tem uma conta?",
+    "auth.hasAccount": "Já tem uma conta?",
     
     // Feed
     "feed.title": "Feed",

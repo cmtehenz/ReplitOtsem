@@ -7,13 +7,16 @@ import { TransactionHistory } from "@/components/transaction-history";
 import { Bell, Settings } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  const { t } = useLanguage();
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/60 backdrop-blur-xl border-b border-white/5 shadow-sm supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setLocation("/profile")}>
@@ -24,14 +27,19 @@ export default function Dashboard() {
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Welcome back</p>
-              <p className="text-sm font-bold font-display tracking-wide group-hover:text-primary transition-colors">Alex Morgan</p>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                {t("nav.home") === "Início" ? "Bem-vindo" : "Welcome back"}
+              </p>
+              <p className="text-sm font-bold font-display tracking-wide group-hover:text-primary transition-colors" data-testid="text-username">
+                {user?.name || user?.username || "User"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button 
               className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 relative group"
               onClick={() => setLocation("/notifications")}
+              data-testid="button-notifications"
             >
               <Bell className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full border border-background" />
@@ -39,6 +47,7 @@ export default function Dashboard() {
             <button 
               className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 group" 
               onClick={() => setLocation("/profile")}
+              data-testid="button-settings"
             >
               <Settings className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
@@ -46,35 +55,28 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-md mx-auto px-6 pt-2 space-y-8">
-        {/* Total Balance Card */}
         <section>
           <WalletCard />
         </section>
         
-        {/* Quick Actions (Deposit Pix, Deposit USDT, Withdraw) */}
         <section className="py-2">
           <ActionGrid />
         </section>
 
-        {/* Exchange Interface */}
         <section>
           <ExchangeCard />
         </section>
         
-        {/* Asset Breakdown */}
         <section>
           <AssetList />
         </section>
         
-        {/* History */}
         <section>
           <TransactionHistory />
         </section>
       </main>
 
-      {/* Bottom Nav */}
       <BottomNav active="home" />
     </div>
   );
