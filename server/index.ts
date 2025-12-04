@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { notificationWS } from "./websocket";
+import { getInterClient } from "./inter-api";
 
 const app = express();
 
@@ -100,8 +101,22 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     },
-    () => {
+    async () => {
       log(`serving on port ${port}`);
+      
+      // Test Inter API connection on startup
+      try {
+        const interClient = getInterClient();
+        const result = await interClient.testConnection();
+        if (result.success) {
+          log(`[Inter API] Connection successful`, "inter");
+        } else {
+          log(`[Inter API] Connection failed: ${result.message}`, "inter");
+          console.log("[Inter API] Details:", result.details);
+        }
+      } catch (error: any) {
+        log(`[Inter API] Error initializing: ${error.message}`, "inter");
+      }
     },
   );
 })();

@@ -23,12 +23,12 @@ localPort = 35179
 externalPort = 5173
 
 [[ports]]
-localPort = 35773
-externalPort = 6000
-
-[[ports]]
 localPort = 36807
 externalPort = 3000
+
+[[ports]]
+localPort = 37303
+externalPort = 6000
 
 [[ports]]
 localPort = 41105
@@ -73,3 +73,8 @@ waitForPort = 5000
 [agent]
 mockupState = "FULLSTACK"
 integrations = ["javascript_database:1.0.0"]
+
+[userenv]
+
+[userenv.shared]
+NODE_OPTIONS = "--openssl-legacy-provider"

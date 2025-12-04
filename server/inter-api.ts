@@ -1,5 +1,8 @@
 import https from "https";
+import tls from "tls";
 import axios, { AxiosInstance } from "axios";
+import crypto from "crypto";
+import forge from "node-forge";
 
 const INTER_API_URL = "https://cdpj.partners.bancointer.com.br";
 const INTER_OAUTH_URL = `${INTER_API_URL}/oauth/v2/token`;
@@ -77,6 +80,109 @@ class InterAPIClient {
   private tokenExpiresAt: number = 0;
   private axiosInstance: AxiosInstance;
 
+  private fixPemFormat(pem: string, type: string): string {
+    // First, handle escaped newlines
+    pem = pem.replace(/\\n/g, '\n');
+    
+    // Detect the actual type from the PEM content
+    const typeMatch = pem.match(/-----BEGIN ([^-]+)-----/);
+    if (typeMatch) {
+      const detectedType = typeMatch[1];
+      console.log(`[Inter API] Detected PEM type: ${detectedType}`);
+      
+      // Check if already properly formatted
+      if (pem.includes(`-----BEGIN ${detectedType}-----\n`) && pem.includes(`\n-----END ${detectedType}-----`)) {
+        return pem;
+      }
+      
+      // Use detected type for markers
+      const beginMarker = `-----BEGIN ${detectedType}-----`;
+      const endMarker = `-----END ${detectedType}-----`;
+      
+      // Remove existing markers and whitespace
+      let content = pem
+        .replace(/-----BEGIN [^-]+-----/g, '')
+        .replace(/-----END [^-]+-----/g, '')
+        .replace(/\s+/g, '');
+      
+      // Format base64 content with 64-character lines
+      const lines: string[] = [];
+      for (let i = 0; i < content.length; i += 64) {
+        lines.push(content.substring(i, i + 64));
+      }
+      
+      return `${beginMarker}\n${lines.join('\n')}\n${endMarker}`;
+    }
+    
+    // Fallback for content without markers
+    const beginMarker = `-----BEGIN ${type}-----`;
+    const endMarker = `-----END ${type}-----`;
+    
+    let content = pem.replace(/\s+/g, '');
+    
+    const lines: string[] = [];
+    for (let i = 0; i < content.length; i += 64) {
+      lines.push(content.substring(i, i + 64));
+    }
+    
+    return `${beginMarker}\n${lines.join('\n')}\n${endMarker}`;
+  }
+
+  private convertPrivateKeyForOpenSSL3(pemKey: string): string {
+    try {
+      console.log("[Inter API] Analyzing private key...");
+      
+      // Log key metadata for debugging (not the actual key content)
+      const keyLines = pemKey.split('\n');
+      console.log("[Inter API] Key structure:");
+      console.log("  - Total lines:", keyLines.length);
+      console.log("  - First line:", keyLines[0]);
+      console.log("  - Last line:", keyLines[keyLines.length - 1]);
+      
+      // Try to detect key type using Node's crypto
+      try {
+        const keyObject = crypto.createPrivateKey({
+          key: pemKey,
+          format: 'pem',
+        });
+        
+        const keyType = keyObject.asymmetricKeyType;
+        console.log("[Inter API] Key type detected:", keyType);
+        
+        // Export the key in a compatible format
+        const exportedKey = keyObject.export({
+          type: 'pkcs8',
+          format: 'pem',
+        });
+        
+        console.log("[Inter API] Key exported successfully in PKCS#8 format");
+        return exportedKey as string;
+      } catch (cryptoError: any) {
+        console.log("[Inter API] Node crypto failed:", cryptoError.message);
+        console.log("[Inter API] Error code:", cryptoError.code);
+        
+        // If the issue is with the key format, try to parse it differently
+        if (cryptoError.code === 'ERR_OSSL_UNSUPPORTED') {
+          console.log("[Inter API] Key uses unsupported algorithm - attempting node-forge parsing...");
+        }
+      }
+      
+      // Fallback to node-forge for RSA keys
+      if (pemKey.includes('RSA PRIVATE KEY')) {
+        console.log("[Inter API] Detected RSA format, using node-forge...");
+        const privateKey = forge.pki.privateKeyFromPem(pemKey);
+        const rsaPrivateKeyPem = forge.pki.privateKeyToPem(privateKey);
+        console.log("[Inter API] RSA key converted successfully");
+        return rsaPrivateKeyPem;
+      }
+      
+      return pemKey;
+    } catch (error: any) {
+      console.log("[Inter API] Key conversion failed:", error.message);
+      return pemKey;
+    }
+  }
+
   constructor() {
     let privateKey = process.env.INTER_PRIVATE_KEY;
     let certificate = process.env.INTER_CERTIFICATE;
@@ -85,18 +191,60 @@ class InterAPIClient {
       throw new Error("INTER_PRIVATE_KEY and INTER_CERTIFICATE must be set");
     }
 
-    // Handle escaped newlines in PEM certificates (common when stored in environment variables)
-    privateKey = privateKey.replace(/\\n/g, '\n');
-    certificate = certificate.replace(/\\n/g, '\n');
+    // Fix PEM format - handle various ways certificates might be stored
+    privateKey = this.fixPemFormat(privateKey, 'PRIVATE KEY');
+    certificate = this.fixPemFormat(certificate, 'CERTIFICATE');
+    
+    // Convert private key to OpenSSL 3.x compatible format using node-forge
+    privateKey = this.convertPrivateKeyForOpenSSL3(privateKey);
 
-    console.log("[Inter API] Certificate loaded, starts with:", certificate.substring(0, 50));
-    console.log("[Inter API] Private key loaded, starts with:", privateKey.substring(0, 50));
+    console.log("[Inter API] Certificate format check:");
+    console.log("  - Has proper header:", certificate.includes('-----BEGIN CERTIFICATE-----\n'));
+    console.log("  - Has proper footer:", certificate.includes('\n-----END CERTIFICATE-----'));
+    console.log("[Inter API] Private key format check:");
+    console.log("  - Has proper header:", privateKey.includes('-----BEGIN') && privateKey.includes('KEY-----\n'));
+    console.log("  - Is encrypted:", privateKey.includes('ENCRYPTED'));
 
-    const httpsAgent = new https.Agent({
-      key: privateKey,
-      cert: certificate,
-      rejectUnauthorized: true,
-    });
+    // Try to create secure context with different options
+    let httpsAgent: https.Agent;
+    
+    try {
+      // Create a secure context with explicit key handling
+      const secureContext = tls.createSecureContext({
+        key: privateKey,
+        cert: certificate,
+      });
+      
+      httpsAgent = new https.Agent({
+        secureContext,
+        rejectUnauthorized: true,
+      });
+      console.log("[Inter API] HTTPS agent created with secure context");
+    } catch (error: any) {
+      console.log("[Inter API] Secure context failed:", error.message);
+      console.log("[Inter API] Trying with direct key/cert...");
+      
+      try {
+        // Try with legacy options
+        httpsAgent = new https.Agent({
+          key: privateKey,
+          cert: certificate,
+          rejectUnauthorized: true,
+          secureOptions: crypto.constants.SSL_OP_LEGACY_SERVER_CONNECT,
+        });
+        console.log("[Inter API] HTTPS agent created with legacy options");
+      } catch (innerError: any) {
+        console.log("[Inter API] Legacy options also failed:", innerError.message);
+        // Final fallback - create agent with explicit crypto settings
+        httpsAgent = new https.Agent({
+          key: privateKey,
+          cert: certificate,
+          rejectUnauthorized: true,
+          ciphers: 'DEFAULT:@SECLEVEL=0',
+        });
+        console.log("[Inter API] HTTPS agent created with reduced security level");
+      }
+    }
 
     this.axiosInstance = axios.create({
       baseURL: INTER_API_URL,
