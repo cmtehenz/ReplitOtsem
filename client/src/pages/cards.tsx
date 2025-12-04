@@ -10,7 +10,7 @@ export default function Cards() {
   
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      <div className="p-6 flex flex-col h-full">
+      <div className="max-w-md mx-auto p-6 flex flex-col h-full">
         <h1 className="font-display font-bold text-2xl mb-12">{t("cards.title")}</h1>
 
         {/* Card Visual */}

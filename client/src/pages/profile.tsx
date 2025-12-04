@@ -9,7 +9,7 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      <div className="p-6 space-y-8">
+      <div className="max-w-md mx-auto p-6 space-y-8">
         <h1 className="text-2xl font-display font-bold tracking-tight">{t("profile.title")}</h1>
 
         {/* User Card */}
@@ -112,25 +112,25 @@ function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: str
 
 function LanguageToggle({ language, setLanguage, t }: any) {
   return (
-    <div className="w-full flex items-center justify-between p-5 bg-card/40 hover:bg-card/70 border border-white/10 rounded-3xl transition-all duration-300 group active:scale-[0.98] shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10">
+    <div className="w-full flex items-center justify-between p-5 bg-card/40 hover:bg-card/70 border border-white/10 rounded-3xl transition-all duration-300 group shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10">
       <div className="flex items-center gap-5">
         <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
           <Globe className="w-6 h-6" />
         </div>
         <span className="font-bold text-lg">{t("profile.language")}</span>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-1.5 bg-black/20 p-1.5 rounded-xl border border-white/5">
         <button 
           onClick={() => setLanguage("en")}
-          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${language === "en" ? "bg-primary text-white" : "bg-white/10 text-muted-foreground hover:bg-white/20"}`}
+          className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${language === "en" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
         >
-          {t("profile.english")}
+          EN
         </button>
         <button 
           onClick={() => setLanguage("pt-BR")}
-          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${language === "pt-BR" ? "bg-primary text-white" : "bg-white/10 text-muted-foreground hover:bg-white/20"}`}
+          className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${language === "pt-BR" ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-white"}`}
         >
-          {t("profile.portuguese")}
+          PT
         </button>
       </div>
     </div>

@@ -25,7 +25,7 @@ const assets = [
 export default function Wallet() {
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      <div className="p-6 space-y-8">
+      <div className="max-w-md mx-auto p-6 space-y-8">
         <h1 className="font-display font-bold text-2xl tracking-tight">Wallet</h1>
 
         {/* Portfolio Chart */}

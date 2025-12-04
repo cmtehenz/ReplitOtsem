@@ -126,7 +126,7 @@ export default function Feed() {
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      <div className="p-6 space-y-6">
+      <div className="max-w-md mx-auto p-6 space-y-6">
         <div>
           <h1 className="font-display font-bold text-2xl tracking-tight mb-1">{t("feed.title")}</h1>
           <p className="text-sm text-muted-foreground font-medium">{t("feed.latest")}</p>
