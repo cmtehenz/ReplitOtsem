@@ -8,6 +8,7 @@ import Profile from "@/pages/profile";
 import Activity from "@/pages/activity";
 import KYCVerification from "@/pages/kyc";
 import Auth from "@/pages/auth";
+import ReferralProgram from "@/pages/referral";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/activity" component={Activity} />
       <Route path="/kyc" component={KYCVerification} />
+      <Route path="/referral" component={ReferralProgram} />
       <Route component={NotFound} />
     </Switch>
   );

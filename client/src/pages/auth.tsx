@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Mail, Lock, User, Eye, EyeOff, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import bgImage from "@assets/generated_images/abstract_dark_purple_and_neon_green_3d_glass_waves_for_crypto_card_background.png";
 
@@ -101,6 +101,25 @@ export default function Auth() {
                 </button>
               </div>
             </div>
+
+            <AnimatePresence mode="popLayout">
+              {!isLogin && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-2 overflow-hidden"
+                >
+                  <div className="relative">
+                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <Input 
+                      placeholder="Referral Code (Optional)" 
+                      className="pl-12 h-14 bg-card/50 border-white/10 rounded-xl focus:border-primary/50 transition-colors font-mono tracking-wider uppercase placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {isLogin && (
               <div className="flex justify-end">

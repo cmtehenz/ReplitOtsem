@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { User, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck } from "lucide-react";
+import { User, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,12 @@ export default function Profile() {
         {/* Menu Options */}
         <div className="space-y-2">
           <MenuItem icon={User} label="Personal Information" />
+          <MenuItem 
+            icon={Users} 
+            label="Referral Program" 
+            onClick={() => window.location.href = "/referral"}
+            badge="Earn Money"
+          />
           <MenuItem icon={CreditCard} label="Saved Pix Keys" />
           <MenuItem icon={Shield} label="Security & 2FA" />
           <MenuItem icon={HelpCircle} label="Help & Support" />
@@ -70,14 +76,22 @@ export default function Profile() {
   );
 }
 
-function MenuItem({ icon: Icon, label }: { icon: any, label: string }) {
+function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: string, onClick?: () => void, badge?: string }) {
   return (
-    <button className="w-full flex items-center justify-between p-4 bg-card/30 hover:bg-card border border-white/5 rounded-xl transition-all group">
+    <button 
+      onClick={onClick}
+      className="w-full flex items-center justify-between p-4 bg-card/30 hover:bg-card border border-white/5 rounded-xl transition-all group"
+    >
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
           <Icon className="w-5 h-5" />
         </div>
         <span className="font-medium">{label}</span>
+        {badge && (
+          <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wide animate-pulse">
+            {badge}
+          </span>
+        )}
       </div>
       <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
     </button>
