@@ -115,11 +115,11 @@ export async function registerRoutes(
       tableName: "sessions",
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex"),
+    secret: process.env.SESSION_SECRET || "otsem-pay-dev-secret-key-2024",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
