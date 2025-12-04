@@ -10,7 +10,7 @@ import { useLanguage } from "@/context/LanguageContext";
 
 export function ActionGrid() {
   return (
-    <div className="flex justify-between items-start px-1">
+    <div className="flex justify-between items-start">
       <DepositButton />
       <WithdrawButton />
       <ReceiveButton />
@@ -33,19 +33,18 @@ function ActionButton({
   return (
     <button 
       onClick={onClick}
-      className="flex flex-col items-center gap-2.5 group w-[72px]"
+      className="flex flex-col items-center gap-2 w-[72px]"
     >
       <div className={`
-        w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300
+        w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200
         ${variant === "primary" 
-          ? "bg-gradient-to-br from-primary/30 to-primary/10 text-primary border border-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.15)] group-hover:shadow-[0_0_28px_rgba(139,92,246,0.25)] group-hover:border-primary/30" 
-          : "bg-white/[0.04] text-foreground/80 border border-white/[0.06] group-hover:bg-white/[0.08] group-hover:border-white/[0.12]"
+          ? "bg-primary text-white shadow-lg shadow-primary/20" 
+          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
         }
-        group-active:scale-95
       `}>
-        <Icon className="w-5 h-5" strokeWidth={2} />
+        <Icon className="w-6 h-6" strokeWidth={1.5} />
       </div>
-      <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground transition-colors tracking-wide">
+      <span className="text-xs font-medium text-gray-600">
         {label}
       </span>
     </button>
@@ -74,7 +73,7 @@ function DepositButton() {
     mutationFn: verifyDeposits,
     onSuccess: (data) => {
       if (data.verified > 0) {
-        toast.success(`${data.verified} payment(s) confirmed! Balance updated.`);
+        toast.success(`${data.verified} payment(s) confirmed!`);
         queryClient.invalidateQueries({ queryKey: ["wallets"] });
         queryClient.invalidateQueries({ queryKey: ["transactions"] });
         handleClose();
@@ -99,7 +98,7 @@ function DepositButton() {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCopiaECola);
       setCopied(true);
-      toast.success("Copied to clipboard!");
+      toast.success("Copied!");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -116,89 +115,78 @@ function DepositButton() {
         <ActionButton icon={Plus} label={t("wallet.deposit")} variant="primary" />
       </div>
       <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
-      <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center font-display text-2xl font-semibold">
-            {pixData ? "PIX Payment" : "Deposit via PIX"}
-          </DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
-            {pixData ? "Scan QR code or copy PIX key to make payment" : "Enter amount to deposit via PIX"}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {!pixData ? (
-          <div className="space-y-6 py-4">
-            <div className="space-y-3">
-              <label className="text-sm text-muted-foreground font-semibold ml-1">Amount (BRL)</label>
-              <div className="relative">
-                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-lg">R$</span>
-                <input 
-                  type="number" 
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min="1"
-                  step="0.01"
-                  className="w-full premium-input p-5 pl-14 text-2xl font-medium"
-                  data-testid="input-deposit-amount"
-                />
+        <DialogContent className="bg-white border-0 rounded-3xl sm:max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-semibold text-gray-900">
+              {pixData ? "PIX Payment" : "Deposit via PIX"}
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-gray-500">
+              {pixData ? "Scan QR code or copy PIX key" : "Enter the amount to deposit"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {!pixData ? (
+            <div className="space-y-6 pt-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Amount (BRL)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">R$</span>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    min="1"
+                    step="0.01"
+                    className="w-full h-14 pl-12 pr-4 text-xl font-medium border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                    data-testid="input-deposit-amount"
+                  />
+                </div>
               </div>
+              <Button 
+                onClick={handleCreateDeposit}
+                disabled={depositMutation.isPending}
+                className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-base"
+                data-testid="button-create-deposit"
+              >
+                {depositMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Generate PIX"}
+              </Button>
             </div>
-            <Button 
-              onClick={handleCreateDeposit}
-              disabled={depositMutation.isPending}
-              className="w-full h-14 rounded-2xl premium-button text-base"
-              data-testid="button-create-deposit"
-            >
-              {depositMutation.isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                "Generate PIX"
-              )}
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-6 py-4">
-            <div className="flex justify-center">
-              <div className="bg-white p-5 rounded-2xl shadow-lg">
-                <QRCode value={pixData.pixCopiaECola} size={180} />
+          ) : (
+            <div className="space-y-6 pt-4">
+              <div className="flex justify-center">
+                <div className="bg-white p-4 rounded-2xl border border-gray-100">
+                  <QRCode value={pixData.pixCopiaECola} size={180} />
+                </div>
               </div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-gray-900">R$ {parseFloat(amount).toFixed(2)}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-xs text-gray-500 mb-1">PIX Copy & Paste</p>
+                <p className="text-xs font-mono text-gray-600 break-all">{pixData.pixCopiaECola.slice(0, 50)}...</p>
+              </div>
+              <Button 
+                onClick={handleCopy}
+                variant="outline"
+                className="w-full h-12 rounded-xl border-gray-200 font-medium"
+                data-testid="button-copy-pix"
+              >
+                {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
+                {copied ? "Copied!" : "Copy PIX Key"}
+              </Button>
+              <Button 
+                onClick={() => verifyMutation.mutate()}
+                disabled={verifyMutation.isPending}
+                className="w-full h-12 rounded-xl bg-accent hover:bg-accent/90 text-white font-medium"
+                data-testid="button-verify-payment"
+              >
+                {verifyMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <RefreshCw className="w-5 h-5 mr-2" />}
+                Verify Payment
+              </Button>
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Scan the QR code or copy the key below</p>
-              <p className="text-3xl font-bold text-primary font-display">R$ {parseFloat(amount).toFixed(2)}</p>
-            </div>
-            <div className="bg-white/[0.04] rounded-2xl p-4 space-y-2 border border-white/[0.06]">
-              <p className="text-xs text-muted-foreground font-medium">PIX Copy & Paste</p>
-              <p className="text-xs font-mono break-all text-muted-foreground/70">{pixData.pixCopiaECola.slice(0, 50)}...</p>
-            </div>
-            <Button 
-              onClick={handleCopy}
-              className="w-full h-14 rounded-2xl bg-white/[0.06] text-foreground text-base font-semibold hover:bg-white/[0.1] border border-white/[0.08]"
-              data-testid="button-copy-pix"
-            >
-              {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
-              {copied ? "Copied!" : "Copy PIX Key"}
-            </Button>
-            <Button 
-              onClick={() => verifyMutation.mutate()}
-              disabled={verifyMutation.isPending}
-              className="w-full h-14 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-base font-semibold hover:from-emerald-500 hover:to-emerald-400 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
-              data-testid="button-verify-payment"
-            >
-              {verifyMutation.isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="w-5 h-5 mr-2" />
-              )}
-              I've Paid - Verify Payment
-            </Button>
-            <p className="text-xs text-center text-muted-foreground/70">
-              Click above after making the PIX payment to update your balance
-            </p>
-          </div>
-        )}
-      </DialogContent>
+          )}
+        </DialogContent>
       </Dialog>
     </>
   );
@@ -229,7 +217,7 @@ function WithdrawButton() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Withdrawal processed successfully!");
+      toast.success("Withdrawal processed!");
       handleClose();
     },
     onError: (error: any) => {
@@ -265,79 +253,75 @@ function WithdrawButton() {
         <ActionButton icon={ArrowUpRight} label={t("wallet.send")} />
       </div>
       <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
-        <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
+        <DialogContent className="bg-white border-0 rounded-3xl sm:max-w-md p-6">
           <DialogHeader>
-            <DialogTitle className="text-center font-display text-2xl font-semibold">Withdraw via PIX</DialogTitle>
-            <DialogDescription className="text-center text-sm text-muted-foreground">
-              Select a PIX key and enter amount to withdraw
+            <DialogTitle className="text-center text-xl font-semibold text-gray-900">Withdraw via PIX</DialogTitle>
+            <DialogDescription className="text-center text-sm text-gray-500">
+              Select a PIX key and enter amount
             </DialogDescription>
           </DialogHeader>
         
-        <div className="space-y-6 py-4">
-          <div className="text-center text-sm text-muted-foreground">
-            Available: <span className="text-foreground font-bold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
-          </div>
-
-          {(!pixKeys || pixKeys.length === 0) ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No PIX keys registered</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Add a key in your profile to enable withdrawals</p>
+          <div className="space-y-6 pt-4">
+            <div className="text-center text-sm text-gray-500">
+              Available: <span className="text-gray-900 font-semibold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
             </div>
-          ) : (
-            <>
-              <div className="space-y-3">
-                <label className="text-sm text-muted-foreground font-semibold ml-1">Select PIX Key</label>
+
+            {(!pixKeys || pixKeys.length === 0) ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No PIX keys registered</p>
+                <p className="text-xs text-gray-400 mt-1">Add a key in your profile</p>
+              </div>
+            ) : (
+              <>
                 <div className="space-y-2">
-                  {pixKeys.map((key) => (
-                    <button
-                      key={key.id}
-                      onClick={() => setSelectedKey(key.id)}
-                      className={`w-full p-4 rounded-2xl text-left transition-all duration-200 ${
-                        selectedKey === key.id 
-                          ? "bg-primary/15 border-2 border-primary/50 shadow-[0_0_20px_rgba(139,92,246,0.15)]" 
-                          : "bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08]"
-                      }`}
-                      data-testid={`button-select-key-${key.id}`}
-                    >
-                      <p className="font-semibold text-sm">{key.name || key.keyType.toUpperCase()}</p>
-                      <p className="text-xs text-muted-foreground font-mono mt-1">{key.keyValue}</p>
-                    </button>
-                  ))}
+                  <label className="text-sm font-medium text-gray-700">Select PIX Key</label>
+                  <div className="space-y-2">
+                    {pixKeys.map((key) => (
+                      <button
+                        key={key.id}
+                        onClick={() => setSelectedKey(key.id)}
+                        className={`w-full p-4 rounded-xl text-left transition-all ${
+                          selectedKey === key.id 
+                            ? "bg-primary/5 border-2 border-primary" 
+                            : "bg-gray-50 border border-gray-100 hover:bg-gray-100"
+                        }`}
+                        data-testid={`button-select-key-${key.id}`}
+                      >
+                        <p className="font-medium text-sm text-gray-900">{key.name || key.keyType.toUpperCase()}</p>
+                        <p className="text-xs text-gray-500 font-mono mt-1">{key.keyValue}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                <label className="text-sm text-muted-foreground font-semibold ml-1">Amount (BRL)</label>
-                <div className="relative">
-                  <span className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-lg">R$</span>
-                  <input 
-                    type="number" 
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    min="1"
-                    max={brlBalance}
-                    step="0.01"
-                    className="w-full premium-input p-5 pl-14 text-2xl font-medium"
-                    data-testid="input-withdraw-amount"
-                  />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Amount (BRL)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">R$</span>
+                    <input 
+                      type="number" 
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      min="1"
+                      max={brlBalance}
+                      step="0.01"
+                      className="w-full h-14 pl-12 pr-4 text-xl font-medium border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                      data-testid="input-withdraw-amount"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <Button 
-                onClick={handleWithdraw}
-                disabled={withdrawMutation.isPending || !selectedKey || !amount}
-                className="w-full h-14 rounded-2xl premium-button text-base"
-                data-testid="button-confirm-withdraw"
-              >
-                {withdrawMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "Withdraw"
-                )}
-              </Button>
-            </>
-          )}
+                <Button 
+                  onClick={handleWithdraw}
+                  disabled={withdrawMutation.isPending || !selectedKey || !amount}
+                  className="w-full h-14 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-base"
+                  data-testid="button-confirm-withdraw"
+                >
+                  {withdrawMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : "Withdraw"}
+                </Button>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -359,8 +343,6 @@ function ReceiveButton() {
 }
 
 function ExchangeButton() {
-  const { t } = useLanguage();
-  
   return (
     <div 
       onClick={() => document.getElementById("exchange-section")?.scrollIntoView({ behavior: "smooth" })}

@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { PageContainer } from "@/components/page-container";
 import { ArrowLeft, Shield, Lock, Smartphone, Eye, EyeOff, Key, LogOut, ChevronRight, Fingerprint, Bell, MapPin, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -55,7 +53,7 @@ export default function Security() {
       toast.success(isPortuguese ? "Sessão encerrada" : "Session terminated");
     },
     onError: () => {
-      toast.error(isPortuguese ? "Erro ao encerrar sessão" : "Failed to terminate session");
+      toast.error(isPortuguese ? "Erro" : "Failed");
     },
   });
 
@@ -63,10 +61,10 @@ export default function Security() {
     mutationFn: () => logoutAllSessions(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success(isPortuguese ? "Todas as sessões encerradas" : "All sessions terminated");
+      toast.success(isPortuguese ? "Todas encerradas" : "All terminated");
     },
     onError: () => {
-      toast.error(isPortuguese ? "Erro ao encerrar sessões" : "Failed to terminate sessions");
+      toast.error(isPortuguese ? "Erro" : "Failed");
     },
   });
 
@@ -74,7 +72,7 @@ export default function Security() {
     mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => 
       changePassword(currentPassword, newPassword),
     onSuccess: () => {
-      toast.success(isPortuguese ? "Senha alterada com sucesso!" : "Password changed successfully!");
+      toast.success(isPortuguese ? "Senha alterada!" : "Password changed!");
       setPasswordDialogOpen(false);
       setPasswords({ current: "", new: "", confirm: "" });
     },
@@ -108,14 +106,6 @@ export default function Security() {
     });
   };
 
-  const handleLogoutSession = (sessionId: string) => {
-    deleteSessionMutation.mutate(sessionId);
-  };
-
-  const handleLogoutAll = () => {
-    logoutAllMutation.mutate();
-  };
-
   const getSecurityScore = (): number => {
     if (!settings) return 50;
     let score = 50;
@@ -130,14 +120,14 @@ export default function Security() {
     {
       icon: Lock,
       title: isPortuguese ? "Alterar Senha" : "Change Password",
-      description: isPortuguese ? "Atualize sua senha de acesso" : "Update your access password",
+      description: isPortuguese ? "Atualize sua senha" : "Update your password",
       action: () => setPasswordDialogOpen(true),
       type: "button" as const,
     },
     {
       icon: Smartphone,
       title: isPortuguese ? "Autenticação 2FA" : "Two-Factor Auth",
-      description: isPortuguese ? "Proteção extra com código SMS" : "Extra protection with SMS code",
+      description: isPortuguese ? "Proteção extra" : "Extra protection",
       value: settings?.twoFactorEnabled ?? false,
       action: () => toggleSetting("twoFactorEnabled"),
       type: "toggle" as const,
@@ -145,7 +135,7 @@ export default function Security() {
     {
       icon: Fingerprint,
       title: isPortuguese ? "Biometria" : "Biometric Login",
-      description: isPortuguese ? "Use impressão digital ou Face ID" : "Use fingerprint or Face ID",
+      description: isPortuguese ? "Face ID / Touch ID" : "Face ID / Touch ID",
       value: settings?.biometricEnabled ?? true,
       action: () => toggleSetting("biometricEnabled"),
       type: "toggle" as const,
@@ -153,7 +143,7 @@ export default function Security() {
     {
       icon: Bell,
       title: isPortuguese ? "Alertas de Login" : "Login Alerts",
-      description: isPortuguese ? "Notificação ao fazer login" : "Notify on new login",
+      description: isPortuguese ? "Notificação ao logar" : "Notify on login",
       value: settings?.loginAlertsEnabled ?? true,
       action: () => toggleSetting("loginAlertsEnabled"),
       type: "toggle" as const,
@@ -161,7 +151,7 @@ export default function Security() {
     {
       icon: Key,
       title: isPortuguese ? "Alertas de Transação" : "Transaction Alerts",
-      description: isPortuguese ? "Notificar em cada transação" : "Notify on each transaction",
+      description: isPortuguese ? "Notificar transações" : "Notify transactions",
       value: settings?.transactionAlertsEnabled ?? true,
       action: () => toggleSetting("transactionAlertsEnabled"),
       type: "toggle" as const,
@@ -177,216 +167,187 @@ export default function Security() {
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 5) return isPortuguese ? "Agora" : "Now";
-    if (diffMins < 60) return `${diffMins}m ${isPortuguese ? "atrás" : "ago"}`;
-    if (diffHours < 24) return `${diffHours}h ${isPortuguese ? "atrás" : "ago"}`;
-    return `${diffDays}d ${isPortuguese ? "atrás" : "ago"}`;
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffHours < 24) return `${diffHours}h`;
+    return `${diffDays}d`;
   };
 
   if (settingsLoading) {
     return (
-      <PageContainer>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </PageContainer>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   const securityScore = getSecurityScore();
 
   return (
-    <PageContainer>
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-background pb-8">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <button 
             onClick={() => setLocation("/profile")}
-            className="w-10 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all border border-white/[0.06]"
+            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
             data-testid="button-back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="font-display font-bold text-lg tracking-wide">
+          <h1 className="text-lg font-semibold text-gray-900">
             {isPortuguese ? "Segurança" : "Security"}
           </h1>
           <div className="w-10" />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="premium-card rounded-3xl p-6"
-        >
+        <div className="bg-white rounded-2xl p-5 card-shadow">
           <div className="flex items-center gap-4">
             <div className={cn(
-              "w-14 h-14 rounded-2xl flex items-center justify-center border",
-              securityScore >= 75 
-                ? "bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border-emerald-500/20"
-                : securityScore >= 50
-                  ? "bg-gradient-to-br from-amber-500/20 to-amber-600/20 border-amber-500/20"
-                  : "bg-gradient-to-br from-red-500/20 to-red-600/20 border-red-500/20"
+              "w-14 h-14 rounded-2xl flex items-center justify-center",
+              securityScore >= 75 ? "bg-emerald-50" : securityScore >= 50 ? "bg-amber-50" : "bg-red-50"
             )}>
               <Shield className={cn(
                 "w-7 h-7",
-                securityScore >= 75 ? "text-emerald-400" : securityScore >= 50 ? "text-amber-400" : "text-red-400"
+                securityScore >= 75 ? "text-emerald-600" : securityScore >= 50 ? "text-amber-600" : "text-red-600"
               )} />
             </div>
             <div className="flex-1">
-              <h2 className="font-semibold text-lg">
+              <h2 className="font-semibold text-gray-900">
                 {securityScore >= 75 
-                  ? (isPortuguese ? "Conta Protegida" : "Account Protected")
+                  ? (isPortuguese ? "Conta Protegida" : "Protected")
                   : securityScore >= 50
                     ? (isPortuguese ? "Proteção Básica" : "Basic Protection")
-                    : (isPortuguese ? "Precisa de Atenção" : "Needs Attention")
+                    : (isPortuguese ? "Precisa Atenção" : "Needs Attention")
                 }
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-500">
                 {securityScore >= 75 
-                  ? (isPortuguese ? "Sua conta está bem protegida" : "Your account is well protected")
-                  : (isPortuguese ? "Ative mais opções para melhor segurança" : "Enable more options for better security")
+                  ? (isPortuguese ? "Sua conta está segura" : "Your account is secure")
+                  : (isPortuguese ? "Ative mais opções" : "Enable more options")
                 }
               </p>
             </div>
             <div className={cn(
-              "w-12 h-12 rounded-full flex items-center justify-center border",
-              securityScore >= 75 
-                ? "bg-emerald-500/10 border-emerald-500/20"
-                : securityScore >= 50
-                  ? "bg-amber-500/10 border-amber-500/20"
-                  : "bg-red-500/10 border-red-500/20"
+              "w-12 h-12 rounded-full flex items-center justify-center",
+              securityScore >= 75 ? "bg-emerald-50" : securityScore >= 50 ? "bg-amber-50" : "bg-red-50"
             )}>
               <span className={cn(
                 "font-bold text-sm",
-                securityScore >= 75 ? "text-emerald-400" : securityScore >= 50 ? "text-amber-400" : "text-red-400"
+                securityScore >= 75 ? "text-emerald-600" : securityScore >= 50 ? "text-amber-600" : "text-red-600"
               )}>{securityScore}%</span>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
-            {isPortuguese ? "Configurações de Segurança" : "Security Settings"}
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-1">
+            {isPortuguese ? "Configurações" : "Settings"}
           </h3>
 
-          <div className="space-y-2">
+          <div className="bg-white rounded-2xl card-shadow divide-y divide-gray-50">
             {securityItems.map((item, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="premium-card rounded-2xl p-4 hover:bg-white/[0.02] transition-all cursor-pointer"
+                className={cn(
+                  "flex items-center gap-4 p-4",
+                  item.type === "button" && "cursor-pointer hover:bg-gray-50"
+                )}
                 onClick={item.type === "button" ? item.action : undefined}
                 data-testid={`button-security-${index}`}
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center">
-                    <item.icon className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.description}</p>
-                  </div>
-                  {item.type === "toggle" ? (
-                    <Switch
-                      checked={item.value}
-                      onCheckedChange={item.action}
-                      disabled={updateSettingsMutation.isPending}
-                      data-testid={`switch-security-${index}`}
-                    />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  )}
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                  <item.icon className="w-5 h-5 text-gray-600" />
                 </div>
-              </motion.div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">{item.title}</p>
+                  <p className="text-sm text-gray-500">{item.description}</p>
+                </div>
+                {item.type === "toggle" ? (
+                  <Switch
+                    checked={item.value}
+                    onCheckedChange={item.action}
+                    disabled={updateSettingsMutation.isPending}
+                    data-testid={`switch-security-${index}`}
+                  />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                )}
+              </div>
             ))}
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
               {isPortuguese ? "Sessões Ativas" : "Active Sessions"}
             </h3>
             {sessions.length > 1 && (
               <button 
-                className="text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
-                onClick={handleLogoutAll}
+                className="text-xs text-red-500 hover:text-red-600 font-medium disabled:opacity-50"
+                onClick={() => logoutAllMutation.mutate()}
                 disabled={logoutAllMutation.isPending}
                 data-testid="button-logout-all"
               >
-                {logoutAllMutation.isPending ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  isPortuguese ? "Sair de Todas" : "Logout All"
-                )}
+                {logoutAllMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : (isPortuguese ? "Sair de Todas" : "Logout All")}
               </button>
             )}
           </div>
 
           {sessionsLoading ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
             </div>
           ) : sessions.length === 0 ? (
-            <div className="premium-card rounded-2xl p-6 text-center">
-              <p className="text-muted-foreground text-sm">
-                {isPortuguese ? "Nenhuma sessão ativa encontrada" : "No active sessions found"}
-              </p>
+            <div className="bg-white rounded-2xl p-6 card-shadow text-center">
+              <p className="text-gray-500">{isPortuguese ? "Nenhuma sessão" : "No sessions"}</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {sessions.map((session, index) => (
-                <motion.div
+            <div className="bg-white rounded-2xl card-shadow divide-y divide-gray-50">
+              {sessions.map((session) => (
+                <div
                   key={session.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.05 }}
                   className={cn(
-                    "premium-card rounded-2xl p-4",
-                    session.isCurrent && "border-primary/30 bg-primary/5"
+                    "flex items-center gap-4 p-4",
+                    session.isCurrent && "bg-primary/5"
                   )}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={cn(
-                      "w-11 h-11 rounded-xl flex items-center justify-center border",
-                      session.isCurrent 
-                        ? "bg-primary/10 border-primary/30 text-primary"
-                        : "bg-white/[0.04] border-white/[0.08] text-muted-foreground"
-                    )}>
-                      <Smartphone className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{session.deviceName || session.deviceType}</p>
-                        {session.isCurrent && (
-                          <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
-                            {isPortuguese ? "Este dispositivo" : "This device"}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <MapPin className="w-3 h-3" />
-                        <span>{session.location || session.ipAddress}</span>
-                        <span>•</span>
-                        <span>{formatLastActive(session.lastActiveAt)}</span>
-                      </div>
-                    </div>
-                    {!session.isCurrent && (
-                      <button
-                        onClick={() => handleLogoutSession(session.id)}
-                        disabled={deleteSessionMutation.isPending}
-                        className="w-9 h-9 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center transition-all border border-red-500/20 disabled:opacity-50"
-                        data-testid={`button-logout-session-${session.id}`}
-                      >
-                        {deleteSessionMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-red-400" />
-                        ) : (
-                          <LogOut className="w-4 h-4 text-red-400" />
-                        )}
-                      </button>
-                    )}
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center",
+                    session.isCurrent ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-600"
+                  )}>
+                    <Smartphone className="w-5 h-5" />
                   </div>
-                </motion.div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">{session.deviceName || session.deviceType}</p>
+                      {session.isCurrent && (
+                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                          {isPortuguese ? "Este" : "This"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <MapPin className="w-3 h-3" />
+                      <span>{session.location || session.ipAddress}</span>
+                      <span>•</span>
+                      <span>{formatLastActive(session.lastActiveAt)}</span>
+                    </div>
+                  </div>
+                  {!session.isCurrent && (
+                    <button
+                      onClick={() => deleteSessionMutation.mutate(session.id)}
+                      disabled={deleteSessionMutation.isPending}
+                      className="w-9 h-9 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors disabled:opacity-50"
+                      data-testid={`button-logout-session-${session.id}`}
+                    >
+                      {deleteSessionMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                      ) : (
+                        <LogOut className="w-4 h-4 text-red-500" />
+                      )}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -394,19 +355,19 @@ export default function Security() {
       </div>
 
       <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
+        <DialogContent className="bg-white border-0 rounded-3xl sm:max-w-md p-6">
           <DialogHeader>
-            <DialogTitle className="text-center font-display text-xl font-semibold">
+            <DialogTitle className="text-center text-xl font-semibold text-gray-900">
               {isPortuguese ? "Alterar Senha" : "Change Password"}
             </DialogTitle>
-            <DialogDescription className="text-center text-sm text-muted-foreground">
-              {isPortuguese ? "Digite sua senha atual e a nova senha" : "Enter your current and new password"}
+            <DialogDescription className="text-center text-sm text-gray-500">
+              {isPortuguese ? "Digite sua senha atual e a nova" : "Enter current and new password"}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 pt-4">
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground font-medium">
+              <label className="text-sm font-medium text-gray-700">
                 {isPortuguese ? "Senha Atual" : "Current Password"}
               </label>
               <div className="relative">
@@ -414,14 +375,14 @@ export default function Security() {
                   type={showCurrentPassword ? "text" : "password"}
                   value={passwords.current}
                   onChange={(e) => setPasswords(p => ({ ...p, current: e.target.value }))}
-                  className="w-full premium-input p-4 pr-12"
+                  className="w-full h-12 px-4 pr-12 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="••••••••"
                   data-testid="input-current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -429,7 +390,7 @@ export default function Security() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground font-medium">
+              <label className="text-sm font-medium text-gray-700">
                 {isPortuguese ? "Nova Senha" : "New Password"}
               </label>
               <div className="relative">
@@ -437,14 +398,14 @@ export default function Security() {
                   type={showNewPassword ? "text" : "password"}
                   value={passwords.new}
                   onChange={(e) => setPasswords(p => ({ ...p, new: e.target.value }))}
-                  className="w-full premium-input p-4 pr-12"
+                  className="w-full h-12 px-4 pr-12 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                   placeholder="••••••••"
                   data-testid="input-new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -452,14 +413,14 @@ export default function Security() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground font-medium">
+              <label className="text-sm font-medium text-gray-700">
                 {isPortuguese ? "Confirmar Senha" : "Confirm Password"}
               </label>
               <input
                 type="password"
                 value={passwords.confirm}
                 onChange={(e) => setPasswords(p => ({ ...p, confirm: e.target.value }))}
-                className="w-full premium-input p-4"
+                className="w-full h-12 px-4 border border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                 placeholder="••••••••"
                 data-testid="input-confirm-password"
               />
@@ -468,7 +429,7 @@ export default function Security() {
             <Button
               onClick={handlePasswordChange}
               disabled={changePasswordMutation.isPending}
-              className="w-full h-12 rounded-2xl premium-button"
+              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium"
               data-testid="button-change-password"
             >
               {changePasswordMutation.isPending ? (
@@ -480,6 +441,6 @@ export default function Security() {
           </div>
         </DialogContent>
       </Dialog>
-    </PageContainer>
+    </div>
   );
 }

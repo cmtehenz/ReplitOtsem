@@ -1,8 +1,6 @@
-import { PageContainer } from "@/components/page-container";
-import { ArrowLeft, Bell, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, Shield, CheckCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Bell, ArrowUpRight, ArrowDownLeft, RefreshCw, Shield, CheckCheck, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, getWebSocketToken, type Notification } from "@/lib/api";
 import { useLanguage } from "@/context/LanguageContext";
@@ -16,35 +14,15 @@ const translations: Record<"en" | "pt-BR", Record<string, string>> = {
     notifications: "Notifications",
     markAllRead: "Mark all read",
     noNotifications: "No notifications yet",
-    noMoreNotifications: "No more notifications",
+    noMoreNotifications: "End of notifications",
     loading: "Loading...",
-    depositCompleted: "Deposit Completed",
-    depositPending: "Deposit Pending",
-    depositFailed: "Deposit Failed",
-    withdrawalCompleted: "Withdrawal Completed",
-    withdrawalPending: "Withdrawal Processing",
-    withdrawalFailed: "Withdrawal Failed",
-    exchangeCompleted: "Exchange Completed",
-    exchangeFailed: "Exchange Failed",
-    securityAlert: "Security Alert",
-    system: "System",
   },
   "pt-BR": {
     notifications: "Notificações",
     markAllRead: "Marcar todas como lidas",
     noNotifications: "Nenhuma notificação ainda",
-    noMoreNotifications: "Não há mais notificações",
+    noMoreNotifications: "Fim das notificações",
     loading: "Carregando...",
-    depositCompleted: "Depósito Concluído",
-    depositPending: "Depósito Pendente",
-    depositFailed: "Depósito Falhou",
-    withdrawalCompleted: "Saque Concluído",
-    withdrawalPending: "Saque em Processamento",
-    withdrawalFailed: "Saque Falhou",
-    exchangeCompleted: "Troca Concluída",
-    exchangeFailed: "Troca Falhou",
-    securityAlert: "Alerta de Segurança",
-    system: "Sistema",
   },
 };
 
@@ -74,36 +52,31 @@ function getNotificationStyle(type: Notification["type"]) {
     case "withdrawal_completed":
     case "exchange_completed":
       return {
-        color: "text-green-500",
-        bg: "bg-green-500/10",
-        border: "border-green-500/20",
+        color: "text-emerald-600",
+        bg: "bg-emerald-50",
       };
     case "deposit_pending":
     case "withdrawal_pending":
       return {
-        color: "text-amber-500",
-        bg: "bg-amber-500/10",
-        border: "border-amber-500/20",
+        color: "text-amber-600",
+        bg: "bg-amber-50",
       };
     case "deposit_failed":
     case "withdrawal_failed":
     case "exchange_failed":
       return {
-        color: "text-red-500",
-        bg: "bg-red-500/10",
-        border: "border-red-500/20",
+        color: "text-red-600",
+        bg: "bg-red-50",
       };
     case "security_alert":
       return {
-        color: "text-yellow-500",
-        bg: "bg-yellow-500/10",
-        border: "border-yellow-500/20",
+        color: "text-yellow-600",
+        bg: "bg-yellow-50",
       };
     default:
       return {
         color: "text-primary",
         bg: "bg-primary/10",
-        border: "border-primary/20",
       };
   }
 }
@@ -209,36 +182,37 @@ export default function Notifications() {
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
-    <PageContainer>
-      <div className="p-6 flex flex-col h-full">
-        <div className="flex items-center justify-between mb-8 sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+    <div className="min-h-screen bg-background pb-8">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        <div className="flex items-center justify-between">
           <button
             data-testid="button-back"
             onClick={() => setLocation("/")}
-            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
+            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="font-display font-bold text-lg tracking-wide">
-            {t.notifications}
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-gray-900">
+              {t.notifications}
+            </h1>
             {unreadCount > 0 && (
-              <span className="ml-2 px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
+              <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full font-medium">
                 {unreadCount}
               </span>
             )}
-          </h1>
+          </div>
           <button
             data-testid="button-mark-all-read"
             onClick={() => markAllReadMutation.mutate()}
             disabled={markAllReadMutation.isPending || unreadCount === 0}
-            className="text-xs text-primary font-medium hover:text-primary/80 transition-colors uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            className="text-xs text-primary font-medium hover:text-primary/80 transition-colors uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
           >
             {markAllReadMutation.isPending ? (
               <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
-              <CheckCheck className="w-3 h-3" />
+              <CheckCheck className="w-3.5 h-3.5" />
             )}
-            <span className="hidden sm:inline">{t.markAllRead}</span>
           </button>
         </div>
 
@@ -248,81 +222,66 @@ export default function Notifications() {
           </div>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
-              <Bell className="w-10 h-10 text-muted-foreground" />
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+              <Bell className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-muted-foreground">{t.noNotifications}</p>
+            <p className="text-gray-500">{t.noNotifications}</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <AnimatePresence mode="popLayout">
-              {notifications.map((notification, index) => {
-                const Icon = getNotificationIcon(notification.type);
-                const style = getNotificationStyle(notification.type);
+          <div className="space-y-3">
+            {notifications.map((notification) => {
+              const Icon = getNotificationIcon(notification.type);
+              const style = getNotificationStyle(notification.type);
 
-                return (
-                  <motion.div
-                    key={notification.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    transition={{ delay: index * 0.05 }}
-                    onClick={() => handleNotificationClick(notification)}
-                    data-testid={`notification-item-${notification.id}`}
-                    className={cn(
-                      "relative p-5 rounded-3xl border transition-all duration-300 cursor-pointer group active:scale-[0.98]",
-                      notification.isRead
-                        ? "bg-card/40 border-white/5 hover:bg-card/60"
-                        : "bg-card/80 border-primary/30 hover:bg-card shadow-[0_0_20px_rgba(139,92,246,0.05)]"
-                    )}
-                  >
-                    {!notification.isRead && (
-                      <div className="absolute top-5 right-5 w-2.5 h-2.5 bg-primary rounded-full shadow-[0_0_10px_rgba(139,92,246,0.8)] animate-pulse" />
-                    )}
+              return (
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  data-testid={`notification-item-${notification.id}`}
+                  className={cn(
+                    "relative bg-white rounded-2xl p-4 card-shadow cursor-pointer transition-all hover:shadow-md",
+                    !notification.isRead && "ring-1 ring-primary/20"
+                  )}
+                >
+                  {!notification.isRead && (
+                    <div className="absolute top-4 right-4 w-2 h-2 bg-primary rounded-full" />
+                  )}
 
-                    <div className="flex gap-5">
-                      <div
-                        className={cn(
-                          "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border",
-                          style.bg,
-                          style.color,
-                          style.border
-                        )}
-                      >
-                        <Icon className="w-6 h-6" />
-                      </div>
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        <h3
-                          className={cn(
-                            "font-bold text-base font-display truncate",
-                            !notification.isRead ? "text-white" : "text-muted-foreground"
-                          )}
-                        >
-                          {notification.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-white/80 transition-colors">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-muted-foreground/50 font-medium pt-1 flex items-center gap-1">
-                          {formatTime(notification.createdAt)}
-                        </p>
-                      </div>
+                  <div className="flex gap-4">
+                    <div className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                      style.bg,
+                      style.color
+                    )}>
+                      <Icon className="w-5 h-5" />
                     </div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <h3 className={cn(
+                        "font-medium text-sm truncate",
+                        !notification.isRead ? "text-gray-900" : "text-gray-600"
+                      )}>
+                        {notification.title}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-400 pt-1">
+                        {formatTime(notification.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
 
-            <div className="pt-12 text-center pb-8">
-              <div className="w-16 h-1 bg-white/10 rounded-full mx-auto mb-4" />
-              <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">
+            <div className="pt-8 text-center">
+              <p className="text-xs text-gray-400 uppercase tracking-wider font-medium">
                 {t.noMoreNotifications}
               </p>
             </div>
           </div>
         )}
       </div>
-    </PageContainer>
+    </div>
   );
 }

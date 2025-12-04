@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { PageContainer } from "@/components/page-container";
 import { ArrowLeft, ShieldCheck, Upload, Camera, FileCheck, Clock, CheckCircle2, AlertCircle, ChevronRight, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -131,21 +129,21 @@ export default function KYCVerification() {
     switch (kyc.status) {
       case "approved":
         return (
-          <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded-full text-xs font-medium border border-emerald-500/20">
+          <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {isPortuguese ? "Verificado" : "Verified"}
           </div>
         );
       case "in_review":
         return (
-          <div className="flex items-center gap-2 bg-amber-500/10 text-amber-400 px-3 py-1.5 rounded-full text-xs font-medium border border-amber-500/20">
+          <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full text-xs font-medium">
             <Clock className="w-3.5 h-3.5" />
             {isPortuguese ? "Em Análise" : "In Review"}
           </div>
         );
       case "rejected":
         return (
-          <div className="flex items-center gap-2 bg-red-500/10 text-red-400 px-3 py-1.5 rounded-full text-xs font-medium border border-red-500/20">
+          <div className="flex items-center gap-1.5 bg-red-50 text-red-600 px-2.5 py-1 rounded-full text-xs font-medium">
             <AlertCircle className="w-3.5 h-3.5" />
             {isPortuguese ? "Rejeitado" : "Rejected"}
           </div>
@@ -161,100 +159,90 @@ export default function KYCVerification() {
 
   if (isLoading) {
     return (
-      <PageContainer>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </PageContainer>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <PageContainer>
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-background pb-8">
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <button 
             onClick={() => setLocation("/profile")}
-            className="w-10 h-10 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all border border-white/[0.06]"
+            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
             data-testid="button-back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="font-display font-bold text-lg tracking-wide">
+          <h1 className="text-lg font-semibold text-gray-900">
             {isPortuguese ? "Verificação KYC" : "KYC Verification"}
           </h1>
-          <div className="w-10">{getStatusBadge()}</div>
+          <div className="w-10 flex justify-end">{getStatusBadge()}</div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="premium-card rounded-3xl p-6 space-y-4"
-        >
+        <div className="bg-white rounded-2xl p-5 card-shadow">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border border-primary/20">
-              <ShieldCheck className="w-7 h-7 text-primary" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1">
-              <h2 className="font-semibold text-lg">
+              <h2 className="font-semibold text-gray-900">
                 {isPortuguese ? "Verificação de Identidade" : "Identity Verification"}
               </h2>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-500">
                 {isApproved 
                   ? (isPortuguese ? "Sua conta está verificada!" : "Your account is verified!")
                   : isInReview
                     ? (isPortuguese ? "Seus documentos estão em análise" : "Your documents are under review")
-                    : (isPortuguese ? "Verifique sua identidade para aumentar seus limites" : "Verify your identity to increase your limits")
+                    : (isPortuguese ? "Verifique para aumentar limites" : "Verify to increase limits")
                 }
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 pt-2">
-            <div className="text-center p-3 rounded-xl bg-white/[0.03]">
+          <div className="grid grid-cols-3 gap-3 mt-5">
+            <div className="text-center p-3 rounded-xl bg-gray-50">
               <p className="text-lg font-bold text-primary">R$ 50k</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                 {isPortuguese ? "Limite Mensal" : "Monthly Limit"}
               </p>
             </div>
-            <div className="text-center p-3 rounded-xl bg-white/[0.03]">
-              <p className="text-lg font-bold text-emerald-400">R$ 10k</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            <div className="text-center p-3 rounded-xl bg-gray-50">
+              <p className="text-lg font-bold text-emerald-600">R$ 10k</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                 {isPortuguese ? "Por Transação" : "Per Transaction"}
               </p>
             </div>
-            <div className="text-center p-3 rounded-xl bg-white/[0.03]">
+            <div className="text-center p-3 rounded-xl bg-gray-50">
               <p className="text-lg font-bold text-accent">24h</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                 {isPortuguese ? "Aprovação" : "Approval"}
               </p>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {kyc?.status === "rejected" && kyc.rejectionReason && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="premium-card rounded-2xl p-4 border-red-500/30 bg-red-500/5"
-          >
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
               <div>
-                <p className="font-medium text-sm text-red-400">
+                <p className="font-medium text-sm text-red-600">
                   {isPortuguese ? "Motivo da Rejeição" : "Rejection Reason"}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-red-600/80 mt-1">
                   {kyc.rejectionReason}
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {!isApproved && !isInReview && (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-1">
               {isPortuguese ? "Passos de Verificação" : "Verification Steps"}
             </h3>
 
@@ -262,24 +250,21 @@ export default function KYCVerification() {
               {steps.map((step, index) => {
                 const status = getStepStatus(index);
                 return (
-                  <motion.div
+                  <div
                     key={step.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
                     className={cn(
-                      "premium-card rounded-2xl p-4 transition-all",
-                      status === "current" && "border-primary/30 bg-primary/5"
+                      "bg-white rounded-2xl p-4 card-shadow transition-all",
+                      status === "current" && "ring-1 ring-primary/30"
                     )}
                   >
                     <div className="flex items-center gap-4">
                       <div className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center border transition-all",
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
                         status === "completed" 
-                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                          ? "bg-emerald-50 text-emerald-600"
                           : status === "current"
-                            ? "bg-primary/10 border-primary/30 text-primary"
-                            : "bg-white/[0.04] border-white/[0.08] text-muted-foreground"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-gray-100 text-gray-400"
                       )}>
                         {status === "completed" ? (
                           <FileCheck className="w-5 h-5" />
@@ -290,11 +275,11 @@ export default function KYCVerification() {
                       <div className="flex-1">
                         <p className={cn(
                           "font-medium text-sm",
-                          status === "completed" && "text-emerald-400"
+                          status === "completed" ? "text-emerald-600" : "text-gray-900"
                         )}>
                           {isPortuguese ? step.titlePt : step.title}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500">
                           {isPortuguese ? step.descriptionPt : step.description}
                         </p>
                       </div>
@@ -303,7 +288,7 @@ export default function KYCVerification() {
                           size="sm"
                           onClick={() => handleUpload(step.docKey)}
                           disabled={uploadMutation.isPending}
-                          className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-xs"
+                          className="bg-primary hover:bg-primary/90 text-white text-xs h-8"
                           data-testid={`button-upload-step-${index}`}
                         >
                           {uploadMutation.isPending ? (
@@ -317,10 +302,10 @@ export default function KYCVerification() {
                         </Button>
                       )}
                       {status === "completed" && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
@@ -328,16 +313,11 @@ export default function KYCVerification() {
         )}
 
         {!isApproved && !isInReview && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="pt-4"
-          >
+          <div className="pt-4">
             <Button
               onClick={handleSubmit}
               disabled={!allUploaded || submitMutation.isPending}
-              className="w-full h-14 rounded-2xl premium-button text-base"
+              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium"
               data-testid="button-submit-kyc"
             >
               {submitMutation.isPending ? (
@@ -350,50 +330,42 @@ export default function KYCVerification() {
               )}
             </Button>
             
-            <p className="text-xs text-center text-muted-foreground mt-4">
+            <p className="text-xs text-center text-gray-500 mt-4">
               {isPortuguese 
                 ? "Seus dados são criptografados e protegidos" 
                 : "Your data is encrypted and protected"}
             </p>
-          </motion.div>
+          </div>
         )}
 
         {isInReview && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="premium-card rounded-3xl p-6 text-center"
-          >
-            <Clock className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2">
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 text-center">
+            <Clock className="w-10 h-10 text-amber-500 mx-auto mb-4" />
+            <h3 className="font-semibold text-lg text-gray-900 mb-2">
               {isPortuguese ? "Análise em Andamento" : "Review in Progress"}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-600">
               {isPortuguese 
                 ? "Seus documentos estão sendo analisados. Você será notificado quando o processo for concluído."
                 : "Your documents are being reviewed. You'll be notified when the process is complete."}
             </p>
-          </motion.div>
+          </div>
         )}
 
         {isApproved && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="premium-card rounded-3xl p-6 text-center border-emerald-500/30"
-          >
-            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg mb-2 text-emerald-400">
+          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center">
+            <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
+            <h3 className="font-semibold text-lg text-emerald-600 mb-2">
               {isPortuguese ? "Verificação Aprovada!" : "Verification Approved!"}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-600">
               {isPortuguese 
                 ? "Sua conta está totalmente verificada. Aproveite todos os recursos!"
                 : "Your account is fully verified. Enjoy all features!"}
             </p>
-          </motion.div>
+          </div>
         )}
       </div>
-    </PageContainer>
+    </div>
   );
 }

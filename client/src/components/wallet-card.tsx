@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Wallet } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getWallets, getRates } from "@/lib/api";
@@ -8,8 +7,9 @@ import { useLanguage } from "@/context/LanguageContext";
 export function WalletCard() {
   const [isVisible, setIsVisible] = useState(true);
   const { t } = useLanguage();
+  const isPortuguese = t("nav.home") === "Início";
   
-  const { data: wallets } = useQuery({
+  const { data: wallets, isLoading } = useQuery({
     queryKey: ["wallets"],
     queryFn: () => getWallets(),
   });
@@ -21,79 +21,58 @@ export function WalletCard() {
   });
 
   const calculateTotalBalance = () => {
-    if (!wallets) return "0,00";
+    if (!wallets) return 0;
     
-    const usdtRate = rates?.usdtBrl?.sell;
+    const usdtRate = rates?.usdtBrl?.sell || 6.0;
     
     let total = 0;
-    let hasUnknownRate = false;
-    
     wallets.forEach(wallet => {
       const balance = parseFloat(wallet.balance);
       if (wallet.currency === "BRL") {
         total += balance;
-      } else if (wallet.currency === "USDT" && usdtRate) {
+      } else if (wallet.currency === "USDT") {
         total += balance * usdtRate;
-      } else if (wallet.currency === "USDT" && !usdtRate) {
-        hasUnknownRate = true;
-      } else if (wallet.currency === "BTC" && balance > 0) {
-        hasUnknownRate = true;
       }
     });
     
-    if (hasUnknownRate && total === 0) {
-      return null;
-    }
-    
-    return total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return total;
   };
 
   const totalBalance = calculateTotalBalance();
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="relative w-full overflow-hidden"
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/10 rounded-[28px] blur-xl opacity-60" />
-      
-      <div className="relative premium-card rounded-[28px] p-7">
-        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-        
-        <div className="flex justify-between items-start mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/25 to-primary/10 flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(139,92,246,0.15)]">
-              <Wallet className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-[0.12em]">
-                {t("wallet.total") || "Total Balance"}
-              </span>
-            </div>
-          </div>
-          <button 
-            onClick={() => setIsVisible(!isVisible)}
-            className="w-9 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all duration-200 border border-white/[0.06]"
-            data-testid="button-toggle-balance"
-          >
-            {isVisible ? <Eye className="w-4 h-4 text-muted-foreground" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
-          </button>
-        </div>
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+    }).format(value);
+  };
 
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <h1 className="text-[38px] font-display font-bold tracking-tight text-foreground leading-none" data-testid="text-total-balance">
-              {isVisible 
-                ? (totalBalance ? `R$ ${totalBalance}` : "—") 
-                : "••••••••"}
-            </h1>
-          </div>
-        </div>
-        
-        <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+  return (
+    <div className="bg-white rounded-2xl p-6 card-shadow">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-gray-500 font-medium">
+          {isPortuguese ? "Saldo disponível" : "Available balance"}
+        </span>
+        <button
+          onClick={() => setIsVisible(!isVisible)}
+          className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors"
+          data-testid="button-toggle-balance"
+        >
+          {isVisible ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+        </button>
       </div>
-    </motion.div>
+
+      {isLoading ? (
+        <div className="h-12 w-48 bg-gray-100 rounded-lg animate-pulse" />
+      ) : (
+        <h2 
+          className="text-4xl font-semibold text-gray-900 tracking-tight balance-text" 
+          data-testid="text-total-balance"
+        >
+          {isVisible ? formatCurrency(totalBalance) : "R$ ••••••"}
+        </h2>
+      )}
+    </div>
   );
 }

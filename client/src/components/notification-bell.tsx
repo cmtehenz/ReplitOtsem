@@ -86,15 +86,15 @@ export function NotificationBell({ className }: NotificationBellProps) {
   return (
     <button
       className={cn(
-        "w-10 h-10 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] flex items-center justify-center transition-all duration-200 border border-white/[0.06] hover:border-white/[0.12] relative group",
+        "w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors relative",
         className
       )}
       onClick={() => setLocation("/notifications")}
       data-testid="button-notifications"
     >
-      <Bell className="w-[18px] h-[18px] text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+      <Bell className="w-5 h-5" />
       {unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background shadow-[0_0_8px_rgba(139,92,246,0.5)]">
+        <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       )}
