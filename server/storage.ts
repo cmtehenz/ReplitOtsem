@@ -29,6 +29,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   upsertSocialUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string; onboardingComplete?: boolean }): Promise<User>;
+  updateUserPassword(id: string, newPasswordHash: string): Promise<void>;
   validatePassword(user: User, password: string): Promise<boolean>;
   
   // Wallets
@@ -207,6 +208,12 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User not found");
     }
     return result[0];
+  }
+
+  async updateUserPassword(id: string, newPasswordHash: string): Promise<void> {
+    await db.update(users)
+      .set({ password: newPasswordHash })
+      .where(eq(users.id, id));
   }
 
   // Wallets

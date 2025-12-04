@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BottomNav } from "@/components/bottom-nav";
-import { BarChart3, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, Calendar, ChevronDown } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft, Calendar, ChevronDown, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
 import { useQuery } from "@tanstack/react-query";
-import { getTransactions, getWallets } from "@/lib/api";
+import { getTransactions, getWallets, type Transaction } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Period = "week" | "month" | "year";
@@ -14,62 +14,111 @@ export default function Stats() {
   const isPortuguese = t("nav.home") === "Início";
   const [period, setPeriod] = useState<Period>("month");
 
-  const { data: transactions } = useQuery({
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery({
     queryKey: ["transactions"],
     queryFn: () => getTransactions(),
   });
 
-  const { data: wallets } = useQuery({
+  const { data: wallets = [], isLoading: walletsLoading } = useQuery({
     queryKey: ["wallets"],
     queryFn: () => getWallets(),
   });
 
-  const calculateStats = () => {
-    if (!transactions) return { income: 0, expenses: 0, exchanges: 0 };
+  const filterTransactionsByPeriod = (txs: Transaction[], p: Period): Transaction[] => {
+    const now = new Date();
+    let startDate: Date;
 
+    switch (p) {
+      case "week":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "month":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case "year":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+    }
+
+    return txs.filter(tx => new Date(tx.createdAt) >= startDate);
+  };
+
+  const calculateStats = useMemo(() => {
+    const filteredTxs = filterTransactionsByPeriod(transactions, period);
+    
     let income = 0;
     let expenses = 0;
     let exchanges = 0;
 
-    transactions.forEach(tx => {
+    filteredTxs.forEach(tx => {
       if (tx.type === "deposit" && tx.toAmount) {
         income += parseFloat(tx.toAmount);
       } else if (tx.type === "withdrawal" && tx.fromAmount) {
         expenses += parseFloat(tx.fromAmount);
-      } else if (tx.type === "exchange" && tx.toAmount) {
+      } else if (tx.type === "exchange") {
         exchanges += 1;
       }
     });
 
     return { income, expenses, exchanges };
-  };
+  }, [transactions, period]);
 
-  const stats = calculateStats();
-  const netFlow = stats.income - stats.expenses;
+  const weeklyData = useMemo(() => {
+    const now = new Date();
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const daysPt = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    
+    const result = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(now.getTime() - (6 - i) * 24 * 60 * 60 * 1000);
+      return {
+        day: isPortuguese ? daysPt[date.getDay()] : days[date.getDay()],
+        date: date.toISOString().split("T")[0],
+        income: 0,
+        expense: 0,
+      };
+    });
+
+    transactions.forEach(tx => {
+      const txDate = new Date(tx.createdAt).toISOString().split("T")[0];
+      const dayData = result.find(d => d.date === txDate);
+      
+      if (dayData) {
+        if (tx.type === "deposit" && tx.toAmount) {
+          dayData.income += parseFloat(tx.toAmount);
+        } else if (tx.type === "withdrawal" && tx.fromAmount) {
+          dayData.expense += parseFloat(tx.fromAmount);
+        }
+      }
+    });
+
+    return result;
+  }, [transactions, isPortuguese]);
+
+  const maxValue = Math.max(...weeklyData.map(d => Math.max(d.income, d.expense)), 100);
+
+  const netFlow = calculateStats.income - calculateStats.expenses;
 
   const categories = [
-    { name: isPortuguese ? "Depósitos" : "Deposits", amount: stats.income, color: "bg-emerald-500", icon: ArrowDownLeft },
-    { name: isPortuguese ? "Saques" : "Withdrawals", amount: stats.expenses, color: "bg-red-500", icon: ArrowUpRight },
-    { name: isPortuguese ? "Trocas" : "Exchanges", amount: stats.exchanges, color: "bg-primary", icon: BarChart3, isCount: true },
+    { name: isPortuguese ? "Depósitos" : "Deposits", amount: calculateStats.income, color: "bg-emerald-500", icon: ArrowDownLeft },
+    { name: isPortuguese ? "Saques" : "Withdrawals", amount: calculateStats.expenses, color: "bg-red-500", icon: ArrowUpRight },
+    { name: isPortuguese ? "Trocas" : "Exchanges", amount: calculateStats.exchanges, color: "bg-primary", icon: BarChart3, isCount: true },
   ];
-
-  const weeklyData = [
-    { day: "Mon", income: 150, expense: 45 },
-    { day: "Tue", income: 0, expense: 120 },
-    { day: "Wed", income: 300, expense: 80 },
-    { day: "Thu", income: 50, expense: 200 },
-    { day: "Fri", income: 0, expense: 60 },
-    { day: "Sat", income: 100, expense: 30 },
-    { day: "Sun", income: 0, expense: 15 },
-  ];
-
-  const maxValue = Math.max(...weeklyData.map(d => Math.max(d.income, d.expense)));
 
   const periodLabels = {
     week: isPortuguese ? "Esta Semana" : "This Week",
     month: isPortuguese ? "Este Mês" : "This Month",
     year: isPortuguese ? "Este Ano" : "This Year",
   };
+
+  const isLoading = transactionsLoading || walletsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-otsem-gradient text-foreground pb-32 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
@@ -131,7 +180,7 @@ export default function Stats() {
                 </span>
               </div>
               <p className="text-lg font-bold text-emerald-400">
-                R$ {stats.income.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {calculateStats.income.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="bg-red-500/10 rounded-xl p-3 border border-red-500/20">
@@ -142,7 +191,7 @@ export default function Stats() {
                 </span>
               </div>
               <p className="text-lg font-bold text-red-400">
-                R$ {stats.expenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R$ {calculateStats.expenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
@@ -230,7 +279,7 @@ export default function Stats() {
                 <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min((category.amount / (stats.income || 1)) * 100, 100)}%` }}
+                    animate={{ width: `${Math.min((category.amount / (calculateStats.income || 1)) * 100, 100)}%` }}
                     transition={{ delay: 0.4 + index * 0.1, duration: 0.5 }}
                     className={cn("h-full rounded-full", category.color)}
                   />
@@ -250,47 +299,55 @@ export default function Stats() {
             {isPortuguese ? "Carteiras" : "Wallets"}
           </h2>
 
-          <div className="space-y-2">
-            {wallets?.map((wallet, index) => {
-              const balance = parseFloat(wallet.balance);
-              const colors: Record<string, string> = {
-                BRL: "emerald",
-                USDT: "teal",
-                BTC: "orange",
-              };
-              const color = colors[wallet.currency] || "primary";
+          {wallets.length === 0 ? (
+            <div className="premium-card rounded-2xl p-6 text-center">
+              <p className="text-muted-foreground text-sm">
+                {isPortuguese ? "Nenhuma carteira encontrada" : "No wallets found"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {wallets.map((wallet, index) => {
+                const balance = parseFloat(wallet.balance);
+                const colors: Record<string, string> = {
+                  BRL: "emerald",
+                  USDT: "teal",
+                  BTC: "orange",
+                };
+                const color = colors[wallet.currency] || "primary";
 
-              return (
-                <motion.div
-                  key={wallet.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.05 }}
-                  className="premium-card rounded-2xl p-4 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm border",
-                      `bg-${color}-500/10 border-${color}-500/20 text-${color}-400`
-                    )}>
-                      {wallet.currency === "BRL" ? "R$" : wallet.currency === "BTC" ? "₿" : "T"}
+                return (
+                  <motion.div
+                    key={wallet.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.05 }}
+                    className="premium-card rounded-2xl p-4 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm border",
+                        `bg-${color}-500/10 border-${color}-500/20 text-${color}-400`
+                      )}>
+                        {wallet.currency === "BRL" ? "R$" : wallet.currency === "BTC" ? "₿" : "T"}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{wallet.currency}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {wallet.currency === "BRL" ? "Brazilian Real" : wallet.currency === "USDT" ? "Tether" : "Bitcoin"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{wallet.currency}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {wallet.currency === "BRL" ? "Brazilian Real" : wallet.currency === "USDT" ? "Tether" : "Bitcoin"}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="font-bold text-sm">
-                    {wallet.currency === "BRL" 
-                      ? `R$ ${balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                      : balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: wallet.currency === "BTC" ? 8 : 2 })}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
+                    <p className="font-bold text-sm">
+                      {wallet.currency === "BRL" 
+                        ? `R$ ${balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                        : balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: wallet.currency === "BTC" ? 8 : 2 })}
+                    </p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
         </motion.div>
       </div>
 

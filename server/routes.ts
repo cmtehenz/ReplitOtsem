@@ -13,6 +13,7 @@ import passport from "passport";
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 import memoize from "memoizee";
+import bcrypt from "bcrypt";
 import {
   getExchangeRates,
   getUsdtBrlRate,
@@ -1239,6 +1240,40 @@ export async function registerRoutes(
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update security settings" });
+    }
+  });
+
+  // Change password
+  app.post("/api/security/change-password", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current and new password required" });
+      }
+      
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user || !user.password) {
+        return res.status(400).json({ error: "Password change not available for this account" });
+      }
+      
+      const isValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+      
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUserPassword(userId, newPasswordHash);
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Password change error:", error);
+      res.status(500).json({ error: "Failed to change password" });
     }
   });
 

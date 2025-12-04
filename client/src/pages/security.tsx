@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSecuritySettings, updateSecuritySettings, getSessions, deleteSession, logoutAllSessions, type SecuritySettings, type ActiveSession } from "@/lib/api";
+import { getSecuritySettings, updateSecuritySettings, getSessions, deleteSession, logoutAllSessions, changePassword, type SecuritySettings, type ActiveSession } from "@/lib/api";
 
 export default function Security() {
   const [, setLocation] = useLocation();
@@ -70,6 +70,19 @@ export default function Security() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => 
+      changePassword(currentPassword, newPassword),
+    onSuccess: () => {
+      toast.success(isPortuguese ? "Senha alterada com sucesso!" : "Password changed successfully!");
+      setPasswordDialogOpen(false);
+      setPasswords({ current: "", new: "", confirm: "" });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
   const toggleSetting = (key: keyof Pick<SecuritySettings, "twoFactorEnabled" | "biometricEnabled" | "loginAlertsEnabled" | "transactionAlertsEnabled">) => {
     if (!settings) return;
     const newValue = !settings[key];
@@ -89,9 +102,10 @@ export default function Security() {
       toast.error(isPortuguese ? "Mínimo 8 caracteres" : "Minimum 8 characters");
       return;
     }
-    toast.success(isPortuguese ? "Senha alterada com sucesso!" : "Password changed successfully!");
-    setPasswordDialogOpen(false);
-    setPasswords({ current: "", new: "", confirm: "" });
+    changePasswordMutation.mutate({
+      currentPassword: passwords.current,
+      newPassword: passwords.new,
+    });
   };
 
   const handleLogoutSession = (sessionId: string) => {
@@ -453,10 +467,15 @@ export default function Security() {
 
             <Button
               onClick={handlePasswordChange}
+              disabled={changePasswordMutation.isPending}
               className="w-full h-12 rounded-2xl premium-button"
               data-testid="button-change-password"
             >
-              {isPortuguese ? "Alterar Senha" : "Change Password"}
+              {changePasswordMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                isPortuguese ? "Alterar Senha" : "Change Password"
+              )}
             </Button>
           </div>
         </DialogContent>
