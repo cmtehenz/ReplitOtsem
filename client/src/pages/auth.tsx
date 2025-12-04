@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
-import { Eye, EyeOff, ArrowRight, Loader2, Chrome, Github, Apple, Mail } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, Chrome, Apple, Mail } from "lucide-react";
 import { redirectToSocialLogin } from "@/lib/api";
 import logo from "@assets/Untitled_1764830265098.png";
 
@@ -123,17 +123,6 @@ export default function AuthPage() {
                   >
                     <Chrome className="w-5 h-5 mr-3" />
                     {t("auth.continueWithGoogle")}
-                  </Button>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full h-12 text-base rounded-xl bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handleSocialLogin}
-                    data-testid="button-github-login"
-                  >
-                    <Github className="w-5 h-5 mr-3" />
-                    {t("auth.continueWithGitHub")}
                   </Button>
                   
                   <Button
