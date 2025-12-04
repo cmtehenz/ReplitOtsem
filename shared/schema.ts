@@ -140,7 +140,6 @@ export const pixDeposits = pgTable("pix_deposits", {
 export const insertPixDepositSchema = createInsertSchema(pixDeposits).omit({ 
   id: true, 
   createdAt: true,
-  paidAt: true,
   transactionId: true,
   endToEndId: true,
   pixCopiaECola: true,

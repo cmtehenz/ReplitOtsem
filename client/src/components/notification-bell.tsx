@@ -15,15 +15,24 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousCountRef = useRef<number>(0);
   const { user } = useAuth();
 
   const { data: unreadData } = useQuery({
     queryKey: ["unreadNotificationCount"],
     queryFn: getUnreadNotificationCount,
-    refetchInterval: 30000,
+    refetchInterval: 15000,
   });
 
   const unreadCount = unreadData?.count || 0;
+
+  useEffect(() => {
+    if (unreadCount > previousCountRef.current) {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    }
+    previousCountRef.current = unreadCount;
+  }, [unreadCount, queryClient]);
 
   const connect = useCallback(async () => {
     if (!user?.id) return;
