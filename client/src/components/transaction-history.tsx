@@ -50,8 +50,8 @@ export function TransactionHistory() {
   return (
     <div className="space-y-2 pb-20">
       <div className="flex items-center justify-between px-1 mb-2">
-        <h3 className="text-lg font-medium tracking-tight">Recent Activity</h3>
-        <button className="text-sm text-primary hover:text-primary/80 font-medium transition-colors">View all</button>
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Recent Activity</h3>
+        <button className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">View all</button>
       </div>
 
       <div className="space-y-1">
@@ -72,14 +72,14 @@ export function TransactionHistory() {
               </div>
               
               <div className="space-y-0.5">
-                <h4 className="font-medium text-base text-white">{tx.title}</h4>
+                <h4 className="font-bold text-sm text-white">{tx.title}</h4>
                 <span className="text-xs text-muted-foreground block">{format(tx.date, "MMM d, HH:mm")}</span>
               </div>
             </div>
             
             <div className="text-right">
               <span className={cn(
-                "font-medium text-base tracking-wide", 
+                "font-bold text-sm tracking-wide", 
                 tx.amount.startsWith("+") ? "text-green-400" : "text-white"
               )}>
                 {tx.amount}

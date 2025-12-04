@@ -35,7 +35,7 @@ export function AssetList() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1 mb-2">
-        <h3 className="text-lg font-medium tracking-tight">Assets</h3>
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Assets</h3>
       </div>
       
       <div className="space-y-1">
@@ -55,13 +55,13 @@ export function AssetList() {
                 {asset.icon}
               </div>
               <div>
-                <div className="font-medium text-base text-white">{asset.name}</div>
+                <div className="font-bold text-sm text-white">{asset.name}</div>
                 <div className="text-xs text-muted-foreground font-medium">{asset.price}</div>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="font-medium text-base text-white">{asset.balance}</div>
+              <div className="font-bold text-sm text-white">{asset.balance}</div>
               <div className="text-xs text-muted-foreground">{asset.symbol}</div>
             </div>
           </motion.div>
