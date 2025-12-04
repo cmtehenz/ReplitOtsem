@@ -101,15 +101,15 @@ export default function ReferralProgram() {
               <Button 
                 onClick={handleCopy}
                 className={cn(
-                  "h-auto px-6 rounded-2xl transition-all w-20",
-                  copied ? "bg-green-500 text-white" : "bg-white/10 text-white hover:bg-white/20"
+                  "h-14 px-6 rounded-2xl transition-all w-20 font-bold shadow-lg hover:shadow-xl",
+                  copied ? "bg-green-500 text-white shadow-green-500/25 hover:shadow-green-500/40" : "bg-white/10 text-white hover:bg-white/20 shadow-white/10"
                 )}
               >
-                {copied ? <Check className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
+                {copied ? <Check className="w-7 h-7" /> : <Copy className="w-7 h-7" />}
               </Button>
             </div>
-            <Button className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl font-bold text-lg shadow-lg shadow-primary/20">
-              <Share2 className="w-5 h-5 mr-2" />
+            <Button className="w-full h-16 bg-gradient-to-r from-primary to-[#7c3aed] text-white hover:shadow-lg hover:shadow-primary/30 rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95">
+              <Share2 className="w-6 h-6 mr-2" />
               Invite Friends
             </Button>
           </div>
@@ -120,8 +120,8 @@ export default function ReferralProgram() {
               <h3 className="font-display font-bold text-lg">Recent Earnings</h3>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="rounded-xl border-primary/20 text-primary hover:bg-primary/10 hover:text-primary font-bold h-9">
-                    Withdraw <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
+                  <Button size="sm" variant="outline" className="rounded-xl border-primary/30 text-primary hover:bg-primary/15 hover:text-primary font-bold h-12 px-4 shadow-lg shadow-primary/10 hover:shadow-xl hover:shadow-primary/20 transition-all">
+                    Withdraw <ArrowUpRight className="w-4 h-4 ml-2" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-card border-white/10 rounded-3xl">
@@ -136,7 +136,7 @@ export default function ReferralProgram() {
                     <p className="text-sm text-muted-foreground leading-relaxed text-center">
                       Minimum withdrawal amount is R$ 50,00. Funds are sent to your main wallet instantly.
                     </p>
-                    <Button className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-bold text-lg">Confirm Withdrawal</Button>
+                    <Button className="w-full h-14 bg-gradient-to-r from-primary to-[#7c3aed] text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-95">Confirm Withdrawal</Button>
                   </div>
                 </DialogContent>
               </Dialog>

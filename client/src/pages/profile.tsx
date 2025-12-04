@@ -71,10 +71,10 @@ export default function Profile() {
 
         <Button 
           variant="outline" 
-          className="w-full h-14 text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 mt-4 rounded-2xl font-bold text-base transition-all hover:shadow-[0_0_20px_rgba(239,68,68,0.1)]"
+          className="w-full h-16 text-red-400 border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:text-red-400 hover:border-red-500/50 mt-6 rounded-2xl font-bold text-lg transition-all hover:shadow-lg hover:shadow-red-500/20 active:scale-95"
           onClick={() => window.location.href = "/auth"}
         >
-          <LogOut className="w-5 h-5 mr-2" />
+          <LogOut className="w-6 h-6 mr-2" />
           Sign Out
         </Button>
       </div>
@@ -88,20 +88,20 @@ function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: str
   return (
     <button 
       onClick={onClick}
-      className="w-full flex items-center justify-between p-4 bg-card/40 hover:bg-card/60 border border-white/5 rounded-2xl transition-all duration-300 group active:scale-[0.99]"
+      className="w-full flex items-center justify-between p-5 bg-card/40 hover:bg-card/70 border border-white/10 rounded-3xl transition-all duration-300 group active:scale-[0.98] shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10"
     >
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/20">
-          <Icon className="w-5 h-5" />
+      <div className="flex items-center gap-5">
+        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
+          <Icon className="w-6 h-6" />
         </div>
-        <span className="font-medium text-base">{label}</span>
+        <span className="font-bold text-lg">{label}</span>
         {badge && (
-          <span className="text-[10px] bg-primary/20 text-primary px-2.5 py-1 rounded-full font-bold uppercase tracking-wide animate-pulse border border-primary/20">
+          <span className="text-[11px] bg-primary/20 text-primary px-3 py-1.5 rounded-full font-extrabold uppercase tracking-wider animate-pulse border border-primary/30 shadow-lg shadow-primary/20">
             {badge}
           </span>
         )}
       </div>
-      <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform group-hover:text-primary" />
+      <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:translate-x-2 transition-transform group-hover:text-primary" />
     </button>
   );
 }

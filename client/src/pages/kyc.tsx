@@ -235,7 +235,7 @@ export default function KYCVerification() {
           <div className="mt-auto w-full max-w-md mx-auto pt-8">
             <Button 
               onClick={step === "success" ? () => setLocation("/profile") : handleNext}
-              className="w-full h-14 text-lg rounded-2xl font-bold shadow-lg shadow-primary/20"
+              className="w-full h-16 text-lg rounded-2xl font-bold shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-[#7c3aed] text-white hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] transition-all active:scale-95"
               disabled={isUploading}
             >
               {step === "intro" && "Start Verification"}

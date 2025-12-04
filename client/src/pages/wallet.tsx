@@ -58,15 +58,15 @@ export default function Wallet() {
             </ResponsiveContainer>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <Button className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 h-12 rounded-xl font-medium hover:scale-[1.02] transition-transform">
-              <Plus className="w-4 h-4 mr-2" /> Deposit
+          <div className="grid grid-cols-3 gap-4 pt-4">
+            <Button className="bg-gradient-to-br from-primary to-[#7c3aed] text-white hover:from-primary hover:to-[#6d28d9] border border-primary/40 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+              <Plus className="w-6 h-6" /> Deposit
             </Button>
-            <Button className="bg-white/5 text-white hover:bg-white/10 border border-white/5 h-12 rounded-xl font-medium hover:scale-[1.02] transition-transform">
-              <Send className="w-4 h-4 mr-2" /> Send
+            <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+              <Send className="w-6 h-6" /> Send
             </Button>
-            <Button className="bg-white/5 text-white hover:bg-white/10 border border-white/5 h-12 rounded-xl font-medium hover:scale-[1.02] transition-transform">
-              <ArrowDownLeft className="w-4 h-4 mr-2" /> Receive
+            <Button className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-16 rounded-2xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 hover:scale-[1.03] transition-all active:scale-95 flex flex-col items-center justify-center gap-1">
+              <ArrowDownLeft className="w-6 h-6" /> Receive
             </Button>
           </div>
         </div>

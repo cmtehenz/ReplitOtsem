@@ -38,8 +38,8 @@ export default function Cards() {
                   <p className="font-mono text-xl tracking-widest drop-shadow-md">
                     {showDetails ? "4829 1029 4829 1023" : "•••• •••• •••• 1023"}
                   </p>
-                  <button onClick={() => setShowDetails(!showDetails)} className="opacity-80 hover:opacity-100 transition-opacity">
-                    {showDetails ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <button onClick={() => setShowDetails(!showDetails)} className="w-10 h-10 rounded-lg hover:bg-white/20 flex items-center justify-center transition-all opacity-90 hover:opacity-100">
+                    {showDetails ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
                   </button>
                 </div>
                 <div className="flex justify-between items-end text-sm">

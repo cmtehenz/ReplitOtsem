@@ -87,17 +87,17 @@ export default function Activity() {
         <h1 className="text-2xl font-display font-bold tracking-tight">Activity</h1>
 
         {/* Search & Filter */}
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Search transactions..." 
-              className="w-full bg-card/50 border border-white/5 rounded-2xl py-4 pl-11 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder:text-muted-foreground/50 backdrop-blur-sm"
+              className="w-full bg-card/50 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-base focus:outline-none focus:border-primary/50 focus:bg-card/70 transition-all placeholder:text-muted-foreground/50 backdrop-blur-sm font-medium"
             />
           </div>
-          <button className="bg-card/50 border border-white/5 rounded-2xl w-14 flex items-center justify-center hover:bg-white/10 transition-colors backdrop-blur-sm">
-            <Filter className="w-5 h-5 text-muted-foreground" />
+          <button className="bg-card/50 border border-white/10 rounded-2xl w-16 h-14 flex items-center justify-center hover:bg-white/10 transition-all hover:border-primary/30 backdrop-blur-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10">
+            <Filter className="w-6 h-6 text-muted-foreground hover:text-primary transition-colors" />
           </button>
         </div>
 

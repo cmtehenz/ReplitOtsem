@@ -109,31 +109,31 @@ export default function PixKeys() {
         <div className="fixed bottom-8 right-6 z-20">
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-[0_0_30px_rgba(139,92,246,0.4)] hover:scale-110 transition-transform active:scale-95 border-4 border-background">
-                <Plus className="w-8 h-8" />
+              <Button className="h-20 w-20 rounded-full bg-gradient-to-br from-primary to-[#7c3aed] text-primary-foreground shadow-[0_0_40px_rgba(139,92,246,0.5)] hover:shadow-[0_0_50px_rgba(139,92,246,0.7)] hover:scale-110 transition-all active:scale-95 border-4 border-background">
+                <Plus className="w-10 h-10" />
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-white/10 rounded-3xl sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-center font-display text-xl">Register New Key</DialogTitle>
+                <DialogTitle className="text-center font-display text-2xl">Register New Key</DialogTitle>
               </DialogHeader>
               <div className="space-y-6 py-4">
-                 <div className="grid grid-cols-2 gap-3">
+                 <div className="grid grid-cols-2 gap-4">
                    {["CPF", "Email", "Phone", "Random"].map((type) => (
-                     <button key={type} className="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-primary/10 hover:border-primary/30 transition-all text-sm font-bold active:scale-95">
+                     <button key={type} className="p-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-primary/15 hover:border-primary/40 transition-all text-base font-bold active:scale-95">
                        {type}
                      </button>
                    ))}
                  </div>
-                 <div className="space-y-2">
-                   <label className="text-sm text-muted-foreground font-medium ml-1">Key Value</label>
+                 <div className="space-y-3">
+                   <label className="text-base text-muted-foreground font-bold ml-1">Key Value</label>
                    <input 
                       type="text" 
                       placeholder="Enter key..." 
-                      className="w-full bg-background/50 border border-white/10 rounded-xl p-4 text-lg focus:outline-none focus:border-primary/50 transition-colors"
+                      className="w-full bg-background/50 border border-white/10 rounded-2xl p-5 text-lg focus:outline-none focus:border-primary/50 focus:bg-background/70 transition-all font-medium"
                     />
                  </div>
-                 <Button className="w-full h-14 rounded-xl bg-primary text-primary-foreground text-lg font-bold hover:bg-primary/90 shadow-lg shadow-primary/20">
+                 <Button className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-[#7c3aed] text-white text-lg font-bold hover:shadow-lg hover:shadow-primary/30 shadow-primary/20 active:scale-95">
                    Register Key
                  </Button>
               </div>
