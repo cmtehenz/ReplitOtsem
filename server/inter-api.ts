@@ -78,12 +78,19 @@ class InterAPIClient {
   private axiosInstance: AxiosInstance;
 
   constructor() {
-    const privateKey = process.env.INTER_PRIVATE_KEY;
-    const certificate = process.env.INTER_CERTIFICATE;
+    let privateKey = process.env.INTER_PRIVATE_KEY;
+    let certificate = process.env.INTER_CERTIFICATE;
 
     if (!privateKey || !certificate) {
       throw new Error("INTER_PRIVATE_KEY and INTER_CERTIFICATE must be set");
     }
+
+    // Handle escaped newlines in PEM certificates (common when stored in environment variables)
+    privateKey = privateKey.replace(/\\n/g, '\n');
+    certificate = certificate.replace(/\\n/g, '\n');
+
+    console.log("[Inter API] Certificate loaded, starts with:", certificate.substring(0, 50));
+    console.log("[Inter API] Private key loaded, starts with:", privateKey.substring(0, 50));
 
     const httpsAgent = new https.Agent({
       key: privateKey,
@@ -119,6 +126,7 @@ class InterAPIClient {
     params.append("scope", "cob.read cob.write cobv.read cobv.write pix.read pix.write webhook.read webhook.write");
 
     try {
+      console.log("[Inter API] Requesting OAuth token...");
       const response = await this.axiosInstance.post<TokenResponse>(
         "/oauth/v2/token",
         params.toString(),
@@ -131,11 +139,44 @@ class InterAPIClient {
 
       this.accessToken = response.data.access_token;
       this.tokenExpiresAt = Date.now() + response.data.expires_in * 1000;
+      console.log("[Inter API] OAuth token obtained successfully, expires in:", response.data.expires_in, "seconds");
 
       return this.accessToken;
     } catch (error: any) {
-      console.error("Failed to get Inter access token:", error.response?.data || error.message);
-      throw new Error("Failed to authenticate with Banco Inter API");
+      console.error("[Inter API] Failed to get access token:");
+      console.error("  Status:", error.response?.status);
+      console.error("  Data:", JSON.stringify(error.response?.data, null, 2));
+      console.error("  Message:", error.message);
+      if (error.code) {
+        console.error("  Error code:", error.code);
+      }
+      throw new Error(`Failed to authenticate with Banco Inter API: ${error.response?.data?.error_description || error.message}`);
+    }
+  }
+
+  async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
+    try {
+      const token = await this.getAccessToken();
+      return {
+        success: true,
+        message: "Successfully connected to Banco Inter API",
+        details: {
+          tokenObtained: !!token,
+          expiresAt: new Date(this.tokenExpiresAt).toISOString(),
+        }
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message,
+        details: {
+          hasClientId: !!process.env.INTER_CLIENT_ID,
+          hasClientSecret: !!process.env.INTER_CLIENT_SECRET,
+          hasPrivateKey: !!process.env.INTER_PRIVATE_KEY,
+          hasCertificate: !!process.env.INTER_CERTIFICATE,
+          hasPixKey: !!process.env.INTER_PIX_KEY,
+        }
+      };
     }
   }
 

@@ -574,6 +574,29 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== PIX API TEST ====================
+
+  // Test Inter API connection (admin only - for debugging)
+  app.get("/api/inter/test", requireAuth, async (req, res) => {
+    try {
+      const interClient = getInterClient();
+      const result = await interClient.testConnection();
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+        details: {
+          hasClientId: !!process.env.INTER_CLIENT_ID,
+          hasClientSecret: !!process.env.INTER_CLIENT_SECRET,
+          hasPrivateKey: !!process.env.INTER_PRIVATE_KEY,
+          hasCertificate: !!process.env.INTER_CERTIFICATE,
+          hasPixKey: !!process.env.INTER_PIX_KEY,
+        }
+      });
+    }
+  });
+
   // ==================== PIX DEPOSIT ROUTES ====================
 
   // Create PIX deposit (generate QR code) - with PIX rate limiting
