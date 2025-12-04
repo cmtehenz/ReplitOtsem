@@ -55,7 +55,11 @@ export default function Profile() {
           <MenuItem icon={HelpCircle} label="Help & Support" />
         </div>
 
-        <Button variant="outline" className="w-full h-12 text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 mt-4">
+        <Button 
+          variant="outline" 
+          className="w-full h-12 text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 mt-4"
+          onClick={() => window.location.href = "/auth"}
+        >
           <LogOut className="w-4 h-4 mr-2" />
           Sign Out
         </Button>

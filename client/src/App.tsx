@@ -7,11 +7,13 @@ import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Activity from "@/pages/activity";
 import KYCVerification from "@/pages/kyc";
+import Auth from "@/pages/auth";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/auth" component={Auth} />
       <Route path="/" component={Dashboard} />
       <Route path="/profile" component={Profile} />
       <Route path="/activity" component={Activity} />
