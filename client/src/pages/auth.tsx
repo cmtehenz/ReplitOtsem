@@ -9,7 +9,7 @@ import { useLocation } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
 import { Eye, EyeOff, ArrowRight, Loader2, Mail } from "lucide-react";
 import { redirectToSocialLogin } from "@/lib/api";
-import logo from "@assets/Untitled_1764845486474.png";
+import logo from "@assets/Untitled_1764846041499.png";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -82,7 +82,7 @@ export default function AuthPage() {
 
         <Card className="w-full max-w-md border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-2">
-            {showEmailForm ? (
+            {showEmailForm && (
               <>
                 <CardTitle className="text-2xl text-center">
                   {isLogin ? t("auth.login") : t("auth.register")}
@@ -91,10 +91,6 @@ export default function AuthPage() {
                   {isLogin ? t("auth.loginDescription") : t("auth.registerDescription")}
                 </CardDescription>
               </>
-            ) : (
-              <CardTitle className="text-2xl text-center">
-                {t("auth.welcome")}
-              </CardTitle>
             )}
           </CardHeader>
           
