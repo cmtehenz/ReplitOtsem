@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, ArrowDownLeft, Plus, ArrowLeftRight, Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPixDeposit, getPixKeys, createPixWithdrawal, getWallets, verifyDeposits, type PixKey } from "@/lib/api";
@@ -111,12 +111,11 @@ function DepositButton() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
-      <DialogTrigger asChild>
-        <div data-testid="button-deposit">
-          <ActionButton icon={Plus} label={t("wallet.deposit")} variant="primary" />
-        </div>
-      </DialogTrigger>
+    <>
+      <div data-testid="button-deposit" onClick={() => setOpen(true)}>
+        <ActionButton icon={Plus} label={t("wallet.deposit")} variant="primary" />
+      </div>
+      <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
       <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-2xl font-semibold">
@@ -200,7 +199,8 @@ function DepositButton() {
           </div>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
+    </>
   );
 }
 
@@ -260,19 +260,18 @@ function WithdrawButton() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
-      <DialogTrigger asChild>
-        <div data-testid="button-withdraw">
-          <ActionButton icon={ArrowUpRight} label={t("wallet.send")} />
-        </div>
-      </DialogTrigger>
-      <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center font-display text-2xl font-semibold">Withdraw via PIX</DialogTitle>
-          <DialogDescription className="text-center text-sm text-muted-foreground">
-            Select a PIX key and enter amount to withdraw
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <div data-testid="button-withdraw" onClick={() => setOpen(true)}>
+        <ActionButton icon={ArrowUpRight} label={t("wallet.send")} />
+      </div>
+      <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
+        <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center font-display text-2xl font-semibold">Withdraw via PIX</DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              Select a PIX key and enter amount to withdraw
+            </DialogDescription>
+          </DialogHeader>
         
         <div className="space-y-6 py-4">
           <div className="text-center text-sm text-muted-foreground">
@@ -339,9 +338,10 @@ function WithdrawButton() {
               </Button>
             </>
           )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
