@@ -1,20 +1,23 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { motion } from "framer-motion";
-import { Wifi, Lock, Eye, EyeOff, Copy, Plus } from "lucide-react";
+import { Wifi, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { cn } from "@/lib/utils";
 
 export default function Cards() {
   const [showDetails, setShowDetails] = useState(false);
   
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      <div className="p-6 space-y-8">
-        <h1 className="font-display font-bold text-2xl">Cards</h1>
+      <div className="p-6 flex flex-col h-full">
+        <h1 className="font-display font-bold text-2xl mb-12">Cards</h1>
 
         {/* Card Visual */}
-        <div className="relative w-full aspect-[1.58/1] rounded-3xl overflow-hidden shadow-2xl group perspective-1000 hover-scale">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative w-full aspect-[1.58/1] rounded-3xl overflow-hidden shadow-2xl group perspective-1000 hover-scale"
+        >
           <div className="absolute inset-0 bg-gradient-to-br from-primary via-[#7c3aed] to-accent p-6 flex flex-col justify-between text-white">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
@@ -55,51 +58,28 @@ export default function Cards() {
           
           {/* Shine effect */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform ease-in-out" />
-        </div>
+        </motion.div>
 
-        {/* Card Controls */}
-        <div className="grid grid-cols-4 gap-4">
-          <ControlBtn icon={Lock} label="Freeze" />
-          <ControlBtn icon={Eye} label="Show PIN" />
-          <ControlBtn icon={Copy} label="Copy #" />
-          <ControlBtn icon={Plus} label="Top Up" />
-        </div>
-
-        {/* Settings */}
-        <div className="space-y-4">
-          <h3 className="font-display font-medium text-lg">Card Settings</h3>
-          <div className="glass-card rounded-3xl overflow-hidden">
-             <SettingItem label="Online Payments" enabled />
-             <SettingItem label="Contactless Payments" enabled />
-             <SettingItem label="ATM Withdrawals" enabled={false} />
-             <SettingItem label="International Usage" enabled />
+        {/* Coming Soon Message */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="mt-16 mb-auto"
+        >
+          <div className="glass-card rounded-3xl p-8 border border-white/10 space-y-4">
+            <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center border border-accent/20">
+              <span className="text-2xl">✨</span>
+            </div>
+            <h2 className="text-2xl font-display font-bold tracking-tight">Coming Soon</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Soon you'll be able to use your crypto assets for card payments globally. Pay anywhere in the world with your crypto directly from this card.
+            </p>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       <BottomNav active="cards" />
-    </div>
-  );
-}
-
-function ControlBtn({ icon: Icon, label }: { icon: any, label: string }) {
-  return (
-    <button className="flex flex-col items-center gap-3 group">
-      <div className="w-16 h-16 rounded-2xl glass-card flex items-center justify-center group-hover:bg-white/10 transition-all duration-300 shadow-lg border border-white/5 group-hover:border-primary/30">
-        <Icon className="w-6 h-6 text-primary group-hover:scale-110 transition-transform duration-300" />
-      </div>
-      <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">{label}</span>
-    </button>
-  );
-}
-
-function SettingItem({ label, enabled }: { label: string, enabled: boolean }) {
-  return (
-    <div className="p-5 flex items-center justify-between border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors cursor-pointer group">
-      <span className="font-medium text-sm group-hover:text-white transition-colors">{label}</span>
-      <div className={cn("w-11 h-6 rounded-full p-1 transition-colors duration-300", enabled ? "bg-primary" : "bg-white/10")}>
-        <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300", enabled ? "translate-x-5" : "translate-x-0")} />
-      </div>
     </div>
   );
 }
