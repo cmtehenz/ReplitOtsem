@@ -1,10 +1,9 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { ActionGrid } from "@/components/action-grid";
 import { AssetList } from "@/components/asset-list";
-import { Bell, ChevronDown, QrCode } from "lucide-react";
-import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
+import { ChevronDown, QrCode } from "lucide-react";
+import avatar from "@/assets/generated_images/professional_user_avatar_portrait.png";
 import { useLocation } from "wouter";
-import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
