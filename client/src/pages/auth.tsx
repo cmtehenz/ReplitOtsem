@@ -69,31 +69,15 @@ export default function AuthPage() {
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6">
-        <div className="pt-4 pb-8 text-center flex flex-col items-center">
+        <div className="pt-4 pb-10 text-center flex flex-col items-center">
           <motion.img 
             src={logo} 
             alt="Otsem Pay" 
-            className="w-40 h-auto mb-6 drop-shadow-2xl"
+            className="w-56 h-auto drop-shadow-2xl"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5 }}
           />
-          <motion.h1 
-            className="text-3xl font-bold text-gradient-primary mb-2"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-          >
-            Otsem Pay
-          </motion.h1>
-          <motion.p 
-            className="text-muted-foreground text-base"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            {t("wallet.subtitle")}
-          </motion.p>
         </div>
 
         <Card className="w-full max-w-md border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
