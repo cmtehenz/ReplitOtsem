@@ -9,6 +9,13 @@ import { getInterClient } from "./inter-api";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import rateLimit from "express-rate-limit";
+import {
+  getExchangeRates,
+  getUsdtBrlRate,
+  calculateExchange,
+  validateExchangeAmount,
+  MIN_USDT_AMOUNT,
+} from "./okx-price";
 
 // Session type declaration
 declare module "express-session" {
@@ -219,31 +226,83 @@ export async function registerRoutes(
     }
   });
 
+  // Get current exchange rates
+  app.get("/api/rates", async (_req, res) => {
+    try {
+      const rates = await getExchangeRates();
+      res.json({
+        baseRate: rates.baseRate,
+        usdtBrl: {
+          buy: rates.buyRate,
+          sell: rates.sellRate,
+        },
+        fee: rates.feePercentage,
+        minUsdt: MIN_USDT_AMOUNT,
+        minBrl: MIN_USDT_AMOUNT * rates.baseRate,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(503).json({ error: "Exchange rates temporarily unavailable" });
+    }
+  });
+
   // Execute exchange
   app.post("/api/exchange", requireAuth, async (req, res) => {
     try {
       const exchangeSchema = z.object({
-        fromCurrency: z.enum(["BRL", "USDT", "BTC"]),
-        toCurrency: z.enum(["BRL", "USDT", "BTC"]),
-        fromAmount: z.string(),
-        toAmount: z.string(),
+        fromCurrency: z.enum(["BRL", "USDT"]),
+        toCurrency: z.enum(["BRL", "USDT"]),
+        amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+          message: "Amount must be a positive number",
+        }),
       });
 
       const data = exchangeSchema.parse(req.body);
+      const amount = parseFloat(data.amount);
+
+      if (data.fromCurrency === data.toCurrency) {
+        return res.status(400).json({ error: "Cannot exchange same currency" });
+      }
+
+      const rate = await getUsdtBrlRate();
+
+      const validation = validateExchangeAmount(
+        amount,
+        data.fromCurrency as "BRL" | "USDT",
+        rate
+      );
+
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+
+      const { toAmount, fee } = calculateExchange(
+        amount,
+        data.fromCurrency as "BRL" | "USDT",
+        rate
+      );
 
       const transaction = await storage.executeExchange(
         req.session.userId!,
         data.fromCurrency,
         data.toCurrency,
-        data.fromAmount,
-        data.toAmount
+        amount.toString(),
+        toAmount.toFixed(data.toCurrency === "BRL" ? 2 : 6)
       );
 
-      res.json(transaction);
+      res.json({
+        ...transaction,
+        rate,
+        fee: fee.toFixed(data.toCurrency === "BRL" ? 2 : 6),
+      });
     } catch (error: any) {
       if (error.message === "Insufficient balance") {
         return res.status(400).json({ error: error.message });
       }
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      console.error("Exchange error:", error);
       res.status(500).json({ error: "Failed to execute exchange" });
     }
   });

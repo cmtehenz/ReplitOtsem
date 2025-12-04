@@ -97,6 +97,28 @@ const translations: Record<Language, Record<string, string>> = {
     "kyc.ready": "I'm Ready",
     "kyc.verified": "Verified!",
     "kyc.back": "Back to Profile",
+    
+    // Exchange
+    "exchange.title": "Exchange",
+    "exchange.youPay": "You pay",
+    "exchange.youReceive": "You receive",
+    "exchange.balance": "Balance",
+    "exchange.estimated": "Estimated",
+    "exchange.fee": "Fee",
+    "exchange.minimum": "Minimum",
+    "exchange.buyUsdt": "Buy USDT",
+    "exchange.sellUsdt": "Sell USDT",
+    "exchange.success": "Exchange completed successfully!",
+    "exchange.failed": "Exchange failed",
+    "exchange.invalidAmount": "Please enter a valid amount",
+    "exchange.insufficientBalance": "Insufficient balance",
+    "exchange.minAmount": "Minimum exchange is 10 USDT",
+    "exchange.ratesUnavailable": "Exchange rates temporarily unavailable",
+    "exchange.loadingRate": "Loading rate...",
+    
+    // Common
+    "common.processing": "Processing...",
+    "common.retry": "Try Again",
   },
   "pt-BR": {
     // Navigation
@@ -184,6 +206,28 @@ const translations: Record<Language, Record<string, string>> = {
     "kyc.ready": "Estou Pronto",
     "kyc.verified": "Verificado!",
     "kyc.back": "Voltar ao Perfil",
+    
+    // Exchange
+    "exchange.title": "Câmbio",
+    "exchange.youPay": "Você paga",
+    "exchange.youReceive": "Você recebe",
+    "exchange.balance": "Saldo",
+    "exchange.estimated": "Estimado",
+    "exchange.fee": "Taxa",
+    "exchange.minimum": "Mínimo",
+    "exchange.buyUsdt": "Comprar USDT",
+    "exchange.sellUsdt": "Vender USDT",
+    "exchange.success": "Câmbio realizado com sucesso!",
+    "exchange.failed": "Falha no câmbio",
+    "exchange.invalidAmount": "Por favor, insira um valor válido",
+    "exchange.insufficientBalance": "Saldo insuficiente",
+    "exchange.minAmount": "Câmbio mínimo é 10 USDT",
+    "exchange.ratesUnavailable": "Taxas de câmbio temporariamente indisponíveis",
+    "exchange.loadingRate": "Carregando taxa...",
+    
+    // Common
+    "common.processing": "Processando...",
+    "common.retry": "Tentar Novamente",
   },
 };
 

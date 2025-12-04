@@ -130,18 +130,39 @@ export async function getTransactions(limit: number = 20): Promise<Transaction[]
   return response.json();
 }
 
+// ==================== RATES ====================
+
+export interface ExchangeRates {
+  baseRate: number;
+  usdtBrl: {
+    buy: number;
+    sell: number;
+  };
+  fee: number;
+  minUsdt: number;
+  minBrl: number;
+  updatedAt: string;
+}
+
+export async function getRates(): Promise<ExchangeRates> {
+  const response = await fetch(`${API_BASE}/rates`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch exchange rates");
+  }
+  return response.json();
+}
+
 // ==================== EXCHANGE ====================
 
 export async function executeExchange(
   fromCurrency: string,
   toCurrency: string,
-  fromAmount: string,
-  toAmount: string
-): Promise<Transaction> {
+  amount: string
+): Promise<Transaction & { rate: number; fee: string }> {
   const response = await fetch(`${API_BASE}/exchange`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fromCurrency, toCurrency, fromAmount, toAmount }),
+    body: JSON.stringify({ fromCurrency, toCurrency, amount }),
   });
   
   if (response.status === 401) {
