@@ -17,6 +17,7 @@ import {
   MIN_USDT_AMOUNT,
 } from "./okx-price";
 import { notificationService } from "./notification-service";
+import { notificationWS } from "./websocket";
 
 // Session type declaration
 declare module "express-session" {
@@ -180,6 +181,12 @@ export async function registerRoutes(
 
   // Logout
   app.post("/api/auth/logout", (req, res) => {
+    const userId = req.session.userId;
+    
+    if (userId) {
+      notificationWS.disconnectUser(userId);
+    }
+    
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).json({ error: "Failed to logout" });
@@ -246,6 +253,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: error.errors[0].message });
       }
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Get WebSocket token for real-time notifications
+  app.get("/api/auth/ws-token", requireAuth, (req, res) => {
+    try {
+      const token = notificationWS.createToken(req.session.userId!);
+      res.json({ token });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create WebSocket token" });
     }
   });
 

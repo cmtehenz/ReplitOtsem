@@ -285,3 +285,70 @@ export async function getWithdrawals(): Promise<any[]> {
   }
   return response.json();
 }
+
+// ==================== NOTIFICATIONS ====================
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: "deposit_pending" | "deposit_completed" | "deposit_failed" | "withdrawal_pending" | "withdrawal_completed" | "withdrawal_failed" | "exchange_completed" | "exchange_failed" | "security_alert" | "system";
+  title: string;
+  message: string;
+  data: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export async function getNotifications(limit: number = 50): Promise<Notification[]> {
+  const response = await fetch(`${API_BASE}/notifications?limit=${limit}`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch notifications");
+  }
+  return response.json();
+}
+
+export async function getUnreadNotificationCount(): Promise<{ count: number }> {
+  const response = await fetch(`${API_BASE}/notifications/unread-count`);
+  if (response.status === 401) {
+    return { count: 0 };
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get unread count");
+  }
+  return response.json();
+}
+
+export async function markNotificationAsRead(id: string): Promise<Notification> {
+  const response = await fetch(`${API_BASE}/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to mark notification as read");
+  }
+  return response.json();
+}
+
+export async function markAllNotificationsAsRead(): Promise<void> {
+  const response = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to mark all notifications as read");
+  }
+}
+
+// ==================== WEBSOCKET ====================
+
+export async function getWebSocketToken(): Promise<{ token: string }> {
+  const response = await fetch(`${API_BASE}/auth/ws-token`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get WebSocket token");
+  }
+  return response.json();
+}

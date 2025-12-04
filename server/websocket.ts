@@ -1,15 +1,23 @@
 import { WebSocketServer, WebSocket } from "ws";
-import type { Server } from "http";
+import type { Server, IncomingMessage } from "http";
 import type { Notification } from "@shared/schema";
+import crypto from "crypto";
 
 interface ConnectedClient {
   ws: WebSocket;
   userId: string;
 }
 
+interface WsToken {
+  userId: string;
+  expires: number;
+}
+
 class NotificationWebSocket {
   private wss: WebSocketServer | null = null;
   private clients: Map<string, ConnectedClient[]> = new Map();
+  private tokens: Map<string, WsToken> = new Map();
+  private userTokens: Map<string, Set<string>> = new Map();
 
   initialize(server: Server) {
     this.wss = new WebSocketServer({ 
@@ -18,20 +26,33 @@ class NotificationWebSocket {
     });
 
     this.wss.on("connection", (ws, req) => {
-      console.log("[WebSocket] New connection attempt");
+      if (!this.validateOrigin(req)) {
+        ws.close(4003, "Invalid origin");
+        return;
+      }
+
+      const token = this.extractToken(req);
       
-      ws.on("message", (message) => {
-        try {
-          const data = JSON.parse(message.toString());
-          
-          if (data.type === "auth" && data.userId) {
-            this.registerClient(ws, data.userId);
-            ws.send(JSON.stringify({ type: "connected", message: "Connected to notifications" }));
-          }
-        } catch (error) {
-          console.error("[WebSocket] Error parsing message:", error);
-        }
-      });
+      if (!token) {
+        ws.close(4001, "Authentication required");
+        return;
+      }
+
+      const tokenData = this.tokens.get(token);
+      if (!tokenData || tokenData.expires < Date.now()) {
+        this.tokens.delete(token);
+        ws.close(4002, "Invalid or expired token");
+        return;
+      }
+
+      this.tokens.delete(token);
+      const userTokenSet = this.userTokens.get(tokenData.userId);
+      if (userTokenSet) {
+        userTokenSet.delete(token);
+      }
+      
+      this.registerClient(ws, tokenData.userId);
+      ws.send(JSON.stringify({ type: "connected", message: "Connected to notifications" }));
 
       ws.on("close", () => {
         this.removeClient(ws);
@@ -41,9 +62,98 @@ class NotificationWebSocket {
         console.error("[WebSocket] Connection error:", error);
         this.removeClient(ws);
       });
+
+      ws.on("message", (message) => {
+        try {
+          const data = JSON.parse(message.toString());
+          if (data.type === "ping") {
+            ws.send(JSON.stringify({ type: "pong" }));
+          }
+        } catch {
+        }
+      });
     });
 
     console.log("[WebSocket] Notification server initialized");
+  }
+
+  private validateOrigin(req: IncomingMessage): boolean {
+    const origin = req.headers.origin || req.headers.referer;
+    if (!origin) {
+      return true;
+    }
+    
+    try {
+      const originUrl = new URL(origin);
+      const hostHeader = req.headers.host || "";
+      
+      if (originUrl.host === hostHeader) {
+        return true;
+      }
+      
+      if (process.env.NODE_ENV === "development") {
+        return true;
+      }
+      
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  private extractToken(req: IncomingMessage): string | null {
+    try {
+      const url = new URL(req.url || "", `http://${req.headers.host}`);
+      return url.searchParams.get("token");
+    } catch {
+      return null;
+    }
+  }
+
+  createToken(userId: string): string {
+    const token = crypto.randomBytes(32).toString("hex");
+    const expires = Date.now() + 30000;
+    
+    this.tokens.set(token, { userId, expires });
+    
+    let userTokenSet = this.userTokens.get(userId);
+    if (!userTokenSet) {
+      userTokenSet = new Set();
+      this.userTokens.set(userId, userTokenSet);
+    }
+    userTokenSet.add(token);
+    
+    setTimeout(() => {
+      this.tokens.delete(token);
+      const set = this.userTokens.get(userId);
+      if (set) {
+        set.delete(token);
+      }
+    }, 35000);
+    
+    return token;
+  }
+
+  invalidateUserTokens(userId: string): void {
+    const userTokenSet = this.userTokens.get(userId);
+    if (userTokenSet) {
+      for (const token of userTokenSet) {
+        this.tokens.delete(token);
+      }
+      this.userTokens.delete(userId);
+    }
+  }
+
+  disconnectUser(userId: string): void {
+    this.invalidateUserTokens(userId);
+    
+    const clients = this.clients.get(userId);
+    if (clients) {
+      for (const client of clients) {
+        client.ws.close(4004, "Session ended");
+      }
+      this.clients.delete(userId);
+    }
   }
 
   private registerClient(ws: WebSocket, userId: string) {

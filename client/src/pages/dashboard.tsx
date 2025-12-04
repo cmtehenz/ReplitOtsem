@@ -4,7 +4,8 @@ import { ActionGrid } from "@/components/action-grid";
 import { ExchangeCard } from "@/components/exchange-card";
 import { AssetList } from "@/components/asset-list";
 import { TransactionHistory } from "@/components/transaction-history";
-import { Bell, Settings } from "lucide-react";
+import { NotificationBell } from "@/components/notification-bell";
+import { Settings } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,7 +23,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setLocation("/profile")}>
             <div className="relative">
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors">
-                <img src={avatar} alt="User" className="w-full h-full object-cover rounded-full" />
+                <img src={user?.profilePhoto || avatar} alt="User" className="w-full h-full object-cover rounded-full" />
               </div>
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
             </div>
@@ -36,14 +37,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 relative group"
-              onClick={() => setLocation("/notifications")}
-              data-testid="button-notifications"
-            >
-              <Bell className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full border border-background" />
-            </button>
+            <NotificationBell />
             <button 
               className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 group" 
               onClick={() => setLocation("/profile")}

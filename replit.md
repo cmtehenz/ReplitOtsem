@@ -7,7 +7,9 @@ Otsem Pay is a production-ready cryptocurrency wallet application featuring real
 - **Production Ready**: Real banking integration with Banco Inter API
 - **Authentication**: Secure user authentication with bcrypt password hashing and session management
 - **PIX Integration**: Deposit (QR code generation) and withdrawal via real banking API
-- **Exchange**: BRL ↔ USDT exchange functionality
+- **Exchange**: BRL ↔ USDT exchange functionality with OKX rates
+- **Real-time Notifications**: WebSocket-based push notifications for account activities
+- **Profile Management**: Name, email, phone editing and profile photo upload
 - **Bilingual**: Full support for English and Portuguese (PT-BR)
 
 ## Tech Stack
@@ -16,6 +18,7 @@ Otsem Pay is a production-ready cryptocurrency wallet application featuring real
 - **Database**: PostgreSQL with Drizzle ORM
 - **Styling**: Tailwind CSS with custom design system
 - **Banking**: Banco Inter API with OAuth2 + mTLS
+- **Real-time**: WebSocket with secure token-based authentication
 
 ## Design System
 - **Primary Color**: Purple (hsl(265 90% 65%))
@@ -56,6 +59,8 @@ Required secrets (stored in Replit Secrets):
 - `POST /api/auth/login` - User login
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/me` - Get current user
+- `PATCH /api/auth/profile` - Update user profile
+- `GET /api/auth/ws-token` - Get WebSocket authentication token
 
 ### Wallets & Transactions
 - `GET /api/wallets` - Get user's wallet balances
@@ -73,6 +78,12 @@ Required secrets (stored in Replit Secrets):
 - `POST /api/pix-keys` - Add new PIX key
 - `DELETE /api/pix-keys/:id` - Remove PIX key
 
+### Notifications
+- `GET /api/notifications` - Get user's notifications
+- `GET /api/notifications/unread-count` - Get unread notification count
+- `PATCH /api/notifications/:id/read` - Mark notification as read
+- `POST /api/notifications/mark-all-read` - Mark all notifications as read
+
 ### Webhooks
 - `POST /api/webhooks/pix` - Banco Inter PIX payment webhook
 
@@ -83,9 +94,13 @@ Required secrets (stored in Replit Secrets):
 - `user_pix_keys` - Registered PIX keys for withdrawals
 - `pix_deposits` - PIX deposit requests and status
 - `pix_withdrawals` - PIX withdrawal requests and status
+- `notifications` - Real-time notifications for account activities
 - `webhook_logs` - Idempotency tracking for webhooks
 
 ## Recent Changes
+- 2024-12-04: Implemented real-time notification system with secure WebSocket authentication
+- 2024-12-04: Added profile management (name, email, phone, photo upload)
+- 2024-12-04: Added notification triggers for deposits, withdrawals, and exchanges
 - 2024-12-04: Implemented real Banco Inter API integration with mTLS
 - 2024-12-04: Added secure authentication with bcrypt and sessions
 - 2024-12-04: Built PIX deposit (QR code) and withdrawal flows
