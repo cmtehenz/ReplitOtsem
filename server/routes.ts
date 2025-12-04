@@ -16,6 +16,7 @@ import {
   validateExchangeAmount,
   MIN_USDT_AMOUNT,
 } from "./okx-price";
+import { notificationService } from "./notification-service";
 
 // Session type declaration
 declare module "express-session" {
@@ -337,6 +338,15 @@ export async function registerRoutes(
         toAmount.toFixed(data.toCurrency === "BRL" ? 2 : 6)
       );
 
+      // Send notification for successful exchange
+      notificationService.notifyExchangeCompleted(
+        req.session.userId!,
+        data.fromCurrency,
+        data.toCurrency,
+        amount.toString(),
+        toAmount.toFixed(data.toCurrency === "BRL" ? 2 : 6)
+      ).catch(err => console.error("Failed to send exchange notification:", err));
+
       res.json({
         ...transaction,
         rate,
@@ -455,6 +465,10 @@ export async function registerRoutes(
           externalId: txid,
         });
 
+        // Send notification for pending deposit
+        notificationService.notifyDepositPending(userId, amount, txid)
+          .catch(err => console.error("Failed to send deposit pending notification:", err));
+
         res.json({
           id: deposit.id,
           txid,
@@ -552,6 +566,10 @@ export async function registerRoutes(
         transactionId: transaction.id,
       });
 
+      // Send notification for pending withdrawal
+      notificationService.notifyWithdrawalPending(userId, amount)
+        .catch(err => console.error("Failed to send withdrawal pending notification:", err));
+
       try {
         // Send PIX via Banco Inter
         const interClient = getInterClient();
@@ -569,6 +587,10 @@ export async function registerRoutes(
         });
 
         await storage.updateTransactionStatus(transaction.id, "completed", result.endToEndId);
+
+        // Send notification for completed withdrawal
+        notificationService.notifyWithdrawalCompleted(userId, amount)
+          .catch(err => console.error("Failed to send withdrawal completed notification:", err));
 
         res.json({
           id: withdrawal.id,
@@ -589,6 +611,10 @@ export async function registerRoutes(
 
         // Refund the balance
         await storage.creditWallet(userId, "BRL", amount);
+
+        // Send notification for failed withdrawal
+        notificationService.notifyWithdrawalFailed(userId, amount)
+          .catch(err => console.error("Failed to send withdrawal failed notification:", err));
 
         res.status(500).json({ 
           error: "Withdrawal failed",
@@ -613,6 +639,52 @@ export async function registerRoutes(
       res.json(withdrawals);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch withdrawals" });
+    }
+  });
+
+  // ==================== NOTIFICATION ROUTES ====================
+
+  // Get user notifications
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const notifications = await storage.getUserNotifications(req.session.userId!, limit);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Get unread notification count
+  app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
+    try {
+      const count = await storage.getUnreadNotificationCount(req.session.userId!);
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get unread count" });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
+    try {
+      const notification = await storage.markNotificationAsRead(req.params.id, req.session.userId!);
+      res.json(notification);
+    } catch (error: any) {
+      if (error.message === "Notification not found") {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.post("/api/notifications/mark-all-read", requireAuth, async (req, res) => {
+    try {
+      await storage.markAllNotificationsAsRead(req.session.userId!);
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
     }
   });
 
@@ -668,6 +740,10 @@ export async function registerRoutes(
             if (pendingTx) {
               await storage.updateTransactionStatus(pendingTx.id, "completed", endToEndId);
             }
+
+            // Send notification for completed deposit
+            notificationService.notifyDepositCompleted(deposit.userId, valor, txid)
+              .catch(err => console.error("Failed to send deposit completed notification:", err));
 
             console.log(`PIX deposit confirmed: ${valor} BRL for user ${deposit.userId}`);
           }
