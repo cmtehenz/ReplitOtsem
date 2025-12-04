@@ -47,14 +47,14 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto px-6 pt-6 space-y-10">
+      <main className="max-w-md mx-auto px-6 pt-2 space-y-8">
         {/* Total Balance Card */}
         <section>
           <WalletCard />
         </section>
         
         {/* Quick Actions (Deposit Pix, Deposit USDT, Withdraw) */}
-        <section>
+        <section className="py-2">
           <ActionGrid />
         </section>
 
