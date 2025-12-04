@@ -1,4 +1,4 @@
-import { Menu, Wallet, TrendingUp, ArrowLeftRight } from "lucide-react";
+import { Menu, Wallet, TrendingUp, ArrowLeftRight, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export function BottomNav({ active }: { active: string }) {
           </div>
         </div>
         <NavButton icon={TrendingUp} label="Stats" active={active === "stats"} onClick={() => setLocation("/stats")} />
-        <NavButton icon={Menu} label="Cards" active={active === "cards"} onClick={() => setLocation("/cards")} />
+        <NavButton icon={CreditCard} label="Card" active={active === "cards"} onClick={() => setLocation("/cards")} />
       </div>
     </nav>
   );
