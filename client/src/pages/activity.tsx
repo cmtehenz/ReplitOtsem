@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, Search, Filter, Menu, ArrowLeftRight, Coffee, ShoppingBag, Wallet, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Search, Filter, ArrowLeftRight, Coffee, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useLocation } from "wouter";
+import { BottomNav } from "@/components/bottom-nav";
 
 const transactions = [
   {
@@ -15,6 +15,7 @@ const transactions = [
     icon: ArrowUpRight,
     color: "text-red-400",
     bg: "bg-red-500/10",
+    border: "border-red-500/20"
   },
   {
     id: 2,
@@ -26,6 +27,7 @@ const transactions = [
     icon: ArrowDownLeft,
     color: "text-primary",
     bg: "bg-primary/10",
+    border: "border-primary/20"
   },
   {
     id: 3,
@@ -38,6 +40,7 @@ const transactions = [
     icon: ArrowLeftRight,
     color: "text-white",
     bg: "bg-white/10",
+    border: "border-white/20"
   },
   {
     id: 4,
@@ -49,6 +52,7 @@ const transactions = [
     icon: Coffee,
     color: "text-white",
     bg: "bg-white/10",
+    border: "border-white/20"
   },
   {
     id: 5,
@@ -60,6 +64,7 @@ const transactions = [
     icon: ShoppingBag,
     color: "text-white",
     bg: "bg-white/10",
+    border: "border-white/20"
   },
   {
     id: 6,
@@ -71,35 +76,36 @@ const transactions = [
     icon: ArrowDownLeft,
     color: "text-[#26A17B]",
     bg: "bg-[#26A17B]/10",
+    border: "border-[#26A17B]/20"
   },
 ];
 
 export default function Activity() {
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24">
+    <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
       <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-display font-bold">Activity</h1>
+        <h1 className="text-2xl font-display font-bold tracking-tight">Activity</h1>
 
         {/* Search & Filter */}
         <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 
               type="text" 
               placeholder="Search transactions..." 
-              className="w-full bg-card border border-white/5 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+              className="w-full bg-card/50 border border-white/5 rounded-2xl py-4 pl-11 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors placeholder:text-muted-foreground/50 backdrop-blur-sm"
             />
           </div>
-          <button className="bg-card border border-white/5 rounded-xl w-12 flex items-center justify-center hover:bg-white/5 transition-colors">
+          <button className="bg-card/50 border border-white/5 rounded-2xl w-14 flex items-center justify-center hover:bg-white/10 transition-colors backdrop-blur-sm">
             <Filter className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
 
         {/* Date Groups */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Today</h3>
-            <div className="space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Today</h3>
+            <div className="space-y-3">
               {transactions.slice(0, 3).map((tx, index) => (
                 <TransactionItem key={tx.id} tx={tx} index={index} />
               ))}
@@ -107,8 +113,8 @@ export default function Activity() {
           </div>
 
           <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Yesterday</h3>
-            <div className="space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 pl-1">Yesterday</h3>
+            <div className="space-y-3">
               {transactions.slice(3, 4).map((tx, index) => (
                 <TransactionItem key={tx.id} tx={tx} index={index} />
               ))}
@@ -116,8 +122,8 @@ export default function Activity() {
           </div>
           
           <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">This Week</h3>
-            <div className="space-y-4">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 pl-1">This Week</h3>
+            <div className="space-y-3">
               {transactions.slice(4).map((tx, index) => (
                 <TransactionItem key={tx.id} tx={tx} index={index} />
               ))}
@@ -137,23 +143,23 @@ function TransactionItem({ tx, index }: { tx: any, index: number }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="flex items-center justify-between group cursor-pointer"
+      className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-all duration-300 cursor-pointer group border border-transparent hover:border-white/5"
       onClick={() => window.location.href = "/transaction/1"}
     >
       <div className="flex items-center gap-4">
         <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center transition-transform group-hover:scale-110",
-          tx.bg, tx.color
+          "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 border duration-300",
+          tx.bg, tx.color, tx.border
         )}>
           <tx.icon className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="font-medium text-sm group-hover:text-primary transition-colors">{tx.title}</h4>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{format(tx.date, "HH:mm")}</span>
+          <h4 className="font-bold text-sm group-hover:text-primary transition-colors">{tx.title}</h4>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs text-muted-foreground font-medium">{format(tx.date, "HH:mm")}</span>
             <span className={cn(
-              "text-[10px] px-1.5 py-0.5 rounded-md border",
-              tx.status === "Completed" ? "border-green-500/20 text-green-500" : "border-yellow-500/20 text-yellow-500"
+              "text-[10px] px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider",
+              tx.status === "Completed" ? "border-green-500/20 text-green-500 bg-green-500/5" : "border-yellow-500/20 text-yellow-500 bg-yellow-500/5"
             )}>
               {tx.status}
             </span>
@@ -161,54 +167,15 @@ function TransactionItem({ tx, index }: { tx: any, index: number }) {
         </div>
       </div>
       <div className="text-right">
-        <div className={cn("font-medium text-sm", 
+        <div className={cn("font-bold text-sm tracking-wide", 
           tx.amount.startsWith("+") ? "text-primary" : "text-white"
         )}>
           {tx.amount}
         </div>
         {tx.subAmount && (
-          <div className="text-xs text-muted-foreground">{tx.subAmount}</div>
+          <div className="text-xs text-muted-foreground mt-0.5 font-medium">{tx.subAmount}</div>
         )}
       </div>
     </motion.div>
-  );
-}
-
-// Bottom Nav Component
-function BottomNav({ active }: { active: string }) {
-  const [, setLocation] = useLocation();
-  
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-xl border-t border-white/5 pb-safe z-50">
-      <div className="max-w-md mx-auto flex justify-around items-center h-16 px-2">
-        <NavButton icon={Menu} label="Home" active={active === "home"} onClick={() => setLocation("/")} />
-        <NavButton icon={Wallet} label="Wallet" active={active === "wallet"} onClick={() => setLocation("/wallet")} />
-        <div 
-          className="w-14 h-14 -mt-8 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(50,188,173,0.4)] border-4 border-background cursor-pointer hover:scale-105 transition-transform"
-          onClick={() => setLocation("/")}
-        >
-          <ArrowLeftRight className="w-6 h-6 text-primary-foreground" />
-        </div>
-        <NavButton icon={TrendingUp} label="Stats" active={active === "stats"} onClick={() => setLocation("/stats")} />
-        <NavButton icon={Menu} label="Cards" active={active === "cards"} onClick={() => setLocation("/cards")} />
-      </div>
-    </nav>
-  );
-}
-
-function NavButton({ icon: Icon, label, active, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1 w-16 py-1 transition-colors",
-        active ? "text-primary" : "text-muted-foreground hover:text-white"
-      )}
-    >
-      <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
-        <div className={cn("w-3 h-3 rounded-sm", active ? "bg-primary" : "bg-muted-foreground")} />
-      </div>
-      <span className="text-[10px] font-medium">{label}</span>
-    </button>
   );
 }

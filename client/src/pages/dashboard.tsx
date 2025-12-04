@@ -1,11 +1,11 @@
+import { BottomNav } from "@/components/bottom-nav";
 import { WalletCard } from "@/components/wallet-card";
 import { ActionGrid } from "@/components/action-grid";
 import { ExchangeCard } from "@/components/exchange-card";
 import { AssetList } from "@/components/asset-list";
 import { TransactionHistory } from "@/components/transaction-history";
-import { Bell, Settings, Menu, ArrowLeftRight, Wallet, TrendingUp } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
-import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 
 export default function Dashboard() {
@@ -75,44 +75,7 @@ export default function Dashboard() {
       </main>
 
       {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/5 pb-safe z-50 backdrop-blur-xl">
-        <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
-          <NavButton icon={Menu} label="Home" active={true} onClick={() => setLocation("/")} />
-          <NavButton icon={Wallet} label="Wallet" onClick={() => setLocation("/wallet")} />
-          <div 
-            className="relative -top-6 group cursor-pointer"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          >
-            <div className="absolute inset-0 bg-primary blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
-            <div className="relative w-14 h-14 bg-gradient-to-br from-primary to-[#7c3aed] rounded-2xl rotate-45 flex items-center justify-center shadow-lg border border-white/20 group-hover:scale-105 transition-transform duration-300">
-              <ArrowLeftRight className="w-7 h-7 text-white -rotate-45" />
-            </div>
-          </div>
-          <NavButton icon={TrendingUp} label="Stats" onClick={() => setLocation("/stats")} />
-          <NavButton icon={Menu} label="Cards" onClick={() => setLocation("/cards")} />
-        </div>
-      </nav>
+      <BottomNav active="home" />
     </div>
-  );
-}
-
-function NavButton({ icon: Icon, label, active, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1.5 w-16 py-2 transition-all duration-300",
-        active ? "text-primary" : "text-muted-foreground hover:text-white"
-      )}
-    >
-      <div className={cn(
-        "relative flex items-center justify-center transition-all duration-300",
-        active ? "text-primary scale-110" : ""
-      )}>
-        <Icon className={cn("w-6 h-6", active && "fill-current opacity-20")} />
-        {active && <Icon className="w-6 h-6 absolute inset-0" />}
-      </div>
-      <span className={cn("text-[10px] font-medium tracking-wide", active ? "font-bold" : "")}>{label}</span>
-    </button>
   );
 }
