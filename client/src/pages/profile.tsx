@@ -77,7 +77,11 @@ export default function Profile() {
         </div>
 
         <div className="space-y-2">
-          <MenuItem icon={User} label={t("profile.personalInfo")} />
+          <MenuItem 
+            icon={User} 
+            label={t("profile.personalInfo")} 
+            onClick={() => setLocation("/kyc")}
+          />
           <MenuItem 
             icon={Users} 
             label={t("profile.referral")} 
@@ -94,7 +98,11 @@ export default function Profile() {
             label={t("profile.security")} 
             onClick={() => setLocation("/security")}
           />
-          <MenuItem icon={HelpCircle} label={t("profile.help")} />
+          <MenuItem 
+            icon={HelpCircle} 
+            label={t("profile.help")} 
+            onClick={() => window.open("mailto:support@otsem.com", "_blank")}
+          />
           <LanguageToggle language={language} setLanguage={setLanguage} t={t} />
         </div>
 
