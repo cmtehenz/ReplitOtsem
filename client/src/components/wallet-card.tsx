@@ -10,9 +10,9 @@ export function WalletCard() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a1b26] to-[#0f0f16] border border-white/5 shadow-lg"
+      className="relative w-full h-[150px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a1b26] to-[#0f0f16] border border-white/5 shadow-lg flex flex-col justify-center"
     >
-      <div className="p-6 flex flex-col gap-6">
+      <div className="px-5 py-4 flex flex-col justify-between h-full">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -31,10 +31,10 @@ export function WalletCard() {
 
         {/* Balance */}
         <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-white">
+          <h1 className="text-2xl font-display font-semibold tracking-tight text-white">
             {isVisible ? "R$ 14.250,42" : "••••••••"}
           </h1>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-1">
             <div className="flex items-center gap-1 text-green-400 bg-green-400/10 px-2 py-0.5 rounded-md text-xs font-medium">
               <TrendingUp className="w-3 h-3" />
               <span>+R$ 1.250 (12.5%)</span>
