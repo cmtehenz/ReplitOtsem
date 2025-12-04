@@ -17,11 +17,13 @@ import ExchangeSuccess from "@/pages/exchange-success";
 import Wallet from "@/pages/wallet";
 import Cards from "@/pages/cards";
 import Stats from "@/pages/stats";
+import Welcome from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/welcome" component={Welcome} />
       <Route path="/auth" component={Auth} />
       <Route path="/" component={Dashboard} />
       <Route path="/profile" component={Profile} />

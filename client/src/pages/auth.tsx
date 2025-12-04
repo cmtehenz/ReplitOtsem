@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Mail, Lock, User, Eye, EyeOff, Users } from "lucide-react";
 import { useLocation } from "wouter";
-import bgImage from "@assets/generated_images/abstract_dark_purple_and_neon_green_3d_glass_waves_for_crypto_card_background.png";
+import logo from "@assets/Untitled_1764830265098.png";
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,23 +20,17 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-otsem-gradient text-foreground flex flex-col relative overflow-hidden">
       {/* Background Accent */}
-      <div className="absolute inset-0 z-0 opacity-20">
-         <div 
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${bgImage})` }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-background/90 to-background" />
+      <div className="absolute inset-0 z-0">
+          <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/10 to-transparent" />
+          <div className="absolute bottom-0 right-0 w-full h-1/2 bg-gradient-to-t from-accent/5 to-transparent" />
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col p-6">
         {/* Header */}
-        <div className="pt-12 pb-8 text-center">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(50,188,173,0.3)] rotate-3">
-             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Pix_logo_2020.svg/2560px-Pix_logo_2020.svg.png" className="w-8 h-8 invert brightness-0" alt="Logo" />
-          </div>
-          <h1 className="text-3xl font-display font-bold mb-2">PixVault</h1>
+        <div className="pt-12 pb-8 text-center flex flex-col items-center">
+          <img src={logo} alt="Otsem Pay" className="w-32 h-auto mb-6 drop-shadow-lg" />
           <p className="text-muted-foreground text-sm">The future of crypto payments</p>
         </div>
 
@@ -129,7 +123,7 @@ export default function Auth() {
               </div>
             )}
 
-            <Button className="w-full h-14 text-lg rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 mt-4 shadow-[0_4px_20px_rgba(50,188,173,0.2)]">
+            <Button className="w-full h-14 text-lg rounded-xl bg-primary text-white hover:bg-primary/90 mt-4 shadow-[0_4px_20px_rgba(139,92,246,0.2)] font-bold">
               {isLogin ? "Sign In" : "Create Account"}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
