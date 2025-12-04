@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowDownLeft, Plus, Send, Wallet as WalletIcon, Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "@/components/bottom-nav";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -333,6 +333,11 @@ export default function Wallet() {
             <DialogTitle className="text-center font-display text-2xl font-semibold">
               {pixData ? "PIX Payment" : (isPortuguese ? "Depositar via PIX" : "Deposit via PIX")}
             </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              {pixData 
+                ? (isPortuguese ? "Escaneie o QR code ou copie a chave PIX" : "Scan QR code or copy PIX key")
+                : (isPortuguese ? "Insira o valor para depositar via PIX" : "Enter amount to deposit via PIX")}
+            </DialogDescription>
           </DialogHeader>
           
           {!pixData ? (
@@ -413,6 +418,9 @@ export default function Wallet() {
             <DialogTitle className="text-center font-display text-2xl font-semibold">
               {isPortuguese ? "Sacar via PIX" : "Withdraw via PIX"}
             </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              {isPortuguese ? "Selecione uma chave PIX e o valor" : "Select a PIX key and enter amount"}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-6 py-4">

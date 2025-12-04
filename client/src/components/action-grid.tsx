@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, ArrowDownLeft, Plus, ArrowLeftRight, Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPixDeposit, getPixKeys, createPixWithdrawal, getWallets, verifyDeposits, type PixKey } from "@/lib/api";
@@ -122,6 +122,9 @@ function DepositButton() {
           <DialogTitle className="text-center font-display text-2xl font-semibold">
             {pixData ? "PIX Payment" : "Deposit via PIX"}
           </DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            {pixData ? "Scan QR code or copy PIX key to make payment" : "Enter amount to deposit via PIX"}
+          </DialogDescription>
         </DialogHeader>
         
         {!pixData ? (
@@ -266,6 +269,9 @@ function WithdrawButton() {
       <DialogContent className="premium-card border-white/[0.08] rounded-3xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-2xl font-semibold">Withdraw via PIX</DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground">
+            Select a PIX key and enter amount to withdraw
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
