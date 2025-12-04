@@ -21,6 +21,7 @@ import Wallet from "@/pages/wallet";
 import PersonalInfo from "@/pages/personal-info";
 import Cards from "@/pages/cards";
 import Feed from "@/pages/feed";
+import Stats from "@/pages/stats";
 import Welcome from "@/pages/welcome";
 import Onboarding from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
@@ -117,6 +118,9 @@ function Router() {
       </Route>
       <Route path="/feed">
         {() => <ProtectedRoute component={Feed} />}
+      </Route>
+      <Route path="/stats">
+        {() => <ProtectedRoute component={Stats} />}
       </Route>
       <Route component={NotFound} />
     </Switch>
