@@ -98,6 +98,9 @@ Required secrets (stored in Replit Secrets):
 - `webhook_logs` - Idempotency tracking for webhooks
 
 ## Recent Changes
+- 2024-12-04: Added social login (Google, Apple) via Replit Auth alongside email/password
+- 2024-12-04: Created premium 4-step onboarding screens with Framer Motion animations
+- 2024-12-04: Updated app icon (favicon and OpenGraph) with custom gold/purple design
 - 2024-12-04: Implemented real-time notification system with secure WebSocket authentication
 - 2024-12-04: Added profile management (name, email, phone, photo upload)
 - 2024-12-04: Added notification triggers for deposits, withdrawals, and exchanges
