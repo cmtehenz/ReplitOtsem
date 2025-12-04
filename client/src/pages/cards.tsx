@@ -1,41 +1,78 @@
 import { useState } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { motion } from "framer-motion";
-import { CreditCard, Eye, EyeOff, Snowflake, Settings, Copy, Check, Lock, Unlock, Plus, ArrowUpRight } from "lucide-react";
+import { CreditCard, Eye, EyeOff, Snowflake, Settings, Copy, Lock, Unlock, Plus, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getCard, getCardDetails, updateCardStatus, getTransactions, type VirtualCard, type Transaction } from "@/lib/api";
 
 export default function Cards() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isPortuguese = t("nav.home") === "Início";
   
   const [showDetails, setShowDetails] = useState(false);
-  const [isFrozen, setIsFrozen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const cardNumber = "4532 •••• •••• 8742";
-  const cardNumberFull = "4532 8521 3654 8742";
-  const expiryDate = "12/28";
-  const cvv = "***";
-  const cvvFull = "847";
+  const { data: card, isLoading: cardLoading } = useQuery({
+    queryKey: ["card"],
+    queryFn: getCard,
+  });
+
+  const { data: cardDetails } = useQuery({
+    queryKey: ["cardDetails"],
+    queryFn: getCardDetails,
+    enabled: showDetails,
+  });
+
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["transactions"],
+    queryFn: () => getTransactions(5),
+  });
+
+  const freezeMutation = useMutation({
+    mutationFn: (status: "active" | "frozen") => updateCardStatus(status),
+    onSuccess: (updatedCard) => {
+      queryClient.setQueryData(["card"], updatedCard);
+      toast.success(updatedCard.status === "frozen" 
+        ? (isPortuguese ? "Cartão bloqueado temporariamente" : "Card frozen temporarily")
+        : (isPortuguese ? "Cartão desbloqueado" : "Card unfrozen")
+      );
+    },
+    onError: () => {
+      toast.error(isPortuguese ? "Erro ao atualizar cartão" : "Failed to update card");
+    },
+  });
+
+  const isFrozen = card?.status === "frozen";
+  const displayCard = showDetails && cardDetails ? cardDetails : card;
+  
+  const formatCardNumber = (num: string, show: boolean) => {
+    if (show && cardDetails) {
+      return cardDetails.cardNumber.replace(/(.{4})/g, "$1 ").trim();
+    }
+    return `**** **** **** ${displayCard?.last4 || "****"}`;
+  };
 
   const handleCopyCard = () => {
-    navigator.clipboard.writeText(cardNumberFull.replace(/\s/g, ""));
-    setCopied(true);
-    toast.success(isPortuguese ? "Número copiado!" : "Card number copied!");
-    setTimeout(() => setCopied(false), 2000);
+    if (cardDetails) {
+      navigator.clipboard.writeText(cardDetails.cardNumber);
+      setCopied(true);
+      toast.success(isPortuguese ? "Número copiado!" : "Card number copied!");
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      setShowDetails(true);
+      toast.info(isPortuguese ? "Revelando detalhes..." : "Revealing details...");
+    }
   };
 
   const handleFreeze = () => {
-    setIsFrozen(!isFrozen);
-    toast.success(isFrozen 
-      ? (isPortuguese ? "Cartão desbloqueado" : "Card unfrozen")
-      : (isPortuguese ? "Cartão bloqueado temporariamente" : "Card frozen temporarily")
-    );
+    const newStatus = isFrozen ? "active" : "frozen";
+    freezeMutation.mutate(newStatus);
   };
 
   const cardActions = [
@@ -49,7 +86,8 @@ export default function Cards() {
       icon: isFrozen ? Unlock : Snowflake, 
       label: isPortuguese ? (isFrozen ? "Desbloquear" : "Congelar") : (isFrozen ? "Unfreeze" : "Freeze"),
       onClick: handleFreeze,
-      color: isFrozen ? "text-emerald-400" : "text-blue-400"
+      color: isFrozen ? "text-emerald-400" : "text-blue-400",
+      loading: freezeMutation.isPending
     },
     { 
       icon: Copy, 
@@ -65,11 +103,35 @@ export default function Cards() {
     },
   ];
 
-  const recentTransactions = [
-    { merchant: "Spotify", amount: -14.90, date: "Today", icon: "🎵" },
-    { merchant: "Uber", amount: -32.50, date: "Yesterday", icon: "🚗" },
-    { merchant: "Amazon", amount: -189.90, date: "Dec 2", icon: "📦" },
-  ];
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case "deposit": return "💰";
+      case "withdrawal": return "💸";
+      case "exchange": return "🔄";
+      default: return "📋";
+    }
+  };
+
+  const formatTransactionAmount = (tx: Transaction) => {
+    if (tx.type === "deposit" && tx.toAmount) {
+      return { amount: parseFloat(tx.toAmount), isPositive: true };
+    }
+    if (tx.type === "withdrawal" && tx.fromAmount) {
+      return { amount: parseFloat(tx.fromAmount), isPositive: false };
+    }
+    if (tx.type === "exchange" && tx.fromAmount) {
+      return { amount: parseFloat(tx.fromAmount), isPositive: false };
+    }
+    return { amount: 0, isPositive: true };
+  };
+
+  if (cardLoading) {
+    return (
+      <div className="min-h-screen bg-otsem-gradient text-foreground pb-32 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
@@ -137,7 +199,7 @@ export default function Cards() {
                     {isPortuguese ? "Número do Cartão" : "Card Number"}
                   </p>
                   <p className="text-white text-xl font-mono tracking-[0.2em] font-medium" data-testid="text-card-number">
-                    {showDetails ? cardNumberFull : cardNumber}
+                    {formatCardNumber(displayCard?.cardNumber || "", showDetails)}
                   </p>
                 </div>
 
@@ -147,7 +209,7 @@ export default function Cards() {
                       {isPortuguese ? "Titular" : "Card Holder"}
                     </p>
                     <p className="text-white text-sm font-medium uppercase tracking-wide">
-                      {user?.name || user?.username || "USER NAME"}
+                      {displayCard?.cardholderName || user?.name || user?.username || "CARDHOLDER"}
                     </p>
                   </div>
                   <div className="flex gap-6">
@@ -155,12 +217,14 @@ export default function Cards() {
                       <p className="text-white/50 text-[10px] uppercase tracking-wider mb-1">
                         {isPortuguese ? "Validade" : "Expires"}
                       </p>
-                      <p className="text-white text-sm font-mono font-medium">{expiryDate}</p>
+                      <p className="text-white text-sm font-mono font-medium">
+                        {displayCard?.expiryMonth || "**"}/{displayCard?.expiryYear?.slice(-2) || "**"}
+                      </p>
                     </div>
                     <div>
                       <p className="text-white/50 text-[10px] uppercase tracking-wider mb-1">CVV</p>
                       <p className="text-white text-sm font-mono font-medium">
-                        {showDetails ? cvvFull : cvv}
+                        {showDetails && cardDetails ? cardDetails.cvv : "***"}
                       </p>
                     </div>
                   </div>
@@ -180,11 +244,16 @@ export default function Cards() {
             <button
               key={index}
               onClick={action.onClick}
-              className="flex flex-col items-center gap-2 group"
+              disabled={'loading' in action && action.loading}
+              className="flex flex-col items-center gap-2 group disabled:opacity-50"
               data-testid={`button-card-action-${index}`}
             >
               <div className="w-12 h-12 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center group-hover:bg-white/[0.08] group-hover:border-white/[0.12] transition-all group-active:scale-95">
-                <action.icon className={cn("w-5 h-5", action.color)} />
+                {'loading' in action && action.loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <action.icon className={cn("w-5 h-5", action.color)} />
+                )}
               </div>
               <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                 {action.label}
@@ -209,16 +278,16 @@ export default function Cards() {
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{isPortuguese ? "Gasto Mensal" : "Monthly Spending"}</span>
-                <span className="font-medium">R$ 2.450 / R$ 5.000</span>
+                <span className="font-medium">R$ 0 / R$ {parseFloat(displayCard?.monthlyLimit || "5000").toLocaleString()}</span>
               </div>
               <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
-                <div className="h-full w-[49%] bg-gradient-to-r from-primary to-accent rounded-full" />
+                <div className="h-full w-[0%] bg-gradient-to-r from-primary to-accent rounded-full" />
               </div>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">{isPortuguese ? "Saque Diário" : "Daily Withdrawal"}</span>
-                <span className="font-medium">R$ 0 / R$ 1.000</span>
+                <span className="font-medium">R$ 0 / R$ {parseFloat(displayCard?.dailyWithdrawalLimit || "1000").toLocaleString()}</span>
               </div>
               <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
                 <div className="h-full w-[0%] bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" />
@@ -240,29 +309,45 @@ export default function Cards() {
           </div>
           
           <div className="space-y-2">
-            {recentTransactions.map((tx, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                className="premium-card rounded-2xl p-4 flex items-center justify-between hover:bg-white/[0.02] transition-all cursor-pointer"
-                data-testid={`card-transaction-${index}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center text-lg">
-                    {tx.icon}
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{tx.merchant}</p>
-                    <p className="text-xs text-muted-foreground">{tx.date}</p>
-                  </div>
-                </div>
-                <p className="font-semibold text-sm text-red-400">
-                  R$ {Math.abs(tx.amount).toFixed(2).replace('.', ',')}
+            {transactions.length === 0 ? (
+              <div className="premium-card rounded-2xl p-6 text-center">
+                <p className="text-muted-foreground text-sm">
+                  {isPortuguese ? "Nenhuma transação ainda" : "No transactions yet"}
                 </p>
-              </motion.div>
-            ))}
+              </div>
+            ) : (
+              transactions.slice(0, 3).map((tx, index) => {
+                const { amount, isPositive } = formatTransactionAmount(tx);
+                return (
+                  <motion.div
+                    key={tx.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                    className="premium-card rounded-2xl p-4 flex items-center justify-between hover:bg-white/[0.02] transition-all cursor-pointer"
+                    data-testid={`card-transaction-${tx.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center text-lg">
+                        {getTransactionIcon(tx.type)}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm capitalize">{tx.type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(tx.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <p className={cn(
+                      "font-semibold text-sm",
+                      isPositive ? "text-emerald-400" : "text-red-400"
+                    )}>
+                      {isPositive ? "+" : "-"} R$ {amount.toFixed(2).replace('.', ',')}
+                    </p>
+                  </motion.div>
+                );
+              })
+            )}
           </div>
         </motion.div>
       </div>

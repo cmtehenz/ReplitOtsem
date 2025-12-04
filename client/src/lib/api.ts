@@ -386,3 +386,234 @@ export async function getWebSocketToken(): Promise<{ token: string }> {
   }
   return response.json();
 }
+
+// ==================== VIRTUAL CARDS ====================
+
+export interface VirtualCard {
+  id: string;
+  userId: string;
+  cardNumber: string;
+  last4: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  cardholderName: string;
+  status: "active" | "frozen" | "cancelled";
+  monthlyLimit: string;
+  dailyWithdrawalLimit: string;
+}
+
+export async function getCard(): Promise<VirtualCard> {
+  const response = await fetch(`${API_BASE}/cards`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch card");
+  }
+  return response.json();
+}
+
+export async function getCardDetails(): Promise<VirtualCard> {
+  const response = await fetch(`${API_BASE}/cards/details`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch card details");
+  }
+  return response.json();
+}
+
+export async function updateCardStatus(status: "active" | "frozen"): Promise<VirtualCard> {
+  const response = await fetch(`${API_BASE}/cards/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update card status");
+  }
+  return response.json();
+}
+
+// ==================== KYC ====================
+
+export interface KycSubmission {
+  id: string;
+  userId: string;
+  status: "not_started" | "pending" | "in_review" | "approved" | "rejected";
+  idFrontUploaded: boolean;
+  idBackUploaded: boolean;
+  selfieUploaded: boolean;
+  rejectionReason?: string | null;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+}
+
+export async function getKyc(): Promise<KycSubmission> {
+  const response = await fetch(`${API_BASE}/kyc`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch KYC status");
+  }
+  return response.json();
+}
+
+export async function updateKyc(step: "id_front" | "id_back" | "selfie"): Promise<KycSubmission> {
+  const response = await fetch(`${API_BASE}/kyc`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ step }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update KYC");
+  }
+  return response.json();
+}
+
+export async function submitKyc(): Promise<KycSubmission> {
+  const response = await fetch(`${API_BASE}/kyc/submit`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to submit KYC");
+  }
+  return response.json();
+}
+
+// ==================== SECURITY SETTINGS ====================
+
+export interface SecuritySettings {
+  id: string;
+  userId: string;
+  twoFactorEnabled: boolean;
+  biometricEnabled: boolean;
+  loginAlertsEnabled: boolean;
+  transactionAlertsEnabled: boolean;
+}
+
+export async function getSecuritySettings(): Promise<SecuritySettings> {
+  const response = await fetch(`${API_BASE}/security`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch security settings");
+  }
+  return response.json();
+}
+
+export async function updateSecuritySettings(settings: Partial<SecuritySettings>): Promise<SecuritySettings> {
+  const response = await fetch(`${API_BASE}/security`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update security settings");
+  }
+  return response.json();
+}
+
+// ==================== ACTIVE SESSIONS ====================
+
+export interface ActiveSession {
+  id: string;
+  userId: string;
+  deviceName: string;
+  deviceType: string;
+  ipAddress: string;
+  location?: string | null;
+  isCurrent: boolean;
+  lastActiveAt: string;
+  createdAt: string;
+}
+
+export async function getSessions(): Promise<ActiveSession[]> {
+  const response = await fetch(`${API_BASE}/sessions`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch sessions");
+  }
+  return response.json();
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/sessions/${sessionId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to terminate session");
+  }
+}
+
+export async function logoutAllSessions(exceptCurrent?: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/sessions/logout-all`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ exceptCurrent }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to terminate sessions");
+  }
+}
+
+// ==================== REFERRALS ====================
+
+export interface ReferralStats {
+  invited: number;
+  active: number;
+  earned: number;
+  pending: number;
+}
+
+export interface RecentReferral {
+  id: string;
+  name: string;
+  date: string;
+  status: "pending" | "active" | "rewarded";
+  earned: string | null;
+}
+
+export interface ReferralData {
+  code: string;
+  stats: ReferralStats;
+  recentReferrals: RecentReferral[];
+}
+
+export async function getReferrals(): Promise<ReferralData> {
+  const response = await fetch(`${API_BASE}/referrals`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch referrals");
+  }
+  return response.json();
+}
+
+// ==================== ANALYTICS ====================
+
+export interface TransactionStats {
+  income: number;
+  expenses: number;
+  exchanges: number;
+  dailyData: { date: string; income: number; expense: number }[];
+}
+
+export async function getStats(days: number = 7): Promise<TransactionStats> {
+  const response = await fetch(`${API_BASE}/stats?days=${days}`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch stats");
+  }
+  return response.json();
+}
