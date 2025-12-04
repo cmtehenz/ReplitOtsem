@@ -37,7 +37,7 @@
   --color-input: hsl(260 20% 18%);
   --color-ring: hsl(265 90% 65%);
 
-  --radius: 1rem;
+  --radius: 1.5rem; /* More rounded for modern feel */
 }
 
 /* Global Reset & Base Styles */
@@ -56,10 +56,10 @@
 /* Custom Utilities */
 @layer utilities {
   .glass {
-    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg;
   }
   .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-white/5 shadow-xl;
+    @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
   }
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary;
@@ -74,6 +74,10 @@
   }
   
   .bg-card-gradient {
-    @apply bg-gradient-to-br from-card via-card/90 to-[#2a1b3d]/50;
+    @apply bg-gradient-to-br from-card/80 via-card/60 to-[#2a1b3d]/40;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98];
   }
 }
