@@ -163,3 +163,33 @@ export const webhookLogs = pgTable("webhook_logs", {
 export const insertWebhookLogSchema = createInsertSchema(webhookLogs).omit({ id: true, createdAt: true });
 export type InsertWebhookLog = z.infer<typeof insertWebhookLogSchema>;
 export type WebhookLog = typeof webhookLogs.$inferSelect;
+
+// Notification types
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "deposit_pending",
+  "deposit_completed",
+  "deposit_failed",
+  "withdrawal_pending",
+  "withdrawal_completed",
+  "withdrawal_failed",
+  "exchange_completed",
+  "exchange_failed",
+  "security_alert",
+  "system"
+]);
+
+// User notifications
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: notificationTypeEnum("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  data: text("data"), // JSON stringified extra data (amount, txid, etc.)
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, read: true });
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;

@@ -1,13 +1,14 @@
 import { db } from "./db";
 import { 
-  users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs,
+  users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
   type UserPixKey, type InsertPixKey,
   type PixDeposit, type InsertPixDeposit,
   type PixWithdrawal, type InsertPixWithdrawal,
-  type WebhookLog, type InsertWebhookLog
+  type WebhookLog, type InsertWebhookLog,
+  type Notification, type InsertNotification
 } from "@shared/schema";
 import { eq, and, desc, or } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -59,6 +60,13 @@ export interface IStorage {
   // Webhook logs
   createWebhookLog(log: InsertWebhookLog): Promise<WebhookLog>;
   getWebhookLogByHash(hash: string): Promise<WebhookLog | undefined>;
+  
+  // Notifications
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUserNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markNotificationAsRead(id: string, userId: string): Promise<Notification>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
   
   // Exchange operations
   executeExchange(
@@ -365,6 +373,49 @@ export class DatabaseStorage implements IStorage {
 
       return transactionResult[0];
     });
+  }
+
+  // Notifications
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications).values(notification).returning();
+    return result[0];
+  }
+
+  async getUserNotifications(userId: string, limit: number = 50): Promise<Notification[]> {
+    return await db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db.select().from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.read, false)
+      ));
+    return result.length;
+  }
+
+  async markNotificationAsRead(id: string, userId: string): Promise<Notification> {
+    const result = await db.update(notifications)
+      .set({ read: true })
+      .where(and(
+        eq(notifications.id, id),
+        eq(notifications.userId, userId)
+      ))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("Notification not found");
+    }
+    return result[0];
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.userId, userId));
   }
 }
 
