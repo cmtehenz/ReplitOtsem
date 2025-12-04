@@ -73,7 +73,7 @@ export default function Cards() {
             </div>
             <h2 className="text-2xl font-display font-bold tracking-tight">Coming Soon</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Soon you'll be able to use your crypto assets for card payments globally. Pay anywhere in the world with your crypto directly from this card.
+              Soon you will be able to spend crypto assets globally online and in-store using Otsem Card.
             </p>
           </div>
         </motion.div>
