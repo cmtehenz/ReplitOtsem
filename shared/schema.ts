@@ -218,3 +218,102 @@ export const notifications = pgTable("notifications", {
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, read: true });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+// Virtual card status enum
+export const cardStatusEnum = pgEnum("card_status", ["active", "frozen", "cancelled"]);
+
+// Virtual Cards - user's virtual debit cards
+export const virtualCards = pgTable("virtual_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  cardNumber: text("card_number").notNull(), // Encrypted or masked
+  last4: text("last_4").notNull(),
+  expiryMonth: text("expiry_month").notNull(),
+  expiryYear: text("expiry_year").notNull(),
+  cvv: text("cvv").notNull(), // Encrypted
+  cardholderName: text("cardholder_name").notNull(),
+  status: cardStatusEnum("status").notNull().default("active"),
+  monthlyLimit: decimal("monthly_limit", { precision: 18, scale: 2 }).notNull().default("5000"),
+  monthlySpent: decimal("monthly_spent", { precision: 18, scale: 2 }).notNull().default("0"),
+  dailyWithdrawalLimit: decimal("daily_withdrawal_limit", { precision: 18, scale: 2 }).notNull().default("1000"),
+  dailyWithdrawn: decimal("daily_withdrawn", { precision: 18, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertVirtualCardSchema = createInsertSchema(virtualCards).omit({ id: true, createdAt: true, monthlySpent: true, dailyWithdrawn: true });
+export type InsertVirtualCard = z.infer<typeof insertVirtualCardSchema>;
+export type VirtualCard = typeof virtualCards.$inferSelect;
+
+// KYC status enum
+export const kycStatusEnum = pgEnum("kyc_status", ["not_started", "pending", "in_review", "verified", "rejected"]);
+
+// KYC Submissions - identity verification
+export const kycSubmissions = pgTable("kyc_submissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  status: kycStatusEnum("status").notNull().default("not_started"),
+  idFrontUploaded: boolean("id_front_uploaded").default(false),
+  idBackUploaded: boolean("id_back_uploaded").default(false),
+  selfieUploaded: boolean("selfie_uploaded").default(false),
+  rejectionReason: text("rejection_reason"),
+  submittedAt: timestamp("submitted_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertKycSubmissionSchema = createInsertSchema(kycSubmissions).omit({ id: true, createdAt: true, submittedAt: true, reviewedAt: true });
+export type InsertKycSubmission = z.infer<typeof insertKycSubmissionSchema>;
+export type KycSubmission = typeof kycSubmissions.$inferSelect;
+
+// User Security Settings - 2FA, biometric, alerts
+export const userSecuritySettings = pgTable("user_security_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  biometricEnabled: boolean("biometric_enabled").default(true),
+  loginAlertsEnabled: boolean("login_alerts_enabled").default(true),
+  transactionAlertsEnabled: boolean("transaction_alerts_enabled").default(true),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSecuritySettingsSchema = createInsertSchema(userSecuritySettings).omit({ id: true, updatedAt: true });
+export type InsertSecuritySettings = z.infer<typeof insertSecuritySettingsSchema>;
+export type SecuritySettings = typeof userSecuritySettings.$inferSelect;
+
+// Active Sessions - user login sessions
+export const activeSessions = pgTable("active_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deviceName: text("device_name").notNull(),
+  deviceType: text("device_type").notNull(), // mobile, desktop, tablet
+  location: text("location"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  isCurrent: boolean("is_current").default(false),
+  lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertActiveSessionSchema = createInsertSchema(activeSessions).omit({ id: true, createdAt: true, lastActiveAt: true });
+export type InsertActiveSession = z.infer<typeof insertActiveSessionSchema>;
+export type ActiveSession = typeof activeSessions.$inferSelect;
+
+// Referral status enum
+export const referralStatusEnum = pgEnum("referral_status", ["pending", "active", "expired"]);
+
+// Referrals - referral program tracking
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id),
+  referredId: varchar("referred_id").references(() => users.id),
+  referralCode: text("referral_code").notNull(),
+  status: referralStatusEnum("status").notNull().default("pending"),
+  rewardAmount: decimal("reward_amount", { precision: 18, scale: 2 }).default("20"),
+  rewardPaid: boolean("reward_paid").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  activatedAt: timestamp("activated_at"),
+});
+
+export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true, activatedAt: true, rewardPaid: true });
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referrals.$inferSelect;
