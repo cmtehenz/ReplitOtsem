@@ -19,16 +19,16 @@ export default function PersonalInfo() {
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState(user?.phone || "");
-  const [profilePhoto, setProfilePhoto] = useState<string | undefined>(user?.profilePhoto);
-  const [previewPhoto, setPreviewPhoto] = useState<string | undefined>(user?.profilePhoto);
+  const [profilePhoto, setProfilePhoto] = useState<string | undefined>(user?.profilePhoto || undefined);
+  const [previewPhoto, setPreviewPhoto] = useState<string | undefined>(user?.profilePhoto || undefined);
 
   useEffect(() => {
     if (user) {
       setName(user.name || "");
       setEmail(user.email || "");
       setPhone(user.phone || "");
-      setProfilePhoto(user.profilePhoto);
-      setPreviewPhoto(user.profilePhoto);
+      setProfilePhoto(user.profilePhoto || undefined);
+      setPreviewPhoto(user.profilePhoto || undefined);
     }
   }, [user]);
 

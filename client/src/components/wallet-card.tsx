@@ -1,34 +1,54 @@
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Wallet, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, Wallet } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getWallets } from "@/lib/api";
+import { getWallets, getRates } from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function WalletCard() {
   const [isVisible, setIsVisible] = useState(true);
+  const { t } = useLanguage();
   
   const { data: wallets } = useQuery({
     queryKey: ["wallets"],
     queryFn: () => getWallets(),
   });
 
+  const { data: rates } = useQuery({
+    queryKey: ["rates"],
+    queryFn: () => getRates(),
+    refetchInterval: 60000,
+  });
+
   const calculateTotalBalance = () => {
     if (!wallets) return "0,00";
     
+    const usdtRate = rates?.usdtBrl?.sell;
+    
     let total = 0;
+    let hasUnknownRate = false;
+    
     wallets.forEach(wallet => {
       const balance = parseFloat(wallet.balance);
       if (wallet.currency === "BRL") {
         total += balance;
-      } else if (wallet.currency === "USDT") {
-        total += balance * 5.15;
-      } else if (wallet.currency === "BTC") {
-        total += balance * 345201;
+      } else if (wallet.currency === "USDT" && usdtRate) {
+        total += balance * usdtRate;
+      } else if (wallet.currency === "USDT" && !usdtRate) {
+        hasUnknownRate = true;
+      } else if (wallet.currency === "BTC" && balance > 0) {
+        hasUnknownRate = true;
       }
     });
     
+    if (hasUnknownRate && total === 0) {
+      return null;
+    }
+    
     return total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
+
+  const totalBalance = calculateTotalBalance();
 
   return (
     <motion.div
@@ -48,12 +68,15 @@ export function WalletCard() {
               <Wallet className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-[0.12em]">Total Balance</span>
+              <span className="text-[11px] font-medium text-muted-foreground/70 uppercase tracking-[0.12em]">
+                {t("wallet.total") || "Total Balance"}
+              </span>
             </div>
           </div>
           <button 
             onClick={() => setIsVisible(!isVisible)}
             className="w-9 h-9 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center transition-all duration-200 border border-white/[0.06]"
+            data-testid="button-toggle-balance"
           >
             {isVisible ? <Eye className="w-4 h-4 text-muted-foreground" /> : <EyeOff className="w-4 h-4 text-muted-foreground" />}
           </button>
@@ -61,18 +84,11 @@ export function WalletCard() {
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <h1 className="text-[38px] font-display font-bold tracking-tight text-foreground leading-none">
-              {isVisible ? `R$ ${calculateTotalBalance()}` : "••••••••"}
+            <h1 className="text-[38px] font-display font-bold tracking-tight text-foreground leading-none" data-testid="text-total-balance">
+              {isVisible 
+                ? (totalBalance ? `R$ ${totalBalance}` : "—") 
+                : "••••••••"}
             </h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-500/20">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>+R$ 1.250</span>
-              <span className="text-emerald-400/70">(12.5%)</span>
-            </div>
-            <span className="text-[11px] text-muted-foreground/60 font-medium">this month</span>
           </div>
         </div>
         

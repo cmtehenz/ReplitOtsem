@@ -1,4 +1,4 @@
-import { User as UserIcon, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe, Loader2 } from "lucide-react";
+import { User as UserIcon, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
 import { useLanguage } from "@/context/LanguageContext";
@@ -72,21 +72,15 @@ export default function Profile() {
           data-testid="link-kyc"
         >
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-          <div className="flex justify-between items-start mb-4">
-            <h3 className="font-semibold text-primary font-display text-base">{t("profile.limits")}</h3>
-            <span className="text-[10px] bg-background/60 backdrop-blur-sm px-2.5 py-1 rounded-lg flex items-center gap-1.5 border border-white/[0.06] font-medium">
-              Level 2 <ChevronRight className="w-3 h-3 text-muted-foreground/60" />
-            </span>
-          </div>
-          <div className="space-y-3">
-            <div className="flex justify-between text-xs font-medium">
-              <span className="text-muted-foreground/70">{t("profile.pixDeposit")}</span>
-              <span className="text-foreground">R$ 4.250 / R$ 50.000</span>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <div className="h-2 bg-background/40 rounded-full overflow-hidden border border-white/[0.04]">
-              <div className="h-full bg-gradient-to-r from-primary to-primary/70 w-[8%] shadow-[0_0_12px_rgba(139,92,246,0.5)]" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-primary font-display text-base">{t("profile.limits")}</h3>
+              <p className="text-[11px] text-primary/60 mt-0.5">{t("profile.upgradeButton")}</p>
             </div>
-            <p className="text-[11px] text-primary/80 text-center font-medium group-hover:text-primary transition-colors tracking-wide">{t("profile.upgradeButton")}</p>
+            <ChevronRight className="w-5 h-5 text-primary/60 group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
 
@@ -100,7 +94,6 @@ export default function Profile() {
             icon={Users} 
             label={t("profile.referral")} 
             onClick={() => setLocation("/referral")}
-            badge="Earn Money"
           />
           <MenuItem 
             icon={CreditCard} 
@@ -141,7 +134,7 @@ export default function Profile() {
   );
 }
 
-function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: string, onClick?: () => void, badge?: string }) {
+function MenuItem({ icon: Icon, label, onClick }: { icon: any, label: string, onClick?: () => void }) {
   return (
     <button 
       onClick={onClick}
@@ -152,11 +145,6 @@ function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: str
           <Icon className="w-[18px] h-[18px]" strokeWidth={2} />
         </div>
         <span className="font-medium text-sm">{label}</span>
-        {badge && (
-          <span className="text-[9px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider border border-primary/20">
-            {badge}
-          </span>
-        )}
       </div>
       <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:translate-x-1 transition-transform group-hover:text-primary" />
     </button>

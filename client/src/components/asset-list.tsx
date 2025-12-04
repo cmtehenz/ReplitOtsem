@@ -1,43 +1,57 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { getWallets } from "@/lib/api";
+import { getWallets, getRates } from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 
-const assetConfig: Record<string, { name: string; icon: string; color: string; bgColor: string; price: string }> = {
+const assetConfig: Record<string, { name: string; icon: string; color: string; bgColor: string }> = {
   USDT: {
     name: "Tether",
     icon: "T",
     color: "text-[#26A17B]",
     bgColor: "bg-[#26A17B]/12",
-    price: "R$ 5,15",
   },
   BRL: {
     name: "Brazilian Real",
     icon: "R$",
     color: "text-emerald-400",
     bgColor: "bg-emerald-500/12",
-    price: "1.00",
   },
   BTC: {
     name: "Bitcoin",
     icon: "₿",
     color: "text-orange-400",
     bgColor: "bg-orange-500/12",
-    price: "R$ 345k",
   },
 };
 
 export function AssetList() {
+  const { t } = useLanguage();
+  
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["wallets"],
     queryFn: () => getWallets(),
   });
 
+  const { data: rates } = useQuery({
+    queryKey: ["rates"],
+    queryFn: () => getRates(),
+    refetchInterval: 60000,
+  });
+
+  const getPrice = (currency: string) => {
+    if (currency === "BRL") return "R$ 1,00";
+    if (currency === "USDT" && rates?.usdtBrl?.sell) {
+      return `R$ ${rates.usdtBrl.sell.toFixed(2).replace(".", ",")}`;
+    }
+    return "—";
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="px-1">
-          <h3 className="section-title">Assets</h3>
+          <h3 className="section-title">{t("assets.title") || "Assets"}</h3>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -63,7 +77,7 @@ export function AssetList() {
   return (
     <div className="space-y-4">
       <div className="px-1">
-        <h3 className="section-title">Assets</h3>
+        <h3 className="section-title">{t("assets.title") || "Assets"}</h3>
       </div>
       
       <div className="space-y-2">
@@ -81,6 +95,7 @@ export function AssetList() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05, duration: 0.3 }}
               className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06] transition-all duration-200 cursor-pointer group"
+              data-testid={`asset-${wallet.currency}`}
             >
               <div className="flex items-center gap-4">
                 <div className={cn(
@@ -92,7 +107,7 @@ export function AssetList() {
                 </div>
                 <div className="space-y-0.5">
                   <div className="font-semibold text-sm text-foreground group-hover:text-foreground transition-colors">{config.name}</div>
-                  <div className="text-[11px] text-muted-foreground/60 font-medium">{config.price}</div>
+                  <div className="text-[11px] text-muted-foreground/60 font-medium">{getPrice(wallet.currency)}</div>
                 </div>
               </div>
 
