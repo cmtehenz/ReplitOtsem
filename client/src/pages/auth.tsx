@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
 import { Eye, EyeOff, ArrowRight, Loader2, Mail } from "lucide-react";
 import { redirectToSocialLogin } from "@/lib/api";
+import logoImage from "@assets/Untitled_1764875614521.png";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -62,11 +63,19 @@ export default function AuthPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-md space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">Otsem Pay</h1>
-            <p className="text-gray-500">
-              {isLogin ? t("auth.loginDescription") : t("auth.registerDescription")}
-            </p>
+          <div className="text-center space-y-4">
+            <img 
+              src={logoImage} 
+              alt="Otsem Pay" 
+              className="w-20 h-20 mx-auto object-contain"
+              data-testid="img-logo"
+            />
+            <div className="space-y-1">
+              <h1 className="text-3xl font-bold text-gray-900">Otsem Pay</h1>
+              <p className="text-gray-500">
+                {isLogin ? t("auth.loginDescription") : t("auth.registerDescription")}
+              </p>
+            </div>
           </div>
 
           <div className="bg-white rounded-2xl p-6 card-shadow space-y-6">
