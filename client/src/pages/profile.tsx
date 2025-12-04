@@ -1,13 +1,16 @@
-import { User, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users } from "lucide-react";
+import { User, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Profile() {
+  const { language, setLanguage, t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
       <div className="p-6 space-y-8">
-        <h1 className="text-2xl font-display font-bold tracking-tight">Profile</h1>
+        <h1 className="text-2xl font-display font-bold tracking-tight">{t("profile.title")}</h1>
 
         {/* User Card */}
         <div className="glass-card rounded-3xl p-6 flex items-center gap-5 hover:bg-white/5 transition-colors cursor-pointer group">
@@ -22,7 +25,7 @@ export default function Profile() {
             <p className="text-sm text-muted-foreground">alex.morgan@example.com</p>
             <div className="flex items-center gap-1.5 mt-2 text-xs text-[#26A17B] bg-[#26A17B]/10 px-3 py-1 rounded-full w-fit border border-[#26A17B]/20">
               <BadgeCheck className="w-3.5 h-3.5" />
-              <span className="font-medium">Verified Level 2</span>
+              <span className="font-medium">{t("profile.verified")}</span>
             </div>
           </div>
         </div>
@@ -30,43 +33,44 @@ export default function Profile() {
         {/* Verification Status */}
         <div className="bg-gradient-to-br from-primary/20 to-transparent rounded-3xl p-5 border border-primary/20 cursor-pointer hover:bg-primary/5 transition-all active:scale-[0.98] group shadow-[0_0_20px_rgba(139,92,246,0.1)]" onClick={() => window.location.href = "/kyc"}>
           <div className="flex justify-between items-start mb-3">
-            <h3 className="font-bold text-primary font-display text-lg">Daily Limits</h3>
+            <h3 className="font-bold text-primary font-display text-lg">{t("profile.limits")}</h3>
             <span className="text-xs bg-background/50 px-2.5 py-1.5 rounded-lg flex items-center gap-1 backdrop-blur-md border border-white/5">
               Level 2 <ChevronRight className="w-3 h-3 text-muted-foreground" />
             </span>
           </div>
           <div className="space-y-3">
             <div className="flex justify-between text-sm font-medium">
-              <span className="text-muted-foreground">Pix Deposit</span>
+              <span className="text-muted-foreground">{t("profile.pixDeposit")}</span>
               <span>R$ 4.250 / R$ 50.000</span>
             </div>
             <div className="h-2 bg-background/50 rounded-full overflow-hidden border border-white/5">
               <div className="h-full bg-gradient-to-r from-primary to-accent w-[8%] shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
             </div>
-            <p className="text-xs text-primary/80 mt-2 text-center font-medium group-hover:text-primary transition-colors">Tap to upgrade limits</p>
+            <p className="text-xs text-primary/80 mt-2 text-center font-medium group-hover:text-primary transition-colors">{t("profile.upgradeButton")}</p>
           </div>
         </div>
 
         {/* Menu Options */}
         <div className="space-y-3">
-          <MenuItem icon={User} label="Personal Information" />
+          <MenuItem icon={User} label={t("profile.personalInfo")} />
           <MenuItem 
             icon={Users} 
-            label="Referral Program" 
+            label={t("profile.referral")} 
             onClick={() => window.location.href = "/referral"}
             badge="Earn Money"
           />
           <MenuItem 
             icon={CreditCard} 
-            label="Saved Pix Keys" 
+            label={t("profile.pixKeys")} 
             onClick={() => window.location.href = "/pix-keys"}
           />
           <MenuItem 
             icon={Shield} 
-            label="Security & 2FA" 
+            label={t("profile.security")} 
             onClick={() => window.location.href = "/security"}
           />
-          <MenuItem icon={HelpCircle} label="Help & Support" />
+          <MenuItem icon={HelpCircle} label={t("profile.help")} />
+          <LanguageToggle language={language} setLanguage={setLanguage} t={t} />
         </div>
 
         <Button 
@@ -75,7 +79,7 @@ export default function Profile() {
           onClick={() => window.location.href = "/auth"}
         >
           <LogOut className="w-6 h-6 mr-2" />
-          Sign Out
+          {t("profile.signOut")}
         </Button>
       </div>
       
@@ -105,3 +109,31 @@ function MenuItem({ icon: Icon, label, onClick, badge }: { icon: any, label: str
     </button>
   );
 }
+
+function LanguageToggle({ language, setLanguage, t }: any) {
+  return (
+    <div className="w-full flex items-center justify-between p-5 bg-card/40 hover:bg-card/70 border border-white/10 rounded-3xl transition-all duration-300 group active:scale-[0.98] shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10">
+      <div className="flex items-center gap-5">
+        <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-white group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300 border border-white/5 group-hover:border-primary/30 shadow-inner">
+          <Globe className="w-6 h-6" />
+        </div>
+        <span className="font-bold text-lg">{t("profile.language")}</span>
+      </div>
+      <div className="flex gap-2">
+        <button 
+          onClick={() => setLanguage("en")}
+          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${language === "en" ? "bg-primary text-white" : "bg-white/10 text-muted-foreground hover:bg-white/20"}`}
+        >
+          {t("profile.english")}
+        </button>
+        <button 
+          onClick={() => setLanguage("pt-BR")}
+          className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${language === "pt-BR" ? "bg-primary text-white" : "bg-white/10 text-muted-foreground hover:bg-white/20"}`}
+        >
+          {t("profile.portuguese")}
+        </button>
+      </div>
+    </div>
+  );
+}
+

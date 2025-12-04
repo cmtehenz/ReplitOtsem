@@ -1,15 +1,17 @@
-import { Menu, Wallet, TrendingUp, ArrowLeftRight, CreditCard } from "lucide-react";
+import { Menu, Wallet, Newspaper, ArrowLeftRight, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { useLanguage } from "@/context/LanguageContext";
 import { cn } from "@/lib/utils";
 
 export function BottomNav({ active }: { active: string }) {
   const [, setLocation] = useLocation();
+  const { t } = useLanguage();
   
   return (
     <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/5 pb-safe z-50 backdrop-blur-xl">
       <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
-        <NavButton icon={Menu} label="Home" active={active === "home"} onClick={() => setLocation("/")} />
-        <NavButton icon={Wallet} label="Wallet" active={active === "wallet"} onClick={() => setLocation("/wallet")} />
+        <NavButton icon={Menu} label={t("nav.home")} active={active === "home"} onClick={() => setLocation("/")} />
+        <NavButton icon={Wallet} label={t("nav.wallet")} active={active === "wallet"} onClick={() => setLocation("/wallet")} />
         <div 
           className="relative -top-6 group cursor-pointer"
           onClick={() => setLocation("/")}
@@ -19,8 +21,8 @@ export function BottomNav({ active }: { active: string }) {
             <ArrowLeftRight className="w-7 h-7 text-white -rotate-45" />
           </div>
         </div>
-        <NavButton icon={TrendingUp} label="Stats" active={active === "stats"} onClick={() => setLocation("/stats")} />
-        <NavButton icon={CreditCard} label="Card" active={active === "cards"} onClick={() => setLocation("/cards")} />
+        <NavButton icon={Newspaper} label={t("nav.feed")} active={active === "feed"} onClick={() => setLocation("/feed")} />
+        <NavButton icon={CreditCard} label={t("nav.card")} active={active === "cards"} onClick={() => setLocation("/cards")} />
       </div>
     </nav>
   );

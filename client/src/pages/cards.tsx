@@ -2,14 +2,16 @@ import { BottomNav } from "@/components/bottom-nav";
 import { motion } from "framer-motion";
 import { Wifi, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Cards() {
   const [showDetails, setShowDetails] = useState(false);
+  const { t } = useLanguage();
   
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
       <div className="p-6 flex flex-col h-full">
-        <h1 className="font-display font-bold text-2xl mb-12">Cards</h1>
+        <h1 className="font-display font-bold text-2xl mb-12">{t("cards.title")}</h1>
 
         {/* Card Visual */}
         <motion.div
@@ -71,9 +73,9 @@ export default function Cards() {
             <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center border border-accent/20">
               <span className="text-2xl">✨</span>
             </div>
-            <h2 className="text-2xl font-display font-bold tracking-tight">Coming Soon</h2>
+            <h2 className="text-2xl font-display font-bold tracking-tight">{t("cards.comingSoon")}</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Soon you will be able to spend crypto assets globally online and in-store using Otsem Card.
+              {t("cards.message")}
             </p>
           </div>
         </motion.div>

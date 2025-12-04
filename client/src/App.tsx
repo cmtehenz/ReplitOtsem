@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LanguageProvider } from "@/context/LanguageContext";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Activity from "@/pages/activity";
@@ -16,7 +17,7 @@ import Security from "@/pages/security";
 import ExchangeSuccess from "@/pages/exchange-success";
 import Wallet from "@/pages/wallet";
 import Cards from "@/pages/cards";
-import Stats from "@/pages/stats";
+import Feed from "@/pages/feed";
 import Welcome from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
 
@@ -37,7 +38,7 @@ function Router() {
       <Route path="/exchange-success" component={ExchangeSuccess} />
       <Route path="/wallet" component={Wallet} />
       <Route path="/cards" component={Cards} />
-      <Route path="/stats" component={Stats} />
+      <Route path="/feed" component={Feed} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -46,10 +47,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }
