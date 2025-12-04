@@ -14,6 +14,9 @@ import PixKeys from "@/pages/pix-keys";
 import Notifications from "@/pages/notifications";
 import Security from "@/pages/security";
 import ExchangeSuccess from "@/pages/exchange-success";
+import Wallet from "@/pages/wallet";
+import Cards from "@/pages/cards";
+import Stats from "@/pages/stats";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +33,9 @@ function Router() {
       <Route path="/notifications" component={Notifications} />
       <Route path="/security" component={Security} />
       <Route path="/exchange-success" component={ExchangeSuccess} />
+      <Route path="/wallet" component={Wallet} />
+      <Route path="/cards" component={Cards} />
+      <Route path="/stats" component={Stats} />
       <Route component={NotFound} />
     </Switch>
   );

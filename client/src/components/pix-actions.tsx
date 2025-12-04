@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, RefreshCw, CreditCard, Plus } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, RefreshCw, CreditCard, Plus, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,6 +12,13 @@ interface ActionButtonsProps {
 
 export function ActionButtons({ onSend, onReceive }: ActionButtonsProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  const scrollToExchange = () => {
+    const element = document.getElementById('exchange-section');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="grid grid-cols-4 gap-3 w-full max-w-md mx-auto">
@@ -91,19 +98,45 @@ export function ActionButtons({ onSend, onReceive }: ActionButtonsProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="flex flex-col items-center gap-2 group cursor-pointer">
+      <div 
+        className="flex flex-col items-center gap-2 group cursor-pointer"
+        onClick={scrollToExchange}
+      >
         <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-white group-hover:bg-white/20 transition-all duration-300 border border-white/5">
           <RefreshCw className="w-6 h-6" />
         </div>
         <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">Swap</span>
       </div>
 
-      <div className="flex flex-col items-center gap-2 group cursor-pointer">
-        <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-white group-hover:bg-white/20 transition-all duration-300 border border-white/5">
-          <Plus className="w-6 h-6" />
-        </div>
-        <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">Top Up</span>
-      </div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <div className="flex flex-col items-center gap-2 group cursor-pointer">
+            <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-white group-hover:bg-white/20 transition-all duration-300 border border-white/5">
+              <Plus className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">Top Up</span>
+          </div>
+        </DialogTrigger>
+        <DialogContent className="bg-card border-white/10 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center font-display">Top Up Wallet</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <button className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/50 border border-white/5 hover:bg-card hover:border-primary/20 transition-all">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <span className="font-bold text-sm">Pix</span>
+              </div>
+              <span className="text-sm font-medium">Deposit BRL</span>
+            </button>
+            <button className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/50 border border-white/5 hover:bg-card hover:border-primary/20 transition-all">
+              <div className="w-12 h-12 rounded-xl bg-[#26A17B]/10 flex items-center justify-center text-[#26A17B]">
+                <span className="font-bold text-lg">T</span>
+              </div>
+              <span className="text-sm font-medium">Deposit USDT</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

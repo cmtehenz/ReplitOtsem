@@ -32,7 +32,7 @@ export function ExchangeCard() {
   };
 
   return (
-    <div className="glass-card rounded-3xl p-6 space-y-6 relative overflow-hidden">
+    <div id="exchange-section" className="glass-card rounded-3xl p-6 space-y-6 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-accent opacity-50" />
       
       <div className="flex items-center justify-between">

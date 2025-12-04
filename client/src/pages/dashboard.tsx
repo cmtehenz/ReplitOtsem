@@ -3,7 +3,7 @@ import { ActionGrid } from "@/components/action-grid";
 import { ExchangeCard } from "@/components/exchange-card";
 import { AssetList } from "@/components/asset-list";
 import { TransactionHistory } from "@/components/transaction-history";
-import { Bell, Settings, Menu, ArrowLeftRight } from "lucide-react";
+import { Bell, Settings, Menu, ArrowLeftRight, Wallet, TrendingUp } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
@@ -52,25 +52,37 @@ export default function Dashboard() {
         <ExchangeCard />
         
         {/* Asset Breakdown */}
-        <AssetList />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-display font-medium">Your Balances</h3>
+            <button onClick={() => setLocation("/wallet")} className="text-sm text-primary hover:underline">View all</button>
+          </div>
+          <AssetList />
+        </div>
         
         {/* History */}
-        <TransactionHistory />
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-display font-medium">Recent Activity</h3>
+            <button onClick={() => setLocation("/activity")} className="text-sm text-primary hover:underline">View all</button>
+          </div>
+          <TransactionHistory />
+        </div>
       </main>
 
       {/* Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-xl border-t border-white/5 pb-safe z-50">
         <div className="max-w-md mx-auto flex justify-around items-center h-16 px-2">
           <NavButton icon={Menu} label="Home" active={true} onClick={() => setLocation("/")} />
-          <NavButton icon={Menu} label="Wallet" onClick={() => setLocation("/wallet")} />
+          <NavButton icon={Wallet} label="Wallet" onClick={() => setLocation("/wallet")} />
           <div 
             className="w-14 h-14 -mt-8 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(50,188,173,0.4)] border-4 border-background cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => setLocation("/")}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <ArrowLeftRight className="w-6 h-6 text-primary-foreground" />
           </div>
-          <NavButton icon={Menu} label="Activity" onClick={() => setLocation("/activity")} />
-          <NavButton icon={Menu} label="Profile" onClick={() => setLocation("/profile")} />
+          <NavButton icon={TrendingUp} label="Stats" onClick={() => setLocation("/stats")} />
+          <NavButton icon={Menu} label="Cards" onClick={() => setLocation("/cards")} />
         </div>
       </nav>
     </div>

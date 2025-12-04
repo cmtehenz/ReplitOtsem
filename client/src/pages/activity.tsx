@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, ArrowDownLeft, Search, Filter, Menu, ArrowLeftRight, Coffee, ShoppingBag } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Search, Filter, Menu, ArrowLeftRight, Coffee, ShoppingBag, Wallet, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
@@ -174,7 +174,7 @@ function TransactionItem({ tx, index }: { tx: any, index: number }) {
   );
 }
 
-// Reusing Bottom Nav for now
+// Bottom Nav Component
 function BottomNav({ active }: { active: string }) {
   const [, setLocation] = useLocation();
   
@@ -182,15 +182,15 @@ function BottomNav({ active }: { active: string }) {
     <nav className="fixed bottom-0 left-0 right-0 bg-card/80 backdrop-blur-xl border-t border-white/5 pb-safe z-50">
       <div className="max-w-md mx-auto flex justify-around items-center h-16 px-2">
         <NavButton icon={Menu} label="Home" active={active === "home"} onClick={() => setLocation("/")} />
-        <NavButton icon={Menu} label="Wallet" active={active === "wallet"} onClick={() => setLocation("/wallet")} />
+        <NavButton icon={Wallet} label="Wallet" active={active === "wallet"} onClick={() => setLocation("/wallet")} />
         <div 
           className="w-14 h-14 -mt-8 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(50,188,173,0.4)] border-4 border-background cursor-pointer hover:scale-105 transition-transform"
           onClick={() => setLocation("/")}
         >
           <ArrowLeftRight className="w-6 h-6 text-primary-foreground" />
         </div>
-        <NavButton icon={Menu} label="Activity" active={active === "activity"} onClick={() => setLocation("/activity")} />
-        <NavButton icon={Menu} label="Profile" active={active === "profile"} onClick={() => setLocation("/profile")} />
+        <NavButton icon={TrendingUp} label="Stats" active={active === "stats"} onClick={() => setLocation("/stats")} />
+        <NavButton icon={Menu} label="Cards" active={active === "cards"} onClick={() => setLocation("/cards")} />
       </div>
     </nav>
   );
