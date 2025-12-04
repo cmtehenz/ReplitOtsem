@@ -279,6 +279,7 @@ export async function getPendingDeposits(): Promise<PixDeposit[]> {
 export async function verifyDeposits(): Promise<{
   message: string;
   verified: number;
+  reconciled: number;
   checked: number;
 }> {
   const response = await fetch(`${API_BASE}/pix/deposits/verify`, {

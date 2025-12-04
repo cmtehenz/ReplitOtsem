@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getWallets, getRates } from "@/lib/api";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLocation } from "wouter";
 
 const assetConfig: Record<string, { name: string; icon: string; color: string; bgColor: string }> = {
   USDT: {
@@ -27,6 +28,7 @@ const assetConfig: Record<string, { name: string; icon: string; color: string; b
 
 export function AssetList() {
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
   
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["wallets"],
@@ -95,6 +97,7 @@ export function AssetList() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05, duration: 0.3 }}
               className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-transparent hover:border-white/[0.06] transition-all duration-200 cursor-pointer group"
+              onClick={() => setLocation("/wallet")}
               data-testid={`asset-${wallet.currency}`}
             >
               <div className="flex items-center gap-4">

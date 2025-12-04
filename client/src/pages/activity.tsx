@@ -244,6 +244,7 @@ function TransactionItem({
       transition={{ delay: index * 0.03, duration: 0.2 }}
       className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/[0.04] transition-all duration-200 cursor-pointer group border border-transparent hover:border-white/[0.06]"
       onClick={onClick}
+      data-testid={`activity-transaction-${tx.id}`}
     >
       <div className="flex items-center gap-4">
         <div className={cn(

@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "@/lib/api";
+import { useLocation } from "wouter";
+import { useLanguage } from "@/context/LanguageContext";
 
 const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   deposit: {
@@ -29,6 +31,10 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
 };
 
 export function TransactionHistory() {
+  const [, setLocation] = useLocation();
+  const { t } = useLanguage();
+  const isPortuguese = t("nav.home") === "Início";
+
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["transactions"],
     queryFn: () => getTransactions(),
@@ -38,7 +44,7 @@ export function TransactionHistory() {
     return (
       <div className="space-y-4 pb-24">
         <div className="flex items-center justify-between px-1">
-          <h3 className="section-title">Recent Activity</h3>
+          <h3 className="section-title">{isPortuguese ? "Atividade Recente" : "Recent Activity"}</h3>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -62,10 +68,12 @@ export function TransactionHistory() {
     return (
       <div className="space-y-4 pb-24">
         <div className="flex items-center justify-between px-1">
-          <h3 className="section-title">Recent Activity</h3>
+          <h3 className="section-title">{isPortuguese ? "Atividade Recente" : "Recent Activity"}</h3>
         </div>
         <div className="text-center py-12">
-          <p className="text-muted-foreground/60 text-sm">No transactions yet</p>
+          <p className="text-muted-foreground/60 text-sm">
+            {isPortuguese ? "Nenhuma transação ainda" : "No transactions yet"}
+          </p>
         </div>
       </div>
     );
@@ -74,8 +82,14 @@ export function TransactionHistory() {
   return (
     <div className="space-y-4 pb-24">
       <div className="flex items-center justify-between px-1">
-        <h3 className="section-title">Recent Activity</h3>
-        <button className="text-[11px] text-primary hover:text-primary/80 font-semibold transition-colors tracking-wide">View all</button>
+        <h3 className="section-title">{isPortuguese ? "Atividade Recente" : "Recent Activity"}</h3>
+        <button 
+          className="text-[11px] text-primary hover:text-primary/80 font-semibold transition-colors tracking-wide"
+          onClick={() => setLocation("/activity")}
+          data-testid="button-view-all-transactions"
+        >
+          {isPortuguese ? "Ver tudo" : "View all"}
+        </button>
       </div>
 
       <div className="space-y-2">
@@ -99,6 +113,8 @@ export function TransactionHistory() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.04, duration: 0.3 }}
               className="flex items-center justify-between p-4 bg-white/[0.02] hover:bg-white/[0.05] rounded-2xl border border-transparent hover:border-white/[0.06] transition-all duration-200 cursor-pointer group"
+              onClick={() => setLocation(`/transaction/${tx.id}`)}
+              data-testid={`transaction-row-${tx.id}`}
             >
               <div className="flex items-center gap-4">
                 <div className={cn(
