@@ -148,13 +148,15 @@ export async function registerRoutes(
         const user = {};
         updateUserSession(user, tokens);
         const claims = tokens.claims();
-        await storage.upsertSocialUser({
-          id: claims["sub"] as string,
-          email: claims["email"] as string,
-          firstName: claims["first_name"] as string,
-          lastName: claims["last_name"] as string,
-          profileImageUrl: claims["profile_image_url"] as string,
-        });
+        if (claims) {
+          await storage.upsertSocialUser({
+            id: claims["sub"] as string,
+            email: claims["email"] as string,
+            firstName: claims["first_name"] as string,
+            lastName: claims["last_name"] as string,
+            profileImageUrl: claims["profile_image_url"] as string,
+          });
+        }
         verified(null, user);
       };
       

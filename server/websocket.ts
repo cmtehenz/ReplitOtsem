@@ -21,8 +21,17 @@ class NotificationWebSocket {
 
   initialize(server: Server) {
     this.wss = new WebSocketServer({ 
-      server,
-      path: "/ws/notifications"
+      noServer: true,
+    });
+    
+    server.on('upgrade', (request, socket, head) => {
+      const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+      
+      if (pathname === '/ws/notifications') {
+        this.wss!.handleUpgrade(request, socket, head, (ws) => {
+          this.wss!.emit('connection', ws, request);
+        });
+      }
     });
 
     this.wss.on("connection", (ws, req) => {

@@ -75,6 +75,10 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Initialize WebSocket server for real-time notifications BEFORE Vite
+  // to avoid conflicts with Vite's HMR WebSocket
+  notificationWS.initialize(httpServer);
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -84,9 +88,6 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
-
-  // Initialize WebSocket server for real-time notifications
-  notificationWS.initialize(httpServer);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
