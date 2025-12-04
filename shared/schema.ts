@@ -1,25 +1,51 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, pgEnum, boolean, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table with proper password hashing support
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// Auth provider enum
+export const authProviderEnum = pgEnum("auth_provider", ["local", "replit"]);
+
+// Users table with support for both local and social auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(), // bcrypt hashed
+  username: text("username").unique(), // Optional for social login
+  password: text("password"), // Optional for social login (bcrypt hashed)
+  authProvider: authProviderEnum("auth_provider").default("local"),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").unique(), // Optional for some OAuth providers
   phone: text("phone"),
   cpf: text("cpf"), // Brazilian CPF for PIX
-  profilePhoto: text("profile_photo"), // Base64 or URL
+  profilePhoto: text("profile_photo"), // Base64 or URL from OAuth
   verified: boolean("verified").default(false),
+  onboardingComplete: boolean("onboarding_complete").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, verified: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true, verified: true, onboardingComplete: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Type for Replit Auth upsert
+export type UpsertUser = {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+};
 
 // Currency types
 export const currencyEnum = pgEnum("currency", ["BRL", "USDT", "BTC"]);

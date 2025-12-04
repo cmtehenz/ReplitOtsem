@@ -9,6 +9,10 @@ import { getInterClient } from "./inter-api";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import rateLimit from "express-rate-limit";
+import passport from "passport";
+import * as client from "openid-client";
+import { Strategy, type VerifyFunction } from "openid-client/passport";
+import memoize from "memoizee";
 import {
   getExchangeRates,
   getUsdtBrlRate,
@@ -24,6 +28,27 @@ declare module "express-session" {
   interface SessionData {
     userId: string;
   }
+}
+
+// OIDC configuration for Replit Auth
+const getOidcConfig = memoize(
+  async () => {
+    return await client.discovery(
+      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      process.env.REPL_ID!
+    );
+  },
+  { maxAge: 3600 * 1000 }
+);
+
+function updateUserSession(
+  user: any,
+  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
+) {
+  user.claims = tokens.claims();
+  user.access_token = tokens.access_token;
+  user.refresh_token = tokens.refresh_token;
+  user.expires_at = user.claims?.exp;
 }
 
 // Rate limiters
@@ -51,9 +76,22 @@ const pixLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Auth middleware
+// Helper to get user ID from either session type
+function getUserId(req: Request): string | undefined {
+  if (req.session?.userId) {
+    return req.session.userId;
+  }
+  const user = req.user as any;
+  if (user?.claims?.sub) {
+    return user.claims.sub;
+  }
+  return undefined;
+}
+
+// Auth middleware - works with both local and social auth
 function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
+  const userId = getUserId(req);
+  if (!userId) {
     return res.status(401).json({ error: "Authentication required" });
   }
   next();
@@ -63,6 +101,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.set("trust proxy", 1);
+  
   // Apply rate limiting to all API routes
   app.use("/api/", apiLimiter);
   
@@ -72,19 +112,96 @@ export async function registerRoutes(
   app.use(session({
     store: new PgSession({
       pool: pool,
-      tableName: "session",
+      tableName: "sessions",
       createTableIfMissing: true,
     }),
     secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex"),
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       httpOnly: true,
       sameSite: "lax",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   }));
+  
+  // Initialize Passport for social login
+  app.use(passport.initialize());
+  app.use(passport.session());
+  
+  // Passport serialization
+  passport.serializeUser((user: Express.User, cb) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  
+  // Setup Replit Auth strategies
+  const registeredStrategies = new Set<string>();
+  
+  const ensureStrategy = async (domain: string) => {
+    const strategyName = `replitauth:${domain}`;
+    if (!registeredStrategies.has(strategyName)) {
+      const config = await getOidcConfig();
+      const verify: VerifyFunction = async (
+        tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
+        verified: passport.AuthenticateCallback
+      ) => {
+        const user = {};
+        updateUserSession(user, tokens);
+        const claims = tokens.claims();
+        await storage.upsertSocialUser({
+          id: claims["sub"] as string,
+          email: claims["email"] as string,
+          firstName: claims["first_name"] as string,
+          lastName: claims["last_name"] as string,
+          profileImageUrl: claims["profile_image_url"] as string,
+        });
+        verified(null, user);
+      };
+      
+      const strategy = new Strategy(
+        {
+          name: strategyName,
+          config,
+          scope: "openid email profile offline_access",
+          callbackURL: `https://${domain}/api/callback`,
+        },
+        verify,
+      );
+      passport.use(strategy);
+      registeredStrategies.add(strategyName);
+    }
+  };
+  
+  // Social login route
+  app.get("/api/login", async (req, res, next) => {
+    await ensureStrategy(req.hostname);
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
+  });
+  
+  // OAuth callback
+  app.get("/api/callback", async (req, res, next) => {
+    await ensureStrategy(req.hostname);
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      successReturnToOrRedirect: "/",
+      failureRedirect: "/auth",
+    })(req, res, next);
+  });
+  
+  // Social logout
+  app.get("/api/social-logout", async (req, res) => {
+    const config = await getOidcConfig();
+    req.logout(() => {
+      res.redirect(
+        client.buildEndSessionUrl(config, {
+          client_id: process.env.REPL_ID!,
+          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+        }).href
+      );
+    });
+  });
 
   // ==================== AUTH ROUTES ====================
   
@@ -179,26 +296,29 @@ export async function registerRoutes(
     }
   });
 
-  // Logout
+  // Logout (works with both local and social auth)
   app.post("/api/auth/logout", (req, res) => {
-    const userId = req.session.userId;
+    const userId = getUserId(req);
     
     if (userId) {
       notificationWS.disconnectUser(userId);
     }
     
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ error: "Failed to logout" });
-      }
-      res.json({ message: "Logged out successfully" });
+    req.logout(() => {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ error: "Failed to logout" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
     });
   });
 
-  // Get current user
+  // Get current user (works with both local and social auth)
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.userId!);
+      const userId = getUserId(req)!;
+      const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -211,15 +331,32 @@ export async function registerRoutes(
         phone: user.phone,
         profilePhoto: user.profilePhoto,
         verified: user.verified,
+        onboardingComplete: user.onboardingComplete,
+        authProvider: user.authProvider,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get user" });
     }
   });
 
+  // Complete onboarding
+  app.post("/api/auth/complete-onboarding", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const user = await storage.updateUser(userId, { onboardingComplete: true });
+      res.json({ 
+        id: user.id, 
+        onboardingComplete: user.onboardingComplete,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to complete onboarding" });
+    }
+  });
+
   // Update user profile
   app.patch("/api/auth/profile", requireAuth, async (req, res) => {
     try {
+      const userId = getUserId(req)!;
       const updateSchema = z.object({
         name: z.string().min(1).optional(),
         email: z.string().email().optional(),
@@ -232,12 +369,12 @@ export async function registerRoutes(
       // Check if email is being changed and if it's already taken
       if (data.email) {
         const existingUser = await storage.getUserByEmail(data.email);
-        if (existingUser && existingUser.id !== req.session.userId) {
+        if (existingUser && existingUser.id !== userId) {
           return res.status(400).json({ error: "Email already in use" });
         }
       }
 
-      const user = await storage.updateUser(req.session.userId!, data);
+      const user = await storage.updateUser(userId, data);
 
       res.json({ 
         id: user.id, 
@@ -259,7 +396,8 @@ export async function registerRoutes(
   // Get WebSocket token for real-time notifications
   app.get("/api/auth/ws-token", requireAuth, (req, res) => {
     try {
-      const token = notificationWS.createToken(req.session.userId!);
+      const userId = getUserId(req)!;
+      const token = notificationWS.createToken(userId);
       res.json({ token });
     } catch (error) {
       res.status(500).json({ error: "Failed to create WebSocket token" });
@@ -271,7 +409,8 @@ export async function registerRoutes(
   // Get user wallets
   app.get("/api/wallets", requireAuth, async (req, res) => {
     try {
-      const wallets = await storage.getUserWallets(req.session.userId!);
+      const userId = getUserId(req)!;
+      const wallets = await storage.getUserWallets(userId);
       res.json(wallets);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch wallets" });
@@ -283,8 +422,9 @@ export async function registerRoutes(
   // Get user transactions
   app.get("/api/transactions", requireAuth, async (req, res) => {
     try {
+      const userId = getUserId(req)!;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-      const transactions = await storage.getUserTransactions(req.session.userId!, limit);
+      const transactions = await storage.getUserTransactions(userId, limit);
       res.json(transactions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch transactions" });
@@ -347,8 +487,9 @@ export async function registerRoutes(
         rate
       );
 
+      const userId = getUserId(req)!;
       const transaction = await storage.executeExchange(
-        req.session.userId!,
+        userId,
         data.fromCurrency,
         data.toCurrency,
         amount.toString(),
@@ -357,7 +498,7 @@ export async function registerRoutes(
 
       // Send notification for successful exchange
       notificationService.notifyExchangeCompleted(
-        req.session.userId!,
+        userId,
         data.fromCurrency,
         data.toCurrency,
         amount.toString(),
@@ -386,7 +527,8 @@ export async function registerRoutes(
   // Get user PIX keys
   app.get("/api/pix-keys", requireAuth, async (req, res) => {
     try {
-      const keys = await storage.getUserPixKeys(req.session.userId!);
+      const userId = getUserId(req)!;
+      const keys = await storage.getUserPixKeys(userId);
       res.json(keys);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch PIX keys" });
@@ -396,6 +538,7 @@ export async function registerRoutes(
   // Add PIX key
   app.post("/api/pix-keys", requireAuth, async (req, res) => {
     try {
+      const userId = getUserId(req)!;
       const pixKeySchema = z.object({
         keyType: z.enum(["cpf", "cnpj", "email", "phone", "random"]),
         keyValue: z.string().min(1),
@@ -405,7 +548,7 @@ export async function registerRoutes(
       const data = pixKeySchema.parse(req.body);
 
       const key = await storage.createPixKey({
-        userId: req.session.userId!,
+        userId,
         ...data,
       });
 
@@ -421,7 +564,8 @@ export async function registerRoutes(
   // Delete PIX key
   app.delete("/api/pix-keys/:id", requireAuth, async (req, res) => {
     try {
-      await storage.deletePixKey(req.params.id, req.session.userId!);
+      const userId = getUserId(req)!;
+      await storage.deletePixKey(req.params.id, userId);
       res.json({ message: "PIX key deleted" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete PIX key" });
@@ -438,7 +582,7 @@ export async function registerRoutes(
       });
 
       const { amount } = depositSchema.parse(req.body);
-      const userId = req.session.userId!;
+      const userId = getUserId(req)!;
 
       // Generate unique txid
       const txid = `OTSEM${Date.now()}${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
@@ -525,7 +669,8 @@ export async function registerRoutes(
   // Get pending deposits
   app.get("/api/pix/deposits/pending", requireAuth, async (req, res) => {
     try {
-      const deposits = await storage.getUserPendingDeposits(req.session.userId!);
+      const userId = getUserId(req)!;
+      const deposits = await storage.getUserPendingDeposits(userId);
       res.json(deposits);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch deposits" });
@@ -543,7 +688,7 @@ export async function registerRoutes(
       });
 
       const { pixKeyId, amount } = withdrawSchema.parse(req.body);
-      const userId = req.session.userId!;
+      const userId = getUserId(req)!;
 
       // Get PIX key
       const pixKey = await storage.getPixKey(pixKeyId);
@@ -652,7 +797,8 @@ export async function registerRoutes(
   // Get user withdrawals
   app.get("/api/pix/withdrawals", requireAuth, async (req, res) => {
     try {
-      const withdrawals = await storage.getUserWithdrawals(req.session.userId!);
+      const userId = getUserId(req)!;
+      const withdrawals = await storage.getUserWithdrawals(userId);
       res.json(withdrawals);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch withdrawals" });
@@ -664,8 +810,9 @@ export async function registerRoutes(
   // Get user notifications
   app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
+      const userId = getUserId(req)!;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-      const notifications = await storage.getUserNotifications(req.session.userId!, limit);
+      const notifications = await storage.getUserNotifications(userId, limit);
       res.json(notifications);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch notifications" });
@@ -675,7 +822,8 @@ export async function registerRoutes(
   // Get unread notification count
   app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
     try {
-      const count = await storage.getUnreadNotificationCount(req.session.userId!);
+      const userId = getUserId(req)!;
+      const count = await storage.getUnreadNotificationCount(userId);
       res.json({ count });
     } catch (error) {
       res.status(500).json({ error: "Failed to get unread count" });
@@ -685,7 +833,8 @@ export async function registerRoutes(
   // Mark notification as read
   app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
     try {
-      const notification = await storage.markNotificationAsRead(req.params.id, req.session.userId!);
+      const userId = getUserId(req)!;
+      const notification = await storage.markNotificationAsRead(req.params.id, userId);
       res.json(notification);
     } catch (error: any) {
       if (error.message === "Notification not found") {
@@ -698,7 +847,8 @@ export async function registerRoutes(
   // Mark all notifications as read
   app.post("/api/notifications/mark-all-read", requireAuth, async (req, res) => {
     try {
-      await storage.markAllNotificationsAsRead(req.session.userId!);
+      const userId = getUserId(req)!;
+      await storage.markAllNotificationsAsRead(userId);
       res.json({ message: "All notifications marked as read" });
     } catch (error) {
       res.status(500).json({ error: "Failed to mark all notifications as read" });

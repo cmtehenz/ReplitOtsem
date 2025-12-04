@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  type User, type InsertUser, 
+  type User, type InsertUser, type UpsertUser,
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
   type UserPixKey, type InsertPixKey,
@@ -21,7 +21,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string }): Promise<User>;
+  upsertSocialUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string; onboardingComplete?: boolean }): Promise<User>;
   validatePassword(user: User, password: string): Promise<boolean>;
   
   // Wallets
@@ -115,10 +116,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async validatePassword(user: User, password: string): Promise<boolean> {
+    if (!user.password) return false;
     return bcrypt.compare(password, user.password);
   }
 
-  async updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string }): Promise<User> {
+  async upsertSocialUser(userData: UpsertUser): Promise<User> {
+    const fullName = [userData.firstName, userData.lastName].filter(Boolean).join(" ") || "User";
+    
+    const [existingUser] = await db.select().from(users).where(eq(users.id, userData.id)).limit(1);
+    
+    if (existingUser) {
+      const [updated] = await db.update(users)
+        .set({
+          email: userData.email || existingUser.email,
+          name: fullName || existingUser.name,
+          profilePhoto: userData.profileImageUrl || existingUser.profilePhoto,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, userData.id))
+        .returning();
+      return updated;
+    }
+    
+    const [newUser] = await db.insert(users)
+      .values({
+        id: userData.id,
+        email: userData.email,
+        name: fullName,
+        profilePhoto: userData.profileImageUrl,
+        authProvider: "replit",
+      })
+      .returning();
+    
+    await this.createWallet({ userId: newUser.id, currency: "BRL", balance: "0" });
+    await this.createWallet({ userId: newUser.id, currency: "USDT", balance: "0" });
+    await this.createWallet({ userId: newUser.id, currency: "BTC", balance: "0" });
+    
+    return newUser;
+  }
+
+  async updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string; onboardingComplete?: boolean }): Promise<User> {
     const result = await db.update(users)
       .set(updates)
       .where(eq(users.id, id))

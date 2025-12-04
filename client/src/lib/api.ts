@@ -2,12 +2,14 @@
 
 export interface User {
   id: string;
-  username: string;
-  email: string;
+  username: string | null;
+  email: string | null;
   name: string;
-  phone?: string;
-  profilePhoto?: string;
+  phone?: string | null;
+  profilePhoto?: string | null;
   verified: boolean;
+  onboardingComplete?: boolean;
+  authProvider?: "local" | "replit";
 }
 
 export interface Wallet {
@@ -122,6 +124,22 @@ export async function updateProfile(data: {
     throw new Error(error.error || "Failed to update profile");
   }
   return response.json();
+}
+
+export async function completeOnboarding(): Promise<{ id: string; onboardingComplete: boolean }> {
+  const response = await fetch(`${API_BASE}/auth/complete-onboarding`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to complete onboarding");
+  }
+  return response.json();
+}
+
+export function redirectToSocialLogin(): void {
+  window.location.href = "/api/login";
 }
 
 // ==================== WALLETS ====================

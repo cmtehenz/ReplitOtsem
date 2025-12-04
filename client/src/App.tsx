@@ -22,10 +22,11 @@ import PersonalInfo from "@/pages/personal-info";
 import Cards from "@/pages/cards";
 import Feed from "@/pages/feed";
 import Welcome from "@/pages/welcome";
+import Onboarding from "@/pages/onboarding";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function ProtectedRoute({ component: Component, requireOnboarding = true }: { component: React.ComponentType; requireOnboarding?: boolean }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -40,7 +41,33 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     return <Redirect to="/auth" />;
   }
 
+  if (requireOnboarding && user.authProvider === "replit" && !user.onboardingComplete) {
+    return <Redirect to="/onboarding" />;
+  }
+
   return <Component />;
+}
+
+function OnboardingRoute() {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+  
+  if (user.onboardingComplete) {
+    return <Redirect to="/" />;
+  }
+  
+  return <Onboarding />;
 }
 
 function Router() {
@@ -48,6 +75,7 @@ function Router() {
     <Switch>
       <Route path="/welcome" component={Welcome} />
       <Route path="/auth" component={Auth} />
+      <Route path="/onboarding" component={OnboardingRoute} />
       <Route path="/">
         {() => <ProtectedRoute component={Dashboard} />}
       </Route>

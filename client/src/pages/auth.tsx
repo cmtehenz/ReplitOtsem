@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
-import { Eye, EyeOff, Wallet, ArrowRight, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, Chrome, Github, Apple, Mail } from "lucide-react";
+import { redirectToSocialLogin } from "@/lib/api";
 import logo from "@assets/Untitled_1764830265098.png";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { login, register } = useAuth();
@@ -44,6 +46,10 @@ export default function AuthPage() {
     }
   };
 
+  const handleSocialLogin = () => {
+    redirectToSocialLogin();
+  };
+
   const formatCPF = (value: string) => {
     const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 11) {
@@ -64,187 +70,291 @@ export default function AuthPage() {
 
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6">
         <div className="pt-8 pb-6 text-center flex flex-col items-center">
-          <img src={logo} alt="Otsem Pay" className="w-28 h-auto mb-4 drop-shadow-lg" />
-          <p className="text-muted-foreground text-sm">{t("wallet.subtitle")}</p>
+          <motion.img 
+            src={logo} 
+            alt="Otsem Pay" 
+            className="w-28 h-auto mb-4 drop-shadow-lg"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          />
+          <motion.p 
+            className="text-muted-foreground text-sm"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            {t("wallet.subtitle")}
+          </motion.p>
         </div>
 
         <Card className="w-full max-w-md border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl text-center">
-              {isLogin ? t("auth.login") : t("auth.register")}
+              {showEmailForm 
+                ? (isLogin ? t("auth.login") : t("auth.register"))
+                : t("auth.welcome")
+              }
             </CardTitle>
             <CardDescription className="text-center">
-              {isLogin 
-                ? t("auth.loginDescription")
-                : t("auth.registerDescription")
+              {showEmailForm 
+                ? (isLogin ? t("auth.loginDescription") : t("auth.registerDescription"))
+                : t("auth.chooseMethod")
               }
             </CardDescription>
           </CardHeader>
           
-          <form onSubmit={handleSubmit}>
-            <CardContent className="space-y-4">
-              <AnimatePresence mode="wait">
-                {!isLogin && (
-                  <motion.div
-                    key="name"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="name">{t("auth.name")}</Label>
-                    <Input
-                      id="name"
-                      data-testid="input-name"
-                      placeholder={t("auth.namePlaceholder")}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required={!isLogin}
-                      className="h-12 bg-background/50"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="space-y-2">
-                <Label htmlFor="username">
-                  {isLogin ? t("auth.usernameOrEmail") : t("auth.username")}
-                </Label>
-                <Input
-                  id="username"
-                  data-testid="input-username"
-                  placeholder={isLogin ? t("auth.usernameOrEmailPlaceholder") : t("auth.usernamePlaceholder")}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  className="h-12 bg-background/50"
-                />
-              </div>
-
-              <AnimatePresence mode="wait">
-                {!isLogin && (
-                  <motion.div
-                    key="email"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="email">{t("auth.email")}</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      data-testid="input-email"
-                      placeholder={t("auth.emailPlaceholder")}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required={!isLogin}
-                      className="h-12 bg-background/50"
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    data-testid="input-password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="h-12 pr-10 bg-background/50"
-                  />
-                  <button
+          <AnimatePresence mode="wait">
+            {!showEmailForm ? (
+              <motion.div
+                key="social-buttons"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CardContent className="space-y-3">
+                  <Button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    data-testid="button-toggle-password"
+                    variant="outline"
+                    className="w-full h-12 text-base rounded-xl bg-white/5 border-white/10 hover:bg-white/10"
+                    onClick={handleSocialLogin}
+                    data-testid="button-google-login"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+                    <Chrome className="w-5 h-5 mr-3" />
+                    {t("auth.continueWithGoogle")}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-12 text-base rounded-xl bg-white/5 border-white/10 hover:bg-white/10"
+                    onClick={handleSocialLogin}
+                    data-testid="button-github-login"
+                  >
+                    <Github className="w-5 h-5 mr-3" />
+                    {t("auth.continueWithGitHub")}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-12 text-base rounded-xl bg-white/5 border-white/10 hover:bg-white/10"
+                    onClick={handleSocialLogin}
+                    data-testid="button-apple-login"
+                  >
+                    <Apple className="w-5 h-5 mr-3" />
+                    {t("auth.continueWithApple")}
+                  </Button>
+                  
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border/50"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">{t("auth.or")}</span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-12 text-base rounded-xl bg-white/5 border-white/10 hover:bg-white/10"
+                    onClick={() => setShowEmailForm(true)}
+                    data-testid="button-email-login"
+                  >
+                    <Mail className="w-5 h-5 mr-3" />
+                    {t("auth.continueWithEmail")}
+                  </Button>
+                </CardContent>
+              </motion.div>
+            ) : (
+              <motion.form 
+                key="email-form"
+                onSubmit={handleSubmit}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <CardContent className="space-y-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-sm text-muted-foreground hover:text-foreground -ml-2"
+                    onClick={() => {
+                      setShowEmailForm(false);
+                      setError("");
+                    }}
+                    data-testid="button-back-to-social"
+                  >
+                    ← {t("auth.backToOptions")}
+                  </Button>
 
-              <AnimatePresence mode="wait">
-                {!isLogin && (
-                  <motion.div
-                    key="cpf"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-2"
-                  >
-                    <Label htmlFor="cpf">
-                      CPF <span className="text-muted-foreground text-sm">({t("auth.optional")})</span>
+                  <AnimatePresence mode="wait">
+                    {!isLogin && (
+                      <motion.div
+                        key="name"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-2"
+                      >
+                        <Label htmlFor="name">{t("auth.name")}</Label>
+                        <Input
+                          id="name"
+                          data-testid="input-name"
+                          placeholder={t("auth.namePlaceholder")}
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required={!isLogin}
+                          className="h-12 bg-background/50"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="username">
+                      {isLogin ? t("auth.usernameOrEmail") : t("auth.username")}
                     </Label>
                     <Input
-                      id="cpf"
-                      data-testid="input-cpf"
-                      placeholder="000.000.000-00"
-                      value={cpf}
-                      onChange={(e) => setCpf(formatCPF(e.target.value))}
-                      maxLength={14}
+                      id="username"
+                      data-testid="input-username"
+                      placeholder={isLogin ? t("auth.usernameOrEmailPlaceholder") : t("auth.usernamePlaceholder")}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
                       className="h-12 bg-background/50"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t("auth.cpfHelp")}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
 
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-sm text-destructive text-center p-3 bg-destructive/10 rounded-xl"
-                  data-testid="text-error"
-                >
-                  {error}
-                </motion.p>
-              )}
-            </CardContent>
+                  <AnimatePresence mode="wait">
+                    {!isLogin && (
+                      <motion.div
+                        key="email"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-2"
+                      >
+                        <Label htmlFor="email">{t("auth.email")}</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          data-testid="input-email"
+                          placeholder={t("auth.emailPlaceholder")}
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required={!isLogin}
+                          className="h-12 bg-background/50"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-            <CardFooter className="flex flex-col gap-4">
-              <Button
-                type="submit"
-                className="w-full h-12 text-base rounded-xl"
-                disabled={loading}
-                data-testid="button-submit"
-              >
-                {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    {isLogin ? t("auth.login") : t("auth.register")}
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
-              </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">{t("auth.password")}</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        data-testid="input-password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="h-12 pr-10 bg-background/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        data-testid="button-toggle-password"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
 
-              <div className="text-center text-sm text-muted-foreground">
-                {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}{" "}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    setError("");
-                  }}
-                  className="text-primary hover:underline font-medium"
-                  data-testid="button-toggle-auth"
-                >
-                  {isLogin ? t("auth.register") : t("auth.login")}
-                </button>
-              </div>
-            </CardFooter>
-          </form>
+                  <AnimatePresence mode="wait">
+                    {!isLogin && (
+                      <motion.div
+                        key="cpf"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-2"
+                      >
+                        <Label htmlFor="cpf">
+                          CPF <span className="text-muted-foreground text-sm">({t("auth.optional")})</span>
+                        </Label>
+                        <Input
+                          id="cpf"
+                          data-testid="input-cpf"
+                          placeholder="000.000.000-00"
+                          value={cpf}
+                          onChange={(e) => setCpf(formatCPF(e.target.value))}
+                          maxLength={14}
+                          className="h-12 bg-background/50"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          {t("auth.cpfHelp")}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {error && (
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="text-sm text-destructive text-center p-3 bg-destructive/10 rounded-xl"
+                      data-testid="text-error"
+                    >
+                      {error}
+                    </motion.p>
+                  )}
+                </CardContent>
+
+                <CardFooter className="flex flex-col gap-4">
+                  <Button
+                    type="submit"
+                    className="w-full h-12 text-base rounded-xl"
+                    disabled={loading}
+                    data-testid="button-submit"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        {isLogin ? t("auth.login") : t("auth.register")}
+                        <ArrowRight className="w-5 h-5 ml-2" />
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="text-center text-sm text-muted-foreground">
+                    {isLogin ? t("auth.noAccount") : t("auth.hasAccount")}{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLogin(!isLogin);
+                        setError("");
+                      }}
+                      className="text-primary hover:underline font-medium"
+                      data-testid="button-toggle-auth"
+                    >
+                      {isLogin ? t("auth.register") : t("auth.login")}
+                    </button>
+                  </div>
+                </CardFooter>
+              </motion.form>
+            )}
+          </AnimatePresence>
         </Card>
       </div>
     </div>
