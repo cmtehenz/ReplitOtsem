@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
+  virtualCards, kycSubmissions, userSecuritySettings, activeSessions, referrals,
   type User, type InsertUser, type UpsertUser,
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -8,9 +9,14 @@ import {
   type PixDeposit, type InsertPixDeposit,
   type PixWithdrawal, type InsertPixWithdrawal,
   type WebhookLog, type InsertWebhookLog,
-  type Notification, type InsertNotification
+  type Notification, type InsertNotification,
+  type VirtualCard, type InsertVirtualCard,
+  type KycSubmission, type InsertKycSubmission,
+  type SecuritySettings, type InsertSecuritySettings,
+  type ActiveSession, type InsertActiveSession,
+  type Referral, type InsertReferral
 } from "@shared/schema";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc, or, sql, gte } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 12;
@@ -77,6 +83,42 @@ export interface IStorage {
     fromAmount: string,
     toAmount: string
   ): Promise<Transaction>;
+  
+  // Virtual Cards
+  getUserCard(userId: string): Promise<VirtualCard | undefined>;
+  createVirtualCard(card: InsertVirtualCard): Promise<VirtualCard>;
+  updateCardStatus(cardId: string, status: "active" | "frozen" | "cancelled"): Promise<VirtualCard>;
+  
+  // KYC
+  getKycSubmission(userId: string): Promise<KycSubmission | undefined>;
+  createKycSubmission(submission: InsertKycSubmission): Promise<KycSubmission>;
+  updateKycSubmission(userId: string, updates: Partial<KycSubmission>): Promise<KycSubmission>;
+  
+  // Security Settings
+  getSecuritySettings(userId: string): Promise<SecuritySettings | undefined>;
+  createSecuritySettings(settings: InsertSecuritySettings): Promise<SecuritySettings>;
+  updateSecuritySettings(userId: string, updates: Partial<SecuritySettings>): Promise<SecuritySettings>;
+  
+  // Active Sessions
+  getUserSessions(userId: string): Promise<ActiveSession[]>;
+  createSession(session: InsertActiveSession): Promise<ActiveSession>;
+  deleteSession(sessionId: string, userId: string): Promise<void>;
+  deleteAllUserSessions(userId: string, exceptSessionId?: string): Promise<void>;
+  
+  // Referrals
+  getUserReferralCode(userId: string): Promise<string>;
+  getUserReferrals(userId: string): Promise<Referral[]>;
+  getReferralStats(userId: string): Promise<{ invited: number; active: number; earned: number; pending: number }>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  activateReferral(referralCode: string, referredUserId: string): Promise<Referral | undefined>;
+  
+  // Analytics
+  getTransactionStats(userId: string, days?: number): Promise<{ 
+    income: number; 
+    expenses: number; 
+    exchanges: number;
+    dailyData: { date: string; income: number; expense: number }[];
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -453,6 +495,225 @@ export class DatabaseStorage implements IStorage {
     await db.update(notifications)
       .set({ read: true })
       .where(eq(notifications.userId, userId));
+  }
+
+  // Virtual Cards
+  async getUserCard(userId: string): Promise<VirtualCard | undefined> {
+    const result = await db.select().from(virtualCards)
+      .where(eq(virtualCards.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createVirtualCard(card: InsertVirtualCard): Promise<VirtualCard> {
+    const result = await db.insert(virtualCards).values(card).returning();
+    return result[0];
+  }
+
+  async updateCardStatus(cardId: string, status: "active" | "frozen" | "cancelled"): Promise<VirtualCard> {
+    const result = await db.update(virtualCards)
+      .set({ status })
+      .where(eq(virtualCards.id, cardId))
+      .returning();
+    return result[0];
+  }
+
+  // KYC
+  async getKycSubmission(userId: string): Promise<KycSubmission | undefined> {
+    const result = await db.select().from(kycSubmissions)
+      .where(eq(kycSubmissions.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createKycSubmission(submission: InsertKycSubmission): Promise<KycSubmission> {
+    const result = await db.insert(kycSubmissions).values(submission).returning();
+    return result[0];
+  }
+
+  async updateKycSubmission(userId: string, updates: Partial<KycSubmission>): Promise<KycSubmission> {
+    const result = await db.update(kycSubmissions)
+      .set(updates as any)
+      .where(eq(kycSubmissions.userId, userId))
+      .returning();
+    return result[0];
+  }
+
+  // Security Settings
+  async getSecuritySettings(userId: string): Promise<SecuritySettings | undefined> {
+    const result = await db.select().from(userSecuritySettings)
+      .where(eq(userSecuritySettings.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async createSecuritySettings(settings: InsertSecuritySettings): Promise<SecuritySettings> {
+    const result = await db.insert(userSecuritySettings).values(settings).returning();
+    return result[0];
+  }
+
+  async updateSecuritySettings(userId: string, updates: Partial<SecuritySettings>): Promise<SecuritySettings> {
+    const result = await db.update(userSecuritySettings)
+      .set({ ...updates as any, updatedAt: new Date() })
+      .where(eq(userSecuritySettings.userId, userId))
+      .returning();
+    return result[0];
+  }
+
+  // Active Sessions
+  async getUserSessions(userId: string): Promise<ActiveSession[]> {
+    return await db.select().from(activeSessions)
+      .where(eq(activeSessions.userId, userId))
+      .orderBy(desc(activeSessions.lastActiveAt));
+  }
+
+  async createSession(session: InsertActiveSession): Promise<ActiveSession> {
+    const result = await db.insert(activeSessions).values(session).returning();
+    return result[0];
+  }
+
+  async deleteSession(sessionId: string, userId: string): Promise<void> {
+    await db.delete(activeSessions)
+      .where(and(
+        eq(activeSessions.id, sessionId),
+        eq(activeSessions.userId, userId)
+      ));
+  }
+
+  async deleteAllUserSessions(userId: string, exceptSessionId?: string): Promise<void> {
+    if (exceptSessionId) {
+      await db.delete(activeSessions)
+        .where(and(
+          eq(activeSessions.userId, userId),
+          sql`${activeSessions.id} != ${exceptSessionId}`
+        ));
+    } else {
+      await db.delete(activeSessions)
+        .where(eq(activeSessions.userId, userId));
+    }
+  }
+
+  // Referrals
+  async getUserReferralCode(userId: string): Promise<string> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const code = `OTSEM${(user.username || user.id).toUpperCase().slice(0, 4)}${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    
+    const existing = await db.select().from(referrals)
+      .where(and(eq(referrals.referrerId, userId), sql`${referrals.referredId} IS NULL`))
+      .limit(1);
+    
+    if (existing[0]) {
+      return existing[0].referralCode;
+    }
+    
+    await db.insert(referrals).values({
+      referrerId: userId,
+      referralCode: code,
+      status: "pending",
+    });
+    
+    return code;
+  }
+
+  async getUserReferrals(userId: string): Promise<Referral[]> {
+    return await db.select().from(referrals)
+      .where(and(
+        eq(referrals.referrerId, userId),
+        sql`${referrals.referredId} IS NOT NULL`
+      ))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async getReferralStats(userId: string): Promise<{ invited: number; active: number; earned: number; pending: number }> {
+    const userReferrals = await this.getUserReferrals(userId);
+    
+    const invited = userReferrals.length;
+    const active = userReferrals.filter(r => r.status === "active").length;
+    const earned = userReferrals
+      .filter(r => r.rewardPaid && r.rewardAmount)
+      .reduce((sum, r) => sum + parseFloat(r.rewardAmount || "0"), 0);
+    const pending = userReferrals
+      .filter(r => r.status === "active" && !r.rewardPaid && r.rewardAmount)
+      .reduce((sum, r) => sum + parseFloat(r.rewardAmount || "0"), 0);
+    
+    return { invited, active, earned, pending };
+  }
+
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const result = await db.insert(referrals).values(referral).returning();
+    return result[0];
+  }
+
+  async activateReferral(referralCode: string, referredUserId: string): Promise<Referral | undefined> {
+    const existing = await db.select().from(referrals)
+      .where(eq(referrals.referralCode, referralCode))
+      .limit(1);
+    
+    if (!existing[0]) return undefined;
+    
+    const result = await db.insert(referrals).values({
+      referrerId: existing[0].referrerId,
+      referredId: referredUserId,
+      referralCode: referralCode,
+      status: "active",
+      activatedAt: new Date(),
+    }).returning();
+    
+    return result[0];
+  }
+
+  // Analytics
+  async getTransactionStats(userId: string, days: number = 7): Promise<{ 
+    income: number; 
+    expenses: number; 
+    exchanges: number;
+    dailyData: { date: string; income: number; expense: number }[];
+  }> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const txs = await db.select().from(transactions)
+      .where(and(
+        eq(transactions.userId, userId),
+        gte(transactions.createdAt, startDate)
+      ))
+      .orderBy(desc(transactions.createdAt));
+    
+    let income = 0;
+    let expenses = 0;
+    let exchanges = 0;
+    const dailyMap: Record<string, { income: number; expense: number }> = {};
+    
+    for (let i = 0; i < days; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      dailyMap[key] = { income: 0, expense: 0 };
+    }
+    
+    txs.forEach(tx => {
+      const dateKey = new Date(tx.createdAt).toISOString().split('T')[0];
+      
+      if (tx.type === "deposit" && tx.toAmount) {
+        const amt = parseFloat(tx.toAmount);
+        income += amt;
+        if (dailyMap[dateKey]) dailyMap[dateKey].income += amt;
+      } else if (tx.type === "withdrawal" && tx.fromAmount) {
+        const amt = parseFloat(tx.fromAmount);
+        expenses += amt;
+        if (dailyMap[dateKey]) dailyMap[dateKey].expense += amt;
+      } else if (tx.type === "exchange") {
+        exchanges += 1;
+      }
+    });
+    
+    const dailyData = Object.entries(dailyMap)
+      .map(([date, data]) => ({ date, ...data }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    
+    return { income, expenses, exchanges, dailyData };
   }
 }
 
