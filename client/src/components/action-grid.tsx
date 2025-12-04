@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { ArrowUpRight, ArrowDownLeft, Plus, ArrowLeftRight, Copy, Check, Loader2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Plus, ArrowLeftRight, Copy, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPixDeposit, getPixKeys, createPixWithdrawal, getWallets, type PixKey } from "@/lib/api";
+import { createPixDeposit, getPixKeys, createPixWithdrawal, getWallets, verifyDeposits, type PixKey } from "@/lib/api";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -25,6 +25,7 @@ function DepositButton() {
   const [pixData, setPixData] = useState<{ pixCopiaECola: string; txid: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
 
   const depositMutation = useMutation({
     mutationFn: createPixDeposit,
@@ -33,6 +34,23 @@ function DepositButton() {
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to create deposit");
+    },
+  });
+
+  const verifyMutation = useMutation({
+    mutationFn: verifyDeposits,
+    onSuccess: (data) => {
+      if (data.verified > 0) {
+        toast.success(`${data.verified} payment(s) confirmed! Balance updated.`);
+        queryClient.invalidateQueries({ queryKey: ["wallets"] });
+        queryClient.invalidateQueries({ queryKey: ["transactions"] });
+        handleClose();
+      } else {
+        toast.info(data.message);
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to verify deposits");
     },
   });
 
@@ -132,6 +150,22 @@ function DepositButton() {
               {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
               {copied ? "Copied!" : "Copy PIX Key"}
             </Button>
+            <Button 
+              onClick={() => verifyMutation.mutate()}
+              disabled={verifyMutation.isPending}
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-green-600 to-green-500 text-white text-lg font-bold hover:from-green-500 hover:to-green-400"
+              data-testid="button-verify-payment"
+            >
+              {verifyMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="w-5 h-5 mr-2" />
+              )}
+              I've Paid - Verify Payment
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              Click above after making the PIX payment to update your balance
+            </p>
           </div>
         )}
       </DialogContent>

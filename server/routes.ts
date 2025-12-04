@@ -702,6 +702,59 @@ export async function registerRoutes(
     }
   });
 
+  // Verify pending deposits with Banco Inter (check if payments were received)
+  app.post("/api/pix/deposits/verify", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const deposits = await storage.getUserPendingDeposits(userId);
+      
+      if (deposits.length === 0) {
+        return res.json({ message: "No pending deposits", verified: 0 });
+      }
+
+      const interClient = getInterClient();
+      let verifiedCount = 0;
+
+      for (const deposit of deposits) {
+        try {
+          // Check with Banco Inter if this charge was paid
+          const chargeStatus = await interClient.getPixCharge(deposit.txid);
+          
+          console.log(`[PIX Verify] Checking deposit ${deposit.txid}: status=${chargeStatus.status}`);
+          
+          if (chargeStatus.status === "CONCLUIDA") {
+            // Payment was received - update deposit and credit wallet
+            await storage.updatePixDeposit(deposit.id, {
+              status: "completed",
+              paidAt: new Date(),
+            });
+
+            // Credit user's BRL wallet
+            await storage.creditWallet(deposit.userId, "BRL", deposit.amount);
+
+            // Send notification
+            notificationService.notifyDepositCompleted(deposit.userId, deposit.amount, deposit.txid)
+              .catch(err => console.error("Failed to send deposit notification:", err));
+
+            console.log(`[PIX Verify] Deposit ${deposit.txid} confirmed: R$ ${deposit.amount}`);
+            verifiedCount++;
+          }
+        } catch (error: any) {
+          console.error(`[PIX Verify] Error checking deposit ${deposit.txid}:`, error.message);
+        }
+      }
+
+      res.json({ 
+        message: verifiedCount > 0 ? `${verifiedCount} deposit(s) verified and credited` : "No new payments found",
+        verified: verifiedCount,
+        checked: deposits.length,
+      });
+    } catch (error: any) {
+      console.error("[PIX Verify] Error:", error);
+      res.status(500).json({ error: "Failed to verify deposits" });
+    }
+  });
+
   // ==================== PIX WITHDRAWAL ROUTES ====================
 
   // Create PIX withdrawal - with PIX rate limiting

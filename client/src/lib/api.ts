@@ -276,6 +276,21 @@ export async function getPendingDeposits(): Promise<PixDeposit[]> {
   return response.json();
 }
 
+export async function verifyDeposits(): Promise<{
+  message: string;
+  verified: number;
+  checked: number;
+}> {
+  const response = await fetch(`${API_BASE}/pix/deposits/verify`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to verify deposits");
+  }
+  return response.json();
+}
+
 // ==================== PIX WITHDRAWALS ====================
 
 export async function createPixWithdrawal(pixKeyId: string, amount: string): Promise<{

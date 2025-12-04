@@ -110,6 +110,21 @@ app.use((req, res, next) => {
         const result = await interClient.testConnection();
         if (result.success) {
           log(`[Inter API] Connection successful`, "inter");
+          
+          // Register webhook for PIX notifications
+          const pixKey = process.env.INTER_PIX_KEY;
+          if (pixKey && process.env.NODE_ENV === "production") {
+            try {
+              // Get the app URL from environment or construct it
+              const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+              const webhookUrl = `${appUrl}/api/webhooks/pix`;
+              
+              await interClient.configureWebhook(webhookUrl, pixKey);
+              log(`[Inter API] Webhook registered: ${webhookUrl}`, "inter");
+            } catch (webhookError: any) {
+              log(`[Inter API] Webhook registration failed: ${webhookError.message}`, "inter");
+            }
+          }
         } else {
           log(`[Inter API] Connection failed: ${result.message}`, "inter");
           console.log("[Inter API] Details:", result.details);
