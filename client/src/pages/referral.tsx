@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageContainer } from "@/components/page-container";
-import { Users, ArrowLeft, Copy, Check, Gift, Share2, Trophy, Star, ChevronRight } from "lucide-react";
+import { Users, ArrowLeft, Copy, Check, Gift, Share2, Trophy, Star, ChevronRight, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/context/LanguageContext";
@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getReferrals, type ReferralData } from "@/lib/api";
 
 export default function ReferralProgram() {
   const [, setLocation] = useLocation();
@@ -17,29 +19,30 @@ export default function ReferralProgram() {
   
   const [copied, setCopied] = useState(false);
 
-  const referralCode = `OTSEM${user?.username?.toUpperCase().slice(0, 4) || "USER"}2024`;
+  const { data: referralData, isLoading } = useQuery({
+    queryKey: ["referrals"],
+    queryFn: getReferrals,
+  });
+
+  const referralCode = referralData?.code || `OTSEM${user?.username?.toUpperCase().slice(0, 4) || "USER"}0000`;
   const referralLink = `https://otsempay.com/ref/${referralCode}`;
 
-  const stats = {
-    invited: 12,
-    active: 8,
-    earned: 240.00,
-    pending: 60.00,
+  const stats = referralData?.stats || {
+    invited: 0,
+    active: 0,
+    earned: 0,
+    pending: 0,
   };
 
   const rewards = [
-    { level: 1, friends: 1, reward: "R$ 10", achieved: true },
-    { level: 2, friends: 5, reward: "R$ 50", achieved: true },
-    { level: 3, friends: 10, reward: "R$ 100", achieved: false },
-    { level: 4, friends: 25, reward: "R$ 300", achieved: false },
-    { level: 5, friends: 50, reward: "R$ 750", achieved: false },
+    { level: 1, friends: 1, reward: "R$ 10", achieved: stats.active >= 1 },
+    { level: 2, friends: 5, reward: "R$ 50", achieved: stats.active >= 5 },
+    { level: 3, friends: 10, reward: "R$ 100", achieved: stats.active >= 10 },
+    { level: 4, friends: 25, reward: "R$ 300", achieved: stats.active >= 25 },
+    { level: 5, friends: 50, reward: "R$ 750", achieved: stats.active >= 50 },
   ];
 
-  const recentReferrals = [
-    { name: "Maria S.", date: "Today", status: "active", earned: "R$ 20" },
-    { name: "João P.", date: "Yesterday", status: "pending", earned: "R$ 20" },
-    { name: "Ana R.", date: "Dec 1", status: "active", earned: "R$ 20" },
-  ];
+  const recentReferrals = referralData?.recentReferrals || [];
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -65,6 +68,30 @@ export default function ReferralProgram() {
       handleCopy(referralLink);
     }
   };
+
+  const formatDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays === 0) return isPortuguese ? "Hoje" : "Today";
+    if (diffDays === 1) return isPortuguese ? "Ontem" : "Yesterday";
+    return date.toLocaleDateString(isPortuguese ? "pt-BR" : "en-US", { 
+      month: "short", 
+      day: "numeric" 
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -225,50 +252,59 @@ export default function ReferralProgram() {
             <h3 className="text-sm font-semibold text-muted-foreground/80 uppercase tracking-wider">
               {isPortuguese ? "Indicações Recentes" : "Recent Referrals"}
             </h3>
-            <button className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1">
-              {isPortuguese ? "Ver Todos" : "View All"}
-              <ChevronRight className="w-3 h-3" />
-            </button>
           </div>
 
-          <div className="space-y-2">
-            {recentReferrals.map((referral, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + index * 0.05 }}
-                className="premium-card rounded-2xl p-4 flex items-center justify-between"
-                data-testid={`card-referral-${index}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-sm font-bold border border-primary/20">
-                    {referral.name.charAt(0)}
+          {recentReferrals.length === 0 ? (
+            <div className="premium-card rounded-2xl p-6 text-center">
+              <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-muted-foreground text-sm">
+                {isPortuguese 
+                  ? "Nenhuma indicação ainda. Compartilhe seu código!"
+                  : "No referrals yet. Share your code!"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentReferrals.map((referral, index) => (
+                <motion.div
+                  key={referral.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 + index * 0.05 }}
+                  className="premium-card rounded-2xl p-4 flex items-center justify-between"
+                  data-testid={`card-referral-${referral.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-sm font-bold border border-primary/20">
+                      {referral.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{referral.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(referral.date)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-sm">{referral.name}</p>
-                    <p className="text-xs text-muted-foreground">{referral.date}</p>
+                  <div className="text-right">
+                    <p className={cn(
+                      "text-sm font-bold",
+                      referral.status === "active" ? "text-emerald-400" : "text-amber-400"
+                    )}>
+                      {referral.earned ? `R$ ${parseFloat(referral.earned).toFixed(0)}` : "R$ 20"}
+                    </p>
+                    <p className={cn(
+                      "text-[10px] uppercase tracking-wider font-medium",
+                      referral.status === "active" ? "text-emerald-400/70" : "text-amber-400/70"
+                    )}>
+                      {referral.status === "active" 
+                        ? (isPortuguese ? "Ativo" : "Active")
+                        : (isPortuguese ? "Pendente" : "Pending")}
+                    </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className={cn(
-                    "text-sm font-bold",
-                    referral.status === "active" ? "text-emerald-400" : "text-amber-400"
-                  )}>
-                    {referral.earned}
-                  </p>
-                  <p className={cn(
-                    "text-[10px] uppercase tracking-wider font-medium",
-                    referral.status === "active" ? "text-emerald-400/70" : "text-amber-400/70"
-                  )}>
-                    {referral.status === "active" 
-                      ? (isPortuguese ? "Ativo" : "Active")
-                      : (isPortuguese ? "Pendente" : "Pending")}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     </PageContainer>
