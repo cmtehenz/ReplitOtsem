@@ -137,9 +137,9 @@ class NotificationWebSocket {
   invalidateUserTokens(userId: string): void {
     const userTokenSet = this.userTokens.get(userId);
     if (userTokenSet) {
-      for (const token of userTokenSet) {
+      Array.from(userTokenSet).forEach(token => {
         this.tokens.delete(token);
-      }
+      });
       this.userTokens.delete(userId);
     }
   }
