@@ -703,36 +703,31 @@ export async function registerRoutes(
   });
 
   // Verify pending deposits with Banco Inter (check if payments were received)
+  // This now also reconciles any missed payments from Inter that weren't saved to our DB
   app.post("/api/pix/deposits/verify", requireAuth, async (req, res) => {
     try {
       const userId = getUserId(req)!;
-      const deposits = await storage.getUserPendingDeposits(userId);
-      
-      if (deposits.length === 0) {
-        return res.json({ message: "No pending deposits", verified: 0 });
-      }
-
       const interClient = getInterClient();
       let verifiedCount = 0;
+      let reconciledCount = 0;
 
+      // STEP 1: Check existing pending deposits in our database
+      const deposits = await storage.getUserPendingDeposits(userId);
+      
       for (const deposit of deposits) {
         try {
-          // Check with Banco Inter if this charge was paid
           const chargeStatus = await interClient.getPixCharge(deposit.txid);
           
           console.log(`[PIX Verify] Checking deposit ${deposit.txid}: status=${chargeStatus.status}`);
           
           if (chargeStatus.status === "CONCLUIDA") {
-            // Payment was received - update deposit and credit wallet
             await storage.updatePixDeposit(deposit.id, {
               status: "completed",
               paidAt: new Date(),
             });
 
-            // Credit user's BRL wallet
             await storage.creditWallet(deposit.userId, "BRL", deposit.amount);
 
-            // Send notification
             notificationService.notifyDepositCompleted(deposit.userId, deposit.amount, deposit.txid)
               .catch(err => console.error("Failed to send deposit notification:", err));
 
@@ -744,9 +739,80 @@ export async function registerRoutes(
         }
       }
 
+      // STEP 2: Reconcile any payments from Inter that might not be in our DB
+      try {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 7);
+        
+        const result = await interClient.listPixPayments(startDate.toISOString(), endDate.toISOString());
+        
+        if (result.pix && result.pix.length > 0) {
+          for (const payment of result.pix) {
+            // Check if this payment's txid exists in our deposits
+            const existingDeposit = await storage.getPixDepositByTxid(payment.txid);
+            
+            if (!existingDeposit) {
+              // This payment was received but we don't have a record - reconcile it
+              console.log(`[PIX Reconcile] Found untracked payment: ${payment.txid} for R$ ${payment.valor}`);
+              
+              // Create deposit record
+              const deposit = await storage.createPixDeposit({
+                userId: userId, // Credit to current user
+                txid: payment.txid,
+                amount: payment.valor,
+                status: "completed",
+                paidAt: new Date(payment.horario),
+                expiresAt: new Date(),
+              });
+              
+              // Credit wallet
+              await storage.creditWallet(userId, "BRL", payment.valor);
+              
+              // Create transaction
+              await storage.createTransaction({
+                userId,
+                type: "deposit",
+                status: "completed",
+                toCurrency: "BRL",
+                toAmount: payment.valor,
+                description: `PIX deposit - R$ ${payment.valor}`,
+                externalId: payment.txid,
+              });
+              
+              notificationService.notifyDepositCompleted(userId, payment.valor, payment.txid)
+                .catch(err => console.error("Failed to send reconciled deposit notification:", err));
+              
+              console.log(`[PIX Reconcile] Reconciled payment ${payment.txid}: R$ ${payment.valor}`);
+              reconciledCount++;
+            } else if (existingDeposit.status === "pending") {
+              // Deposit exists but still pending - mark as completed
+              await storage.updatePixDeposit(existingDeposit.id, {
+                status: "completed",
+                paidAt: new Date(payment.horario),
+              });
+              
+              await storage.creditWallet(existingDeposit.userId, "BRL", existingDeposit.amount);
+              
+              notificationService.notifyDepositCompleted(existingDeposit.userId, existingDeposit.amount, existingDeposit.txid)
+                .catch(err => console.error("Failed to send deposit notification:", err));
+              
+              console.log(`[PIX Reconcile] Updated pending deposit ${existingDeposit.txid}: R$ ${existingDeposit.amount}`);
+              verifiedCount++;
+            }
+          }
+        }
+      } catch (reconcileError: any) {
+        console.error("[PIX Reconcile] Error during reconciliation:", reconcileError.message);
+      }
+
+      const total = verifiedCount + reconciledCount;
       res.json({ 
-        message: verifiedCount > 0 ? `${verifiedCount} deposit(s) verified and credited` : "No new payments found",
+        message: total > 0 
+          ? `${total} payment(s) verified and credited`
+          : "No new payments found",
         verified: verifiedCount,
+        reconciled: reconciledCount,
         checked: deposits.length,
       });
     } catch (error: any) {
@@ -755,6 +821,35 @@ export async function registerRoutes(
     }
   });
 
+  // List all received PIX payments from Banco Inter (admin/debug endpoint)
+  app.get("/api/pix/received", requireAuth, async (req, res) => {
+    try {
+      const interClient = getInterClient();
+      
+      // Get payments from the last 7 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+      
+      const startStr = startDate.toISOString();
+      const endStr = endDate.toISOString();
+      
+      console.log(`[PIX Received] Fetching payments from ${startStr} to ${endStr}`);
+      
+      const result = await interClient.listPixPayments(startStr, endStr);
+      
+      console.log(`[PIX Received] Found ${result.pix?.length || 0} payments`);
+      
+      res.json({
+        payments: result.pix || [],
+        period: { start: startStr, end: endStr },
+      });
+    } catch (error: any) {
+      console.error("[PIX Received] Error:", error.response?.data || error.message);
+      res.status(500).json({ error: "Failed to fetch received payments", details: error.message });
+    }
+  });
+  
   // ==================== PIX WITHDRAWAL ROUTES ====================
 
   // Create PIX withdrawal - with PIX rate limiting
