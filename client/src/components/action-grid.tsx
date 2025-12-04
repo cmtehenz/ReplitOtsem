@@ -1,40 +1,45 @@
-import { ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Plus, ArrowLeftRight, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import QRCode from "react-qr-code";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function ActionGrid() {
   return (
-    <div className="relative h-16 w-full max-w-[320px] mx-auto">
-      {/* Black Pill Container */}
-      <div className="absolute inset-0 bg-black rounded-full shadow-2xl flex items-center justify-between px-1.5 py-1.5 z-10">
-        
-        {/* Left Button: Receive */}
-        <button className="flex-1 flex items-center justify-center gap-2 h-full rounded-full hover:bg-white/10 transition-colors group">
-          <ArrowDownLeft className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-          <span className="text-white font-medium text-sm">Receive</span>
-        </button>
-
-        {/* Center Spacer for the floating button */}
-        <div className="w-16"></div>
-
-        {/* Right Button: Send */}
-        <button className="flex-1 flex items-center justify-center gap-2 h-full rounded-full hover:bg-white/10 transition-colors group">
-          <span className="text-white font-medium text-sm">Send</span>
-          <ArrowUpRight className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-        </button>
-
-      </div>
-
-      {/* Floating Center Button (Iridescent/Glossy) */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-14 h-14 rounded-full p-[2px] bg-gradient-to-b from-white/20 to-transparent shadow-[0_4px_12px_rgba(0,0,0,0.3)]">
-        <button className="w-full h-full rounded-full overflow-hidden relative flex items-center justify-center hover:scale-105 transition-transform active:scale-95">
-          {/* Iridescent Background */}
-          <div className="absolute inset-0 bg-[conic-gradient(from_0deg,#a78bfa,#3b82f6,#06b6d4,#10b981,#a78bfa)] opacity-80 blur-[2px]" />
-          <div className="absolute inset-0 bg-white/30 mix-blend-overlay" />
-          <div className="absolute inset-[1px] rounded-full bg-gradient-to-b from-white/60 to-white/10 backdrop-blur-sm" />
-          
-          {/* Icon */}
-          <Plus className="w-6 h-6 text-black relative z-10" />
-        </button>
-      </div>
+    <div className="flex justify-between items-start px-2">
+      <ActionButton 
+        icon={Plus} 
+        label="Deposit" 
+        color="text-primary bg-primary/10" 
+      />
+      <ActionButton 
+        icon={ArrowUpRight} 
+        label="Send" 
+        color="text-white bg-white/5" 
+      />
+      <ActionButton 
+        icon={ArrowDownLeft} 
+        label="Receive" 
+        color="text-white bg-white/5" 
+      />
+      <ActionButton 
+        icon={ArrowLeftRight} 
+        label="Exchange" 
+        color="text-white bg-white/5" 
+      />
     </div>
+  );
+}
+
+function ActionButton({ icon: Icon, label, color }: { icon: any, label: string, color: string }) {
+  return (
+    <button className="flex flex-col items-center gap-2 group">
+      <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-transform group-active:scale-95 ${color}`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">
+        {label}
+      </span>
+    </button>
   );
 }

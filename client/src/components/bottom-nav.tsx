@@ -1,32 +1,50 @@
-import { Menu, LayoutGrid, ArrowLeftRight, BarChart2, Settings } from "lucide-react";
+import { Menu, Wallet, Newspaper, ArrowLeftRight, CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
+import { useLanguage } from "@/context/LanguageContext";
 import { cn } from "@/lib/utils";
 
 export function BottomNav({ active }: { active: string }) {
   const [, setLocation] = useLocation();
+  const { t } = useLanguage();
   
   return (
-    <nav className="fixed bottom-6 left-0 right-0 z-50 px-8 pointer-events-none">
-      <div className="max-w-[320px] mx-auto bg-white/80 backdrop-blur-xl border border-white/50 shadow-floating rounded-[1.5rem] h-16 flex justify-between items-center px-6 pointer-events-auto">
-        <NavButton icon={LayoutGrid} active={active === "home"} onClick={() => setLocation("/")} />
-        <NavButton icon={ArrowLeftRight} active={active === "swap"} onClick={() => setLocation("/swap")} />
-        <NavButton icon={BarChart2} active={active === "stats"} onClick={() => setLocation("/stats")} />
-        <NavButton icon={Settings} active={active === "settings"} onClick={() => setLocation("/settings")} />
+    <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/5 pb-safe z-50 backdrop-blur-xl">
+      <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
+        <NavButton icon={Menu} label={t("nav.home")} active={active === "home"} onClick={() => setLocation("/")} />
+        <NavButton icon={Wallet} label={t("nav.wallet")} active={active === "wallet"} onClick={() => setLocation("/wallet")} />
+        <div 
+          className="relative -top-6 group cursor-pointer"
+          onClick={() => setLocation("/")}
+        >
+          <div className="absolute inset-0 bg-primary blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
+          <div className="relative w-14 h-14 bg-gradient-to-br from-primary to-[#7c3aed] rounded-2xl rotate-45 flex items-center justify-center shadow-lg border border-white/20 group-hover:scale-105 transition-transform duration-300">
+            <ArrowLeftRight className="w-7 h-7 text-white -rotate-45" />
+          </div>
+        </div>
+        <NavButton icon={Newspaper} label={t("nav.feed")} active={active === "feed"} onClick={() => setLocation("/feed")} />
+        <NavButton icon={CreditCard} label={t("nav.card")} active={active === "cards"} onClick={() => setLocation("/cards")} />
       </div>
     </nav>
   );
 }
 
-function NavButton({ icon: Icon, active, onClick }: { icon: any, active?: boolean, onClick?: () => void }) {
+function NavButton({ icon: Icon, label, active, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) {
   return (
     <button 
       onClick={onClick}
       className={cn(
-        "w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300",
-        active ? "text-black bg-black/5" : "text-gray-400 hover:text-gray-600 hover:bg-black/5"
+        "flex flex-col items-center gap-1.5 w-16 py-2 transition-all duration-300",
+        active ? "text-primary" : "text-muted-foreground hover:text-white"
       )}
     >
-      <Icon className="w-5 h-5 stroke-[2.5]" />
+      <div className={cn(
+        "relative flex items-center justify-center transition-all duration-300",
+        active ? "text-primary scale-110" : ""
+      )}>
+        <Icon className={cn("w-6 h-6", active && "fill-current opacity-20")} />
+        {active && <Icon className="w-6 h-6 absolute inset-0" />}
+      </div>
+      <span className={cn("text-[10px] font-medium tracking-wide", active ? "font-bold" : "")}>{label}</span>
     </button>
   );
 }
