@@ -1,8 +1,19 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const assets = [
+  {
+    id: "usdt",
+    name: "Tether USD",
+    symbol: "USDT",
+    balance: "1,420.00 USDT",
+    price: "R$ 5,15",
+    change: "+0.05%",
+    icon: "T",
+    isFiat: false,
+    color: "text-[#26A17B] bg-[#26A17B]/10",
+  },
   {
     id: "brl",
     name: "Brazilian Real",
@@ -12,36 +23,7 @@ const assets = [
     change: "+0.00%",
     icon: "🇧🇷",
     isFiat: true,
-  },
-  {
-    id: "btc",
-    name: "Bitcoin",
-    symbol: "BTC",
-    balance: "0.042 BTC",
-    price: "R$ 345.201,20",
-    change: "+2.45%",
-    icon: "₿",
-    isFiat: false,
-  },
-  {
-    id: "eth",
-    name: "Ethereum",
-    symbol: "ETH",
-    balance: "1.5 ETH",
-    price: "R$ 18.450,10",
-    change: "-1.12%",
-    icon: "Ξ",
-    isFiat: false,
-  },
-  {
-    id: "sol",
-    name: "Solana",
-    symbol: "SOL",
-    balance: "145 SOL",
-    price: "R$ 845,30",
-    change: "+12.5%",
-    icon: "◎",
-    isFiat: false,
+    color: "text-green-500 bg-green-500/10",
   },
 ];
 
@@ -49,8 +31,7 @@ export function AssetList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-lg font-display font-medium">Assets</h3>
-        <button className="text-sm text-primary hover:underline">View all</button>
+        <h3 className="text-lg font-display font-medium">Your Balances</h3>
       </div>
       
       <div className="space-y-3">
@@ -65,7 +46,7 @@ export function AssetList() {
             <div className="flex items-center gap-4">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold",
-                asset.isFiat ? "bg-green-500/10 text-green-500" : "bg-white/5 text-white"
+                asset.color
               )}>
                 {asset.icon}
               </div>
@@ -77,12 +58,8 @@ export function AssetList() {
 
             <div className="text-right">
               <div className="font-medium text-white">{asset.balance}</div>
-              <div className={cn(
-                "text-xs flex items-center justify-end gap-1",
-                asset.change.startsWith("+") ? "text-green-400" : "text-red-400"
-              )}>
-                {asset.change.startsWith("+") ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {asset.change}
+              <div className="text-xs text-muted-foreground">
+                ≈ {asset.price} BRL
               </div>
             </div>
           </motion.div>

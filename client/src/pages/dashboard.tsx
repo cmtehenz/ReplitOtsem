@@ -1,8 +1,9 @@
 import { WalletCard } from "@/components/wallet-card";
-import { ActionButtons } from "@/components/pix-actions";
+import { ActionGrid } from "@/components/action-grid";
+import { ExchangeCard } from "@/components/exchange-card";
 import { AssetList } from "@/components/asset-list";
 import { TransactionHistory } from "@/components/transaction-history";
-import { Bell, Settings, Menu } from "lucide-react";
+import { Bell, Settings, Menu, ArrowLeftRight } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { cn } from "@/lib/utils";
 
@@ -35,9 +36,19 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-md mx-auto px-6 pt-6 space-y-8">
+        {/* Total Balance Card */}
         <WalletCard />
-        <ActionButtons />
+        
+        {/* Quick Actions (Deposit Pix, Deposit USDT, Withdraw) */}
+        <ActionGrid />
+
+        {/* Exchange Interface */}
+        <ExchangeCard />
+        
+        {/* Asset Breakdown */}
         <AssetList />
+        
+        {/* History */}
         <TransactionHistory />
       </main>
 
@@ -47,10 +58,10 @@ export default function Dashboard() {
           <NavButton icon={Menu} label="Home" active />
           <NavButton icon={Menu} label="Wallet" />
           <div className="w-14 h-14 -mt-8 bg-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(50,188,173,0.4)] border-4 border-background cursor-pointer hover:scale-105 transition-transform">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Pix_logo_2020.svg/2560px-Pix_logo_2020.svg.png" className="w-8 h-8 invert brightness-0" alt="Pix" />
+            <ArrowLeftRight className="w-6 h-6 text-primary-foreground" />
           </div>
-          <NavButton icon={Menu} label="Stats" />
-          <NavButton icon={Menu} label="Cards" />
+          <NavButton icon={Menu} label="Activity" />
+          <NavButton icon={Menu} label="Profile" />
         </div>
       </nav>
     </div>
@@ -58,15 +69,12 @@ export default function Dashboard() {
 }
 
 function NavButton({ icon: Icon, label, active }: { icon: any, label: string, active?: boolean }) {
-  // Using simple placeholders for icons since I don't want to import all of them right now
-  // In a real app, these would be specific icons (Home, Wallet, BarChart, CreditCard)
   return (
     <button className={cn(
       "flex flex-col items-center gap-1 w-16 py-1 transition-colors",
       active ? "text-primary" : "text-muted-foreground hover:text-white"
     )}>
       <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center">
-        {/* Placeholder shape */}
         <div className={cn("w-3 h-3 rounded-sm", active ? "bg-primary" : "bg-muted-foreground")} />
       </div>
       <span className="text-[10px] font-medium">{label}</span>
