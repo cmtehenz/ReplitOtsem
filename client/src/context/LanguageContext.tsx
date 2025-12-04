@@ -116,6 +116,22 @@ const translations: Record<Language, Record<string, string>> = {
     "exchange.ratesUnavailable": "Exchange rates temporarily unavailable",
     "exchange.loadingRate": "Loading rate...",
     
+    // Personal Info
+    "personalInfo.title": "Personal Information",
+    "personalInfo.name": "Full Name",
+    "personalInfo.namePlaceholder": "Enter your full name",
+    "personalInfo.email": "Email",
+    "personalInfo.emailPlaceholder": "Enter your email",
+    "personalInfo.phone": "Phone",
+    "personalInfo.phonePlaceholder": "Enter your phone number",
+    "personalInfo.tapToChange": "Tap to change photo",
+    "personalInfo.save": "Save Changes",
+    "personalInfo.saved": "Profile updated successfully",
+    "personalInfo.saveFailed": "Failed to update profile",
+    "personalInfo.nameRequired": "Name is required",
+    "personalInfo.emailInvalid": "Please enter a valid email",
+    "personalInfo.photoTooLarge": "Photo must be less than 2MB",
+    
     // Common
     "common.processing": "Processing...",
     "common.retry": "Try Again",
@@ -224,6 +240,22 @@ const translations: Record<Language, Record<string, string>> = {
     "exchange.minAmount": "Câmbio mínimo é 10 USDT",
     "exchange.ratesUnavailable": "Taxas de câmbio temporariamente indisponíveis",
     "exchange.loadingRate": "Carregando taxa...",
+    
+    // Personal Info
+    "personalInfo.title": "Informações Pessoais",
+    "personalInfo.name": "Nome Completo",
+    "personalInfo.namePlaceholder": "Digite seu nome completo",
+    "personalInfo.email": "Email",
+    "personalInfo.emailPlaceholder": "Digite seu email",
+    "personalInfo.phone": "Telefone",
+    "personalInfo.phonePlaceholder": "Digite seu telefone",
+    "personalInfo.tapToChange": "Toque para alterar foto",
+    "personalInfo.save": "Salvar Alterações",
+    "personalInfo.saved": "Perfil atualizado com sucesso",
+    "personalInfo.saveFailed": "Falha ao atualizar perfil",
+    "personalInfo.nameRequired": "Nome é obrigatório",
+    "personalInfo.emailInvalid": "Por favor, insira um email válido",
+    "personalInfo.photoTooLarge": "Foto deve ter menos de 2MB",
     
     // Common
     "common.processing": "Processando...",

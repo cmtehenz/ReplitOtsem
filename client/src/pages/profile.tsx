@@ -1,5 +1,4 @@
-import { User, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe, Loader2 } from "lucide-react";
-import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
+import { User as UserIcon, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
 import { useLanguage } from "@/context/LanguageContext";
@@ -30,10 +29,22 @@ export default function Profile() {
       <div className="max-w-md mx-auto p-6 space-y-8">
         <h1 className="text-2xl font-display font-bold tracking-tight">{t("profile.title")}</h1>
 
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group">
+        <div 
+          className="glass-card rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-colors cursor-pointer group"
+          onClick={() => setLocation("/personal-info")}
+          data-testid="link-personal-info"
+        >
           <div className="relative">
             <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors shadow-lg">
-              <img src={avatar} alt="User" className="w-full h-full object-cover rounded-full" />
+              {user?.profilePhoto ? (
+                <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <div className="w-full h-full rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                  <span className="text-lg font-bold text-primary">
+                    {(user?.name || user?.username || "U").charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
           </div>
@@ -51,6 +62,7 @@ export default function Profile() {
               </div>
             )}
           </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:translate-x-1 transition-transform group-hover:text-primary" />
         </div>
 
         <div 
@@ -78,9 +90,9 @@ export default function Profile() {
 
         <div className="space-y-2">
           <MenuItem 
-            icon={User} 
+            icon={UserIcon} 
             label={t("profile.personalInfo")} 
-            onClick={() => setLocation("/kyc")}
+            onClick={() => setLocation("/personal-info")}
           />
           <MenuItem 
             icon={Users} 

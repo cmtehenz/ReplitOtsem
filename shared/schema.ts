@@ -10,7 +10,9 @@ export const users = pgTable("users", {
   password: text("password").notNull(), // bcrypt hashed
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  phone: text("phone"),
   cpf: text("cpf"), // Brazilian CPF for PIX
+  profilePhoto: text("profile_photo"), // Base64 or URL
   verified: boolean("verified").default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

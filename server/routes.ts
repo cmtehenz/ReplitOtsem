@@ -119,7 +119,10 @@ export async function registerRoutes(
         id: user.id, 
         username: user.username, 
         email: user.email, 
-        name: user.name 
+        name: user.name,
+        phone: user.phone,
+        profilePhoto: user.profilePhoto,
+        verified: user.verified,
       });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -161,7 +164,10 @@ export async function registerRoutes(
         id: user.id, 
         username: user.username, 
         email: user.email, 
-        name: user.name 
+        name: user.name,
+        phone: user.phone,
+        profilePhoto: user.profilePhoto,
+        verified: user.verified,
       });
     } catch (error: any) {
       if (error instanceof z.ZodError) {
@@ -194,10 +200,51 @@ export async function registerRoutes(
         username: user.username, 
         email: user.email, 
         name: user.name,
+        phone: user.phone,
+        profilePhoto: user.profilePhoto,
         verified: user.verified,
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
+  // Update user profile
+  app.patch("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      const updateSchema = z.object({
+        name: z.string().min(1).optional(),
+        email: z.string().email().optional(),
+        phone: z.string().optional(),
+        profilePhoto: z.string().optional(),
+      });
+
+      const data = updateSchema.parse(req.body);
+
+      // Check if email is being changed and if it's already taken
+      if (data.email) {
+        const existingUser = await storage.getUserByEmail(data.email);
+        if (existingUser && existingUser.id !== req.session.userId) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+      }
+
+      const user = await storage.updateUser(req.session.userId!, data);
+
+      res.json({ 
+        id: user.id, 
+        username: user.username, 
+        email: user.email, 
+        name: user.name,
+        phone: user.phone,
+        profilePhoto: user.profilePhoto,
+        verified: user.verified,
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 

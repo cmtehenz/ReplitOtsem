@@ -20,6 +20,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string }): Promise<User>;
   validatePassword(user: User, password: string): Promise<boolean>;
   
   // Wallets
@@ -107,6 +108,18 @@ export class DatabaseStorage implements IStorage {
 
   async validatePassword(user: User, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.password);
+  }
+
+  async updateUser(id: string, updates: { name?: string; email?: string; phone?: string; profilePhoto?: string }): Promise<User> {
+    const result = await db.update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("User not found");
+    }
+    return result[0];
   }
 
   // Wallets

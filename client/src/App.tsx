@@ -18,6 +18,7 @@ import Notifications from "@/pages/notifications";
 import Security from "@/pages/security";
 import ExchangeSuccess from "@/pages/exchange-success";
 import Wallet from "@/pages/wallet";
+import PersonalInfo from "@/pages/personal-info";
 import Cards from "@/pages/cards";
 import Feed from "@/pages/feed";
 import Welcome from "@/pages/welcome";
@@ -52,6 +53,9 @@ function Router() {
       </Route>
       <Route path="/profile">
         {() => <ProtectedRoute component={Profile} />}
+      </Route>
+      <Route path="/personal-info">
+        {() => <ProtectedRoute component={PersonalInfo} />}
       </Route>
       <Route path="/activity">
         {() => <ProtectedRoute component={Activity} />}

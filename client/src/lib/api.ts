@@ -5,6 +5,8 @@ export interface User {
   username: string;
   email: string;
   name: string;
+  phone?: string;
+  profilePhoto?: string;
   verified: boolean;
 }
 
@@ -100,6 +102,24 @@ export async function getCurrentUser(): Promise<User | null> {
   }
   if (!response.ok) {
     throw new Error("Failed to get user");
+  }
+  return response.json();
+}
+
+export async function updateProfile(data: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  profilePhoto?: string;
+}): Promise<User> {
+  const response = await fetch(`${API_BASE}/auth/profile`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update profile");
   }
   return response.json();
 }
