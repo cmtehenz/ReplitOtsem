@@ -1,80 +1,87 @@
 import { BottomNav } from "@/components/bottom-nav";
-import { WalletCard } from "@/components/wallet-card";
 import { ActionGrid } from "@/components/action-grid";
-import { ExchangeCard } from "@/components/exchange-card";
 import { AssetList } from "@/components/asset-list";
-import { TransactionHistory } from "@/components/transaction-history";
-import { Bell, Settings } from "lucide-react";
+import { Bell, ChevronDown, QrCode } from "lucide-react";
 import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
 import { useLocation } from "wouter";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
 
   return (
-    <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/60 backdrop-blur-xl border-b border-white/5 shadow-sm supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-md mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setLocation("/profile")}>
-            <div className="relative">
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors">
-                <img src={avatar} alt="User" className="w-full h-full object-cover rounded-full" />
-              </div>
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
+    <div className="min-h-screen pb-32 px-4 pt-6 max-w-md mx-auto">
+      {/* Main Container with large rounded corners */}
+      <div className="bg-white/40 backdrop-blur-sm rounded-[2.5rem] min-h-[85vh] p-6 relative shadow-[0_0_40px_rgba(0,0,0,0.02)] border border-white/40">
+        
+        {/* Header Section */}
+        <header className="flex justify-between items-start mb-8">
+          {/* User Avatar */}
+          <div className="relative cursor-pointer" onClick={() => setLocation("/profile")}>
+            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
+              <img src={avatar} alt="User" className="w-full h-full object-cover" />
             </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Welcome back</p>
-              <p className="text-sm font-bold font-display tracking-wide group-hover:text-primary transition-colors">Alex Morgan</p>
+            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-white">
+              8
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button 
-              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 relative group"
-              onClick={() => setLocation("/notifications")}
-            >
-              <Bell className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full border border-background" />
-            </button>
-            <button 
-              className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 group" 
-              onClick={() => setLocation("/profile")}
-            >
-              <Settings className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+
+          {/* Center Wallet Address */}
+          <div className="flex items-center gap-1 bg-white/60 px-3 py-1.5 rounded-full border border-black/5 shadow-sm cursor-pointer hover:bg-white transition-colors">
+            <div className="w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center text-white text-[8px] font-bold">C</div>
+            <span className="text-xs font-medium text-gray-600">0xfK07...8336</span>
+            <ChevronDown className="w-3 h-3 text-gray-400" />
+          </div>
+
+          {/* QR Code / Scan Icon */}
+          <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-black/5 hover:bg-gray-50 transition-colors text-black">
+            <QrCode className="w-5 h-5" />
+          </button>
+        </header>
+
+        {/* Balance Section */}
+        <div className="text-center space-y-1 mb-10">
+          <h2 className="text-sm font-medium text-gray-500">Portfolio</h2>
+          <div className="flex items-baseline justify-center gap-1">
+            <h1 className="text-4xl font-display font-bold text-black tracking-tight">
+              35,292.29
+            </h1>
+            <span className="text-xl font-medium text-gray-400">TEA</span>
+          </div>
+          <p className="text-sm font-medium text-gray-400">35,292.29 USD</p>
+        </div>
+
+        {/* Action Bar (Black Pill) */}
+        <div className="mb-10">
+          <ActionGrid />
+        </div>
+
+        {/* Vault / Secondary Card (Optional from reference) */}
+        <div className="mb-8">
+          <div className="bg-[#F3F4F6] rounded-[1.5rem] p-4 flex items-center justify-between shadow-inner border border-white/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center text-gray-600">
+                <span className="font-bold text-xs">|||</span>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-gray-500">Vault</p>
+                <p className="text-lg font-bold text-gray-900">$34,209</p>
+              </div>
+            </div>
+            <button className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg">
+              <span className="text-xl font-light">+</span>
             </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-md mx-auto px-6 pt-2 space-y-8">
-        {/* Total Balance Card */}
-        <section>
-          <WalletCard />
-        </section>
-        
-        {/* Quick Actions (Deposit Pix, Deposit USDT, Withdraw) */}
-        <section className="py-2">
-          <ActionGrid />
-        </section>
-
-        {/* Exchange Interface */}
-        <section>
-          <ExchangeCard />
-        </section>
-        
-        {/* Asset Breakdown */}
+        {/* Asset Grid */}
         <section>
           <AssetList />
         </section>
-        
-        {/* History */}
-        <section>
-          <TransactionHistory />
-        </section>
-      </main>
 
-      {/* Bottom Nav */}
+      </div>
+
+      {/* Floating Bottom Nav */}
       <BottomNav active="home" />
     </div>
   );
