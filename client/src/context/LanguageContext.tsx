@@ -102,12 +102,17 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Referral
     "referral.title": "Referral Program",
-    "referral.earnings": "Total Earnings",
-    "referral.commission": "Your Commission",
-    "referral.invite": "Invite Friends",
-    "referral.withdraw": "Withdraw",
+    "referral.totalEarnings": "Total Earnings",
+    "referral.yourCommission": "Your Commission",
+    "referral.commissionDescription": "Set your kickback rate. You earn up to 5% from every trade made by your referrals.",
+    "referral.shareYourCode": "Share your code",
+    "referral.inviteFriends": "Invite Friends",
+    "referral.recentEarnings": "Recent Earnings",
     "referral.invitedUsers": "Invited Users",
     "referral.totalVolume": "Total Volume",
+    "referral.comingSoon": "Coming Soon",
+    "referral.comingSoonTitle": "Coming Soon",
+    "referral.comingSoonDescription": "The referral program is under development. Soon you'll be able to earn commissions by inviting friends.",
     
     // KYC
     "kyc.title": "Verification",
@@ -247,12 +252,17 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Referral
     "referral.title": "Programa de Indicação",
-    "referral.earnings": "Ganhos Totais",
-    "referral.commission": "Sua Comissão",
-    "referral.invite": "Convidar Amigos",
-    "referral.withdraw": "Sacar",
+    "referral.totalEarnings": "Ganhos Totais",
+    "referral.yourCommission": "Sua Comissão",
+    "referral.commissionDescription": "Defina sua taxa de retorno. Você ganha até 5% de cada negociação feita por seus indicados.",
+    "referral.shareYourCode": "Compartilhe seu código",
+    "referral.inviteFriends": "Convidar Amigos",
+    "referral.recentEarnings": "Ganhos Recentes",
     "referral.invitedUsers": "Usuários Convidados",
     "referral.totalVolume": "Volume Total",
+    "referral.comingSoon": "Em Breve",
+    "referral.comingSoonTitle": "Em Breve",
+    "referral.comingSoonDescription": "O programa de indicação está em desenvolvimento. Em breve você poderá ganhar comissões convidando amigos.",
     
     // KYC
     "kyc.title": "Verificação",

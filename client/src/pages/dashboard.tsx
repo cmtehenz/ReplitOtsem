@@ -5,8 +5,7 @@ import { ExchangeCard } from "@/components/exchange-card";
 import { AssetList } from "@/components/asset-list";
 import { TransactionHistory } from "@/components/transaction-history";
 import { NotificationBell } from "@/components/notification-bell";
-import { Settings } from "lucide-react";
-import avatar from "@assets/generated_images/professional_user_avatar_portrait.png";
+import { Settings, User } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -23,7 +22,13 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setLocation("/profile")}>
             <div className="relative">
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 p-0.5 group-hover:border-primary transition-colors">
-                <img src={user?.profilePhoto || avatar} alt="User" className="w-full h-full object-cover rounded-full" />
+                {user?.profilePhoto ? (
+                  <img src={user.profilePhoto} alt="User" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <div className="w-full h-full bg-primary/20 rounded-full flex items-center justify-center">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                )}
               </div>
               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
             </div>
