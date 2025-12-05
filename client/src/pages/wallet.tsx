@@ -143,6 +143,7 @@ export default function Wallet() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.1 }}
+                      onClick={() => setLocation(`/asset/${wallet.currency.toLowerCase()}`)}
                       className="glass-card p-4 rounded-3xl flex items-center justify-between hover:bg-white/10 transition-all duration-300 cursor-pointer group active:scale-[0.98]"
                       data-testid={`wallet-asset-${wallet.currency}`}
                     >
