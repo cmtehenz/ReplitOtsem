@@ -2142,5 +2142,149 @@ export async function registerRoutes(
     res.json(walletService.SUPPORTED_NETWORKS);
   });
 
+  // Validate address
+  app.post("/api/crypto/validate-address", requireAuth, async (req, res) => {
+    try {
+      const { address, network } = req.body;
+      
+      if (!address || !network) {
+        return res.status(400).json({ error: "Address and network required" });
+      }
+      
+      const networkConfig = walletService.SUPPORTED_NETWORKS[network as walletService.NetworkKey];
+      if (!networkConfig) {
+        return res.status(400).json({ error: "Invalid network" });
+      }
+      
+      let valid = false;
+      if (networkConfig.type === "tron") {
+        valid = walletService.validateTronAddress(address);
+      } else {
+        valid = walletService.validateEvmAddress(address);
+      }
+      
+      res.json({ valid });
+    } catch (error) {
+      res.status(500).json({ error: "Validation failed" });
+    }
+  });
+
+  // Estimate gas fees
+  app.post("/api/crypto/estimate-gas", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const wallet = await storage.getUserCryptoWallet(userId);
+      
+      if (!wallet) {
+        return res.status(400).json({ error: "No wallet found" });
+      }
+      
+      const { toAddress, amount, network } = req.body;
+      
+      if (!toAddress || !amount || !network) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const networkConfig = walletService.SUPPORTED_NETWORKS[network as walletService.NetworkKey];
+      if (!networkConfig) {
+        return res.status(400).json({ error: "Invalid network" });
+      }
+      
+      if (networkConfig.type === "tron") {
+        const estimate = await walletService.estimateTronEnergy(
+          wallet.tronAddress,
+          toAddress,
+          amount
+        );
+        res.json(estimate);
+      } else {
+        const estimate = await walletService.estimateEvmGas(
+          wallet.evmAddress,
+          toAddress,
+          amount,
+          network as walletService.NetworkKey
+        );
+        res.json(estimate);
+      }
+    } catch (error: any) {
+      console.error("Gas estimation error:", error);
+      res.status(500).json({ error: error.message || "Failed to estimate gas" });
+    }
+  });
+
+  // Send USDT
+  app.post("/api/crypto/send", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      const wallet = await storage.getUserCryptoWallet(userId);
+      
+      if (!user || !wallet) {
+        return res.status(400).json({ error: "No wallet found" });
+      }
+      
+      const { toAddress, amount, network, password } = req.body;
+      
+      if (!toAddress || !amount || !network || !password) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      // Verify password
+      const isValidPassword = await storage.validatePassword(user, password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+      
+      const networkConfig = walletService.SUPPORTED_NETWORKS[network as walletService.NetworkKey];
+      if (!networkConfig) {
+        return res.status(400).json({ error: "Invalid network" });
+      }
+      
+      let result;
+      if (networkConfig.type === "tron") {
+        result = await walletService.sendUsdtTron(
+          wallet.encryptedSeed,
+          wallet.seedIv,
+          password,
+          toAddress,
+          amount
+        );
+      } else {
+        result = await walletService.sendUsdtEvm(
+          wallet.encryptedSeed,
+          wallet.seedIv,
+          password,
+          toAddress,
+          amount,
+          network as walletService.NetworkKey
+        );
+      }
+      
+      if (result.success) {
+        // Create notification
+        await storage.createNotification({
+          userId,
+          type: "transfer_sent",
+          title: `USDT Sent on ${networkConfig.name}`,
+          message: `You sent ${amount} USDT to ${toAddress.slice(0, 8)}...${toAddress.slice(-6)}`,
+          data: JSON.stringify({
+            amount,
+            network,
+            toAddress,
+            txHash: result.txHash,
+            explorerUrl: result.explorerUrl
+          }),
+        });
+        
+        res.json(result);
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error: any) {
+      console.error("Send USDT error:", error);
+      res.status(500).json({ error: error.message || "Failed to send USDT" });
+    }
+  });
+
   return httpServer;
 }

@@ -1021,3 +1021,66 @@ export async function getSupportedNetworks(): Promise<Record<string, NetworkInfo
   }
   return response.json();
 }
+
+export interface GasEstimate {
+  gasLimit?: string;
+  gasPrice?: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
+  estimatedCostNative: string;
+  estimatedCostUsd: string;
+  nativeSymbol: string;
+  energy?: number;
+  bandwidth?: number;
+  estimatedTrx?: string;
+}
+
+export interface SendTransactionResult {
+  success: boolean;
+  txHash?: string;
+  error?: string;
+  explorerUrl?: string;
+}
+
+export async function validateCryptoAddress(address: string, network: string): Promise<{ valid: boolean }> {
+  const response = await fetch(`${API_BASE}/crypto/validate-address`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address, network }),
+  });
+  if (!response.ok) {
+    throw new Error("Address validation failed");
+  }
+  return response.json();
+}
+
+export async function estimateCryptoGas(toAddress: string, amount: string, network: string): Promise<GasEstimate> {
+  const response = await fetch(`${API_BASE}/crypto/estimate-gas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ toAddress, amount, network }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to estimate gas");
+  }
+  return response.json();
+}
+
+export async function sendCryptoUsdt(
+  toAddress: string, 
+  amount: string, 
+  network: string, 
+  password: string
+): Promise<SendTransactionResult> {
+  const response = await fetch(`${API_BASE}/crypto/send`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ toAddress, amount, network, password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to send USDT");
+  }
+  return response.json();
+}

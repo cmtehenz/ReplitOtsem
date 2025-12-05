@@ -317,3 +317,197 @@ export async function getAllUsdtBalances(
   await Promise.all(promises);
   return balances as Record<NetworkKey, string>;
 }
+
+const ERC20_TRANSFER_ABI = [
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function decimals() view returns (uint8)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+];
+
+export function validateEvmAddress(address: string): boolean {
+  return ethers.isAddress(address);
+}
+
+export function validateTronAddress(address: string): boolean {
+  if (!address || address.length !== 34) return false;
+  if (!address.startsWith('T')) return false;
+  const base58Chars = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
+  return base58Chars.test(address);
+}
+
+export interface GasEstimate {
+  gasLimit: string;
+  gasPrice: string;
+  maxFeePerGas?: string;
+  maxPriorityFeePerGas?: string;
+  estimatedCostNative: string;
+  estimatedCostUsd: string;
+  nativeSymbol: string;
+}
+
+export async function estimateEvmGas(
+  fromAddress: string,
+  toAddress: string,
+  amount: string,
+  network: NetworkKey
+): Promise<GasEstimate> {
+  const networkConfig = SUPPORTED_NETWORKS[network];
+  if (networkConfig.type !== "evm") {
+    throw new Error("Not an EVM network");
+  }
+
+  const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl);
+  const contract = new ethers.Contract(networkConfig.usdtContract, ERC20_TRANSFER_ABI, provider);
+  
+  const decimals = await contract.decimals();
+  const amountWei = ethers.parseUnits(amount, decimals);
+  
+  const gasLimit = await contract.transfer.estimateGas(toAddress, amountWei, { from: fromAddress })
+    .catch(() => BigInt(100000));
+  
+  const feeData = await provider.getFeeData();
+  
+  const gasPrice = feeData.gasPrice || ethers.parseUnits("30", "gwei");
+  const estimatedCost = gasLimit * gasPrice;
+  const estimatedCostEth = ethers.formatEther(estimatedCost);
+  
+  const nativePriceUsd = networkConfig.symbol === "ETH" ? 2500 : 
+                         networkConfig.symbol === "MATIC" ? 0.8 :
+                         networkConfig.symbol === "BNB" ? 300 :
+                         networkConfig.symbol === "AVAX" ? 35 : 2500;
+  
+  const estimatedCostUsd = (parseFloat(estimatedCostEth) * nativePriceUsd).toFixed(4);
+
+  return {
+    gasLimit: gasLimit.toString(),
+    gasPrice: gasPrice.toString(),
+    maxFeePerGas: feeData.maxFeePerGas?.toString(),
+    maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString(),
+    estimatedCostNative: estimatedCostEth,
+    estimatedCostUsd,
+    nativeSymbol: networkConfig.symbol,
+  };
+}
+
+export interface SendTransactionResult {
+  success: boolean;
+  txHash?: string;
+  error?: string;
+  explorerUrl?: string;
+}
+
+export async function sendUsdtEvm(
+  encryptedSeed: string,
+  seedIv: string,
+  password: string,
+  toAddress: string,
+  amount: string,
+  network: NetworkKey
+): Promise<SendTransactionResult> {
+  const networkConfig = SUPPORTED_NETWORKS[network];
+  if (networkConfig.type !== "evm") {
+    return { success: false, error: "Not an EVM network" };
+  }
+
+  if (!validateEvmAddress(toAddress)) {
+    return { success: false, error: "Invalid recipient address" };
+  }
+
+  try {
+    const privateKey = getPrivateKeyFromEncryptedWallet(encryptedSeed, seedIv, password, "evm");
+    
+    const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl);
+    const wallet = new ethers.Wallet(privateKey, provider);
+    const contract = new ethers.Contract(networkConfig.usdtContract, ERC20_TRANSFER_ABI, wallet);
+    
+    const decimals = await contract.decimals();
+    const amountWei = ethers.parseUnits(amount, decimals);
+    
+    const balance = await contract.balanceOf(wallet.address);
+    if (balance < amountWei) {
+      return { success: false, error: "Insufficient USDT balance" };
+    }
+    
+    const nativeBalance = await provider.getBalance(wallet.address);
+    const feeData = await provider.getFeeData();
+    const gasLimit = BigInt(100000);
+    const gasPrice = feeData.gasPrice || ethers.parseUnits("30", "gwei");
+    const requiredGas = gasLimit * gasPrice;
+    
+    if (nativeBalance < requiredGas) {
+      return { 
+        success: false, 
+        error: `Insufficient ${networkConfig.symbol} for gas fees. Need approximately ${ethers.formatEther(requiredGas)} ${networkConfig.symbol}` 
+      };
+    }
+    
+    const tx = await contract.transfer(toAddress, amountWei);
+    const receipt = await tx.wait();
+    
+    return {
+      success: true,
+      txHash: receipt.hash,
+      explorerUrl: `${networkConfig.explorer}/tx/${receipt.hash}`,
+    };
+  } catch (error: any) {
+    console.error("Send USDT EVM error:", error);
+    return { 
+      success: false, 
+      error: error.message || "Transaction failed" 
+    };
+  }
+}
+
+export async function estimateTronEnergy(
+  fromAddress: string,
+  toAddress: string,
+  amount: string
+): Promise<{ energy: number; bandwidth: number; estimatedTrx: string; estimatedUsd: string }> {
+  return {
+    energy: 65000,
+    bandwidth: 350,
+    estimatedTrx: "15",
+    estimatedUsd: "1.50",
+  };
+}
+
+export async function sendUsdtTron(
+  encryptedSeed: string,
+  seedIv: string,
+  password: string,
+  toAddress: string,
+  amount: string
+): Promise<SendTransactionResult> {
+  if (!validateTronAddress(toAddress)) {
+    return { success: false, error: "Invalid Tron address" };
+  }
+
+  try {
+    const privateKey = getPrivateKeyFromEncryptedWallet(encryptedSeed, seedIv, password, "tron");
+    
+    const TronWebClass = (TronWeb as any).default || TronWeb;
+    const tronWeb = new TronWebClass({
+      fullHost: "https://api.trongrid.io",
+      privateKey: privateKey,
+    });
+    
+    const usdtContract = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+    const amountSun = BigInt(Math.floor(parseFloat(amount) * 1e6));
+    
+    const contract = await tronWeb.contract().at(usdtContract);
+    const result = await contract.transfer(toAddress, amountSun.toString()).send();
+    
+    return {
+      success: true,
+      txHash: result,
+      explorerUrl: `https://tronscan.org/#/transaction/${result}`,
+    };
+  } catch (error: any) {
+    console.error("Send USDT Tron error:", error);
+    return { 
+      success: false, 
+      error: error.message || "Transaction failed" 
+    };
+  }
+}

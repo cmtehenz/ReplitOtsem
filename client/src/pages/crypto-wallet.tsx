@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Copy, Check, Eye, EyeOff, Shield, Key, Wallet, AlertTriangle, Download, ChevronRight, RefreshCw } from "lucide-react";
+import { ArrowLeft, Copy, Check, Eye, EyeOff, Shield, Key, Wallet, AlertTriangle, Download, ChevronRight, RefreshCw, Send, QrCode, ArrowUpRight, ExternalLink, X, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { getCryptoWallet, createCryptoWallet, confirmWalletBackup, importCryptoWallet, getCryptoBalances, getSupportedNetworks, type CryptoWallet, type CryptoBalances, type NetworkInfo } from "../lib/api";
+import { getCryptoWallet, createCryptoWallet, confirmWalletBackup, importCryptoWallet, getCryptoBalances, getSupportedNetworks, validateCryptoAddress, estimateCryptoGas, sendCryptoUsdt, type CryptoWallet, type CryptoBalances, type NetworkInfo, type GasEstimate, type SendTransactionResult } from "../lib/api";
 import { toast } from "sonner";
+import QRCode from "react-qr-code";
 
 type Step = "initial" | "create-password" | "show-seed" | "verify-seed" | "import" | "complete";
+type SendStep = "form" | "confirm" | "sending" | "success";
 
 export default function CryptoWalletPage() {
   const [, navigate] = useLocation();
@@ -27,6 +29,18 @@ export default function CryptoWalletPage() {
   const [refreshingBalances, setRefreshingBalances] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [selectedNetwork, setSelectedNetwork] = useState<string>("ethereum");
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendStep, setSendStep] = useState<SendStep>("form");
+  const [sendAddress, setSendAddress] = useState("");
+  const [sendAmount, setSendAmount] = useState("");
+  const [sendNetwork, setSendNetwork] = useState("ethereum");
+  const [sendPassword, setSendPassword] = useState("");
+  const [gasEstimate, setGasEstimate] = useState<GasEstimate | null>(null);
+  const [estimatingGas, setEstimatingGas] = useState(false);
+  const [sendResult, setSendResult] = useState<SendTransactionResult | null>(null);
+  const [addressValid, setAddressValid] = useState<boolean | null>(null);
+  const [validatingAddress, setValidatingAddress] = useState(false);
 
   const t: Record<string, {
     title: string;
@@ -66,6 +80,22 @@ export default function CryptoWalletPage() {
     networks: string;
     noWallet: string;
     createOrImport: string;
+    send: string;
+    receive: string;
+    recipientAddress: string;
+    amount: string;
+    selectNetwork: string;
+    estimatedFee: string;
+    confirmSend: string;
+    sending: string;
+    transactionSuccess: string;
+    viewOnExplorer: string;
+    invalidAddress: string;
+    enterPassword: string;
+    done: string;
+    scanToReceive: string;
+    copyAddress: string;
+    close: string;
   }> = {
     en: {
       title: "Crypto Wallet",
@@ -105,6 +135,22 @@ export default function CryptoWalletPage() {
       networks: "Supported Networks",
       noWallet: "No wallet yet",
       createOrImport: "Create a new wallet or import an existing one to get started",
+      send: "Send",
+      receive: "Receive",
+      recipientAddress: "Recipient Address",
+      amount: "Amount (USDT)",
+      selectNetwork: "Select Network",
+      estimatedFee: "Estimated Fee",
+      confirmSend: "Confirm & Send",
+      sending: "Sending...",
+      transactionSuccess: "Transaction Successful!",
+      viewOnExplorer: "View on Explorer",
+      invalidAddress: "Invalid address",
+      enterPassword: "Enter your password to confirm",
+      done: "Done",
+      scanToReceive: "Scan to receive USDT",
+      copyAddress: "Copy Address",
+      close: "Close",
     },
     "pt-BR": {
       title: "Carteira Crypto",
@@ -144,6 +190,22 @@ export default function CryptoWalletPage() {
       networks: "Redes Suportadas",
       noWallet: "Nenhuma carteira ainda",
       createOrImport: "Crie uma nova carteira ou importe uma existente para começar",
+      send: "Enviar",
+      receive: "Receber",
+      recipientAddress: "Endereço do Destinatário",
+      amount: "Valor (USDT)",
+      selectNetwork: "Selecione a Rede",
+      estimatedFee: "Taxa Estimada",
+      confirmSend: "Confirmar e Enviar",
+      sending: "Enviando...",
+      transactionSuccess: "Transação Concluída!",
+      viewOnExplorer: "Ver no Explorer",
+      invalidAddress: "Endereço inválido",
+      enterPassword: "Digite sua senha para confirmar",
+      done: "Concluído",
+      scanToReceive: "Escaneie para receber USDT",
+      copyAddress: "Copiar Endereço",
+      close: "Fechar",
     },
   };
   const text = t[language];
@@ -308,6 +370,81 @@ export default function CryptoWalletPage() {
     if (!balance) return "0.00";
     const num = parseFloat(balance);
     return num.toFixed(6);
+  };
+
+  const openSendModal = () => {
+    setSendStep("form");
+    setSendAddress("");
+    setSendAmount("");
+    setSendPassword("");
+    setGasEstimate(null);
+    setSendResult(null);
+    setAddressValid(null);
+    setShowSendModal(true);
+  };
+
+  const closeSendModal = () => {
+    setShowSendModal(false);
+    setSendStep("form");
+  };
+
+  const handleAddressChange = async (address: string) => {
+    setSendAddress(address);
+    setAddressValid(null);
+    
+    if (address.length > 10) {
+      try {
+        setValidatingAddress(true);
+        const result = await validateCryptoAddress(address, sendNetwork);
+        setAddressValid(result.valid);
+      } catch {
+        setAddressValid(false);
+      } finally {
+        setValidatingAddress(false);
+      }
+    }
+  };
+
+  const handleEstimateGas = async () => {
+    if (!sendAddress || !sendAmount || !addressValid) return;
+    
+    try {
+      setEstimatingGas(true);
+      const estimate = await estimateCryptoGas(sendAddress, sendAmount, sendNetwork);
+      setGasEstimate(estimate);
+      setSendStep("confirm");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setEstimatingGas(false);
+    }
+  };
+
+  const handleSendUsdt = async () => {
+    if (!sendPassword) {
+      toast.error("Please enter your password");
+      return;
+    }
+    
+    try {
+      setSendStep("sending");
+      const result = await sendCryptoUsdt(sendAddress, sendAmount, sendNetwork, sendPassword);
+      if (result.success) {
+        setSendResult(result);
+        setSendStep("success");
+        loadBalances();
+      }
+    } catch (error: any) {
+      toast.error(error.message);
+      setSendStep("confirm");
+    }
+  };
+
+  const getAddressForNetwork = (networkKey: string) => {
+    if (!wallet) return "";
+    const network = networks[networkKey];
+    if (!network) return wallet.evmAddress;
+    return network.type === "tron" ? wallet.tronAddress : wallet.evmAddress;
   };
 
   if (loading) {
@@ -666,6 +803,25 @@ export default function CryptoWalletPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowReceiveModal(true)}
+                className="flex items-center justify-center gap-2 h-12 bg-primary text-primary-foreground rounded-xl font-semibold"
+                data-testid="button-receive"
+              >
+                <QrCode className="w-5 h-5" />
+                {text.receive}
+              </button>
+              <button
+                onClick={openSendModal}
+                className="flex items-center justify-center gap-2 h-12 bg-card border border-border rounded-xl font-semibold"
+                data-testid="button-send"
+              >
+                <Send className="w-5 h-5" />
+                {text.send}
+              </button>
+            </div>
+
             <div className="bg-card rounded-2xl p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{text.balance} (USDT)</h3>
@@ -697,6 +853,284 @@ export default function CryptoWalletPage() {
           </div>
         )}
       </main>
+
+      {showReceiveModal && wallet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl w-full max-w-sm p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">{text.receive} USDT</h3>
+              <button
+                onClick={() => setShowReceiveModal(false)}
+                className="w-8 h-8 rounded-full bg-background flex items-center justify-center"
+                data-testid="button-close-receive"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm text-muted-foreground">{text.selectNetwork}</label>
+              <select
+                value={selectedNetwork}
+                onChange={(e) => setSelectedNetwork(e.target.value)}
+                className="w-full h-12 px-4 bg-background rounded-xl border border-border"
+                data-testid="select-receive-network"
+              >
+                {Object.entries(networks).map(([key, network]) => (
+                  <option key={key} value={key}>{network.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-center py-4">
+              <div className="bg-white p-4 rounded-xl">
+                <QRCode 
+                  value={getAddressForNetwork(selectedNetwork)} 
+                  size={180}
+                  level="H"
+                />
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-muted-foreground">{text.scanToReceive}</p>
+
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground">
+                {networks[selectedNetwork]?.name || "Address"}
+              </label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-background rounded-lg p-3 overflow-hidden text-ellipsis">
+                  {getAddressForNetwork(selectedNetwork)}
+                </code>
+                <button
+                  onClick={() => copyAddress(getAddressForNetwork(selectedNetwork), selectedNetwork)}
+                  className="h-10 px-4 bg-primary text-primary-foreground rounded-lg text-sm font-semibold flex items-center gap-2"
+                  data-testid="button-copy-receive-address"
+                >
+                  {copiedAddress === selectedNetwork ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {text.copyAddress}
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowReceiveModal(false)}
+              className="w-full h-12 bg-background rounded-xl font-semibold"
+              data-testid="button-close-receive-modal"
+            >
+              {text.close}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSendModal && wallet && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl w-full max-w-sm p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">{text.send} USDT</h3>
+              <button
+                onClick={closeSendModal}
+                className="w-8 h-8 rounded-full bg-background flex items-center justify-center"
+                data-testid="button-close-send"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {sendStep === "form" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">{text.selectNetwork}</label>
+                  <select
+                    value={sendNetwork}
+                    onChange={(e) => {
+                      setSendNetwork(e.target.value);
+                      setAddressValid(null);
+                      if (sendAddress) handleAddressChange(sendAddress);
+                    }}
+                    className="w-full h-12 px-4 bg-background rounded-xl border border-border"
+                    data-testid="select-send-network"
+                  >
+                    {Object.entries(networks).map(([key, network]) => (
+                      <option key={key} value={key}>{network.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">{text.recipientAddress}</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={sendAddress}
+                      onChange={(e) => handleAddressChange(e.target.value)}
+                      placeholder={networks[sendNetwork]?.type === "tron" ? "T..." : "0x..."}
+                      className={`w-full h-12 px-4 pr-10 bg-background rounded-xl border outline-none ${
+                        addressValid === true ? 'border-green-500' : 
+                        addressValid === false ? 'border-red-500' : 'border-border'
+                      }`}
+                      data-testid="input-send-address"
+                    />
+                    {validatingAddress && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    {!validatingAddress && addressValid === true && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <Check className="w-5 h-5 text-green-500" />
+                      </div>
+                    )}
+                    {!validatingAddress && addressValid === false && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <X className="w-5 h-5 text-red-500" />
+                      </div>
+                    )}
+                  </div>
+                  {addressValid === false && (
+                    <p className="text-xs text-red-500">{text.invalidAddress}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">{text.amount}</label>
+                  <input
+                    type="number"
+                    value={sendAmount}
+                    onChange={(e) => setSendAmount(e.target.value)}
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    className="w-full h-12 px-4 bg-background rounded-xl border border-border outline-none"
+                    data-testid="input-send-amount"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {text.balance}: {balances?.balances[sendNetwork] ? formatBalance(balances.balances[sendNetwork]) : "0.00"} USDT
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleEstimateGas}
+                  disabled={!sendAddress || !sendAmount || addressValid !== true || estimatingGas}
+                  className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="button-continue-send"
+                >
+                  {estimatingGas ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Estimating...
+                    </>
+                  ) : (
+                    text.continue
+                  )}
+                </button>
+              </div>
+            )}
+
+            {sendStep === "confirm" && gasEstimate && (
+              <div className="space-y-4">
+                <div className="bg-background rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">{text.amount}</span>
+                    <span className="font-mono font-semibold">{sendAmount} USDT</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Network</span>
+                    <span>{networks[sendNetwork]?.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">To</span>
+                    <span className="font-mono text-sm">{sendAddress.slice(0, 8)}...{sendAddress.slice(-6)}</span>
+                  </div>
+                  <div className="border-t border-border pt-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">{text.estimatedFee}</span>
+                      <div className="text-right">
+                        <span className="font-mono">{gasEstimate.estimatedCostNative || gasEstimate.estimatedTrx} {gasEstimate.nativeSymbol || "TRX"}</span>
+                        <p className="text-xs text-muted-foreground">≈ ${gasEstimate.estimatedCostUsd}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">{text.enterPassword}</label>
+                  <input
+                    type="password"
+                    value={sendPassword}
+                    onChange={(e) => setSendPassword(e.target.value)}
+                    placeholder="Your password"
+                    className="w-full h-12 px-4 bg-background rounded-xl border border-border outline-none"
+                    data-testid="input-send-password"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setSendStep("form")}
+                    className="h-12 bg-background rounded-xl font-semibold"
+                    data-testid="button-back-send"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleSendUsdt}
+                    disabled={!sendPassword}
+                    className="h-12 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50"
+                    data-testid="button-confirm-send"
+                  >
+                    {text.confirmSend}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {sendStep === "sending" && (
+              <div className="text-center py-8 space-y-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                </div>
+                <p className="text-lg font-semibold">{text.sending}</p>
+                <p className="text-sm text-muted-foreground">Please wait while your transaction is being processed...</p>
+              </div>
+            )}
+
+            {sendStep === "success" && sendResult && (
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                  <Check className="w-8 h-8 text-green-500" />
+                </div>
+                <h4 className="text-lg font-bold">{text.transactionSuccess}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {sendAmount} USDT sent to {sendAddress.slice(0, 8)}...{sendAddress.slice(-6)}
+                </p>
+                
+                {sendResult.explorerUrl && (
+                  <a
+                    href={sendResult.explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-primary hover:underline"
+                    data-testid="link-explorer"
+                  >
+                    {text.viewOnExplorer}
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+
+                <button
+                  onClick={closeSendModal}
+                  className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-semibold mt-4"
+                  data-testid="button-done-send"
+                >
+                  {text.done}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
