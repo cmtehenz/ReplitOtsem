@@ -10,7 +10,15 @@ Otsem Pay is a production-ready cryptocurrency wallet application featuring real
 - **Exchange**: BRL ↔ USDT exchange functionality with OKX rates
 - **Real-time Notifications**: WebSocket-based push notifications for account activities
 - **Profile Management**: Name, email, phone editing and profile photo upload
-- **Security Features**: Password change with verification, 2FA with TOTP (Google Authenticator compatible)
+- **Security Features**: Password change, 2FA with TOTP, WebAuthn biometric login (FaceID/TouchID)
+- **Crypto Wallets**: Real wallet addresses for BTC and USDT with QR code display
+- **Price Charts**: Interactive price charts with multiple time ranges (1H, 1D, 1W, 1M, 1Y)
+- **Transaction Export**: PDF receipt generation and Web Share API for sharing
+- **Referral Program**: Referral rewards tracking with crypto wallet address generation
+- **KYC Verification**: Document upload with camera/file picker for identity verification
+- **Crypto News**: Real-time crypto news feed from API
+- **Email Verification**: Token-based email verification flow
+- **Password Reset**: Secure password reset via email token
 - **Bilingual**: Full support for English and Portuguese (PT-BR)
 
 ## Tech Stack
@@ -64,13 +72,17 @@ Required secrets (stored in Replit Secrets):
 - `GET /api/auth/ws-token` - Get WebSocket authentication token
 - `POST /api/auth/change-password` - Change user password
 
-### Security (2FA)
+### Security (2FA & WebAuthn)
 - `GET /api/auth/2fa/status` - Get 2FA status
 - `POST /api/auth/2fa/setup` - Setup 2FA (generate QR code and backup codes)
 - `POST /api/auth/2fa/verify` - Verify 2FA code and enable
 - `POST /api/auth/2fa/disable` - Disable 2FA
 - `GET /api/auth/login-history` - Get user's login session history
 - `POST /api/auth/logout-all-sessions` - Logout from all devices
+- `GET /api/auth/webauthn/credentials` - Get user's WebAuthn credentials
+- `POST /api/auth/webauthn/register` - Register new WebAuthn credential
+- `POST /api/auth/webauthn/verify` - Verify WebAuthn for login
+- `DELETE /api/auth/webauthn/credentials/:id` - Delete WebAuthn credential
 
 ### Wallets & Transactions
 - `GET /api/wallets` - Get user's wallet balances
@@ -113,6 +125,14 @@ Required secrets (stored in Replit Secrets):
 - `kyc_documents` - KYC document submissions and review status
 
 ## Recent Changes
+- 2024-12-05: Added interactive price charts with multiple time ranges (1H, 1D, 1W, 1M, 1Y) using Recharts
+- 2024-12-05: Created asset details page (/asset/:currency) with price statistics
+- 2024-12-05: Implemented PDF receipt generation for transactions (print-to-PDF)
+- 2024-12-05: Added Web Share API integration for sharing transaction receipts
+- 2024-12-05: Implemented WebAuthn biometric login (FaceID/TouchID support)
+- 2024-12-05: Added webauthn_credentials database table for credential storage
+- 2024-12-05: Created email verification flow with token-based verification
+- 2024-12-05: Implemented password reset with secure email token
 - 2024-12-05: Added full bilingual translations to welcome, exchange-success, not-found, and pix-actions pages
 - 2024-12-05: Implemented exchange success flow with real data storage (sessionStorage)
 - 2024-12-05: Exchange now navigates to success page with actual transaction details
