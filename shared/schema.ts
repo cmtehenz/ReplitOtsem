@@ -326,3 +326,21 @@ export const passwordResets = pgTable("password_resets", {
 export const insertPasswordResetSchema = createInsertSchema(passwordResets).omit({ id: true, createdAt: true, usedAt: true });
 export type InsertPasswordReset = z.infer<typeof insertPasswordResetSchema>;
 export type PasswordReset = typeof passwordResets.$inferSelect;
+
+// WebAuthn credentials - stores passkeys/biometric login credentials
+export const webauthnCredentials = pgTable("webauthn_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  credentialId: text("credential_id").notNull().unique(), // Base64 encoded credential ID
+  publicKey: text("public_key").notNull(), // Base64 encoded public key
+  counter: decimal("counter", { precision: 20, scale: 0 }).notNull().default("0"),
+  deviceType: text("device_type"), // platform, cross-platform
+  deviceName: text("device_name"), // e.g., "iPhone", "MacBook", etc.
+  transports: text("transports"), // JSON array of transports
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+export const insertWebAuthnCredentialSchema = createInsertSchema(webauthnCredentials).omit({ id: true, createdAt: true, lastUsedAt: true });
+export type InsertWebAuthnCredential = z.infer<typeof insertWebAuthnCredentialSchema>;
+export type WebAuthnCredential = typeof webauthnCredentials.$inferSelect;

@@ -1,5 +1,5 @@
 import { PageContainer } from "@/components/page-container";
-import { ArrowLeft, Lock, Smartphone, Key, History, ChevronRight, ShieldCheck, LogOut, Eye, EyeOff, Copy, Check, Loader2, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { ArrowLeft, Lock, Smartphone, Key, History, ChevronRight, ShieldCheck, LogOut, Eye, EyeOff, Copy, Check, Loader2, CheckCircle2, AlertCircle, X, Fingerprint, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
-import { get2FAStatus, setup2FA, verify2FA, disable2FA, changePassword, logoutAllSessions, logout } from "@/lib/api";
+import { get2FAStatus, setup2FA, verify2FA, disable2FA, changePassword, logoutAllSessions, logout, registerBiometric, isBiometricSupported, getWebAuthnCredentials, deleteWebAuthnCredential, type WebAuthnCredential } from "@/lib/api";
 
 type SecurityView = "main" | "change-password" | "setup-2fa" | "disable-2fa" | "login-history";
 
@@ -186,13 +186,68 @@ export default function Security() {
 
 function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabled, isBiometricEnabled, setIsBiometricEnabled }: any) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const [biometricCredentials, setBiometricCredentials] = useState<WebAuthnCredential[]>([]);
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const { language } = useLanguage();
+
+  useEffect(() => {
+    setBiometricSupported(isBiometricSupported());
+    loadBiometricCredentials();
+  }, []);
+
+  const loadBiometricCredentials = async () => {
+    try {
+      const credentials = await getWebAuthnCredentials();
+      setBiometricCredentials(credentials);
+      setIsBiometricEnabled(credentials.length > 0);
+    } catch (error) {
+      console.error("Failed to load biometric credentials:", error);
+    }
+  };
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (!biometricSupported) {
+      toast.error(language === "pt-BR" ? "Biometria não suportada neste dispositivo" : "Biometrics not supported on this device");
+      return;
+    }
+
+    if (enabled) {
+      setIsBiometricLoading(true);
+      try {
+        const deviceName = navigator.userAgent.includes("iPhone") ? "iPhone" :
+                          navigator.userAgent.includes("Android") ? "Android" :
+                          navigator.userAgent.includes("Mac") ? "MacBook" :
+                          navigator.userAgent.includes("Windows") ? "Windows PC" : "Unknown Device";
+        await registerBiometric(deviceName);
+        toast.success(language === "pt-BR" ? "Biometria ativada com sucesso!" : "Biometrics enabled successfully!");
+        loadBiometricCredentials();
+      } catch (error: any) {
+        toast.error(error.message || (language === "pt-BR" ? "Falha ao ativar biometria" : "Failed to enable biometrics"));
+        setIsBiometricEnabled(false);
+      } finally {
+        setIsBiometricLoading(false);
+      }
+    } else {
+      setIsBiometricEnabled(false);
+    }
+  };
+
+  const handleDeleteCredential = async (id: string) => {
+    try {
+      await deleteWebAuthnCredential(id);
+      toast.success(language === "pt-BR" ? "Dispositivo removido" : "Device removed");
+      loadBiometricCredentials();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete credential");
+    }
+  };
   
   const handleLogoutAll = async () => {
     setIsLoggingOut(true);
     try {
       await logoutAllSessions();
       toast.success(t.signOutAll + " - Success");
-      // Logout current session and redirect
       await logout();
       setLocation("/auth");
     } catch (error: any) {
@@ -287,20 +342,54 @@ function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabl
                   "w-10 h-10 rounded-xl flex items-center justify-center border",
                   isBiometricEnabled ? "bg-green-500/10 border-green-500/20" : "bg-white/5 border-white/5"
                 )}>
-                  <Lock className={cn("w-5 h-5", isBiometricEnabled ? "text-green-500" : "text-white")} />
+                  <Fingerprint className={cn("w-5 h-5", isBiometricEnabled ? "text-green-500" : "text-white")} />
                 </div>
                 <div>
                   <p className="text-sm font-bold">{t.biometricLogin}</p>
-                  <p className="text-xs text-muted-foreground">{t.faceTouch}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {!biometricSupported 
+                      ? (language === "pt-BR" ? "Não suportado" : "Not supported")
+                      : t.faceTouch
+                    }
+                  </p>
                 </div>
               </div>
-              <Switch 
-                checked={isBiometricEnabled} 
-                onCheckedChange={setIsBiometricEnabled}
-                className="data-[state=checked]:bg-green-500" 
-                data-testid="switch-biometric"
-              />
+              {isBiometricLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              ) : (
+                <Switch 
+                  checked={isBiometricEnabled} 
+                  onCheckedChange={handleBiometricToggle}
+                  disabled={!biometricSupported}
+                  className="data-[state=checked]:bg-green-500" 
+                  data-testid="switch-biometric"
+                />
+              )}
             </div>
+
+            {biometricCredentials.length > 0 && (
+              <div className="px-5 py-3 border-b border-white/5 bg-white/[0.02]">
+                <p className="text-xs text-muted-foreground mb-2">
+                  {language === "pt-BR" ? "Dispositivos registrados:" : "Registered devices:"}
+                </p>
+                <div className="space-y-2">
+                  {biometricCredentials.map((cred) => (
+                    <div key={cred.id} className="flex items-center justify-between p-2 rounded-xl bg-white/5">
+                      <div className="flex items-center gap-2">
+                        <Fingerprint className="w-4 h-4 text-primary" />
+                        <span className="text-sm">{cred.deviceName || "Unknown"}</span>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteCredential(cred.id)}
+                        className="p-1 rounded-lg hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button 
               className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-colors text-left group"

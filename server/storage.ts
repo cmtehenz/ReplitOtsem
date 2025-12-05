@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets,
+  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets, webauthnCredentials,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -17,7 +17,8 @@ import {
   type CryptoAddress, type InsertCryptoAddress,
   type ReferralReward, type InsertReferralReward,
   type EmailVerification, type InsertEmailVerification,
-  type PasswordReset, type InsertPasswordReset
+  type PasswordReset, type InsertPasswordReset,
+  type WebAuthnCredential, type InsertWebAuthnCredential
 } from "@shared/schema";
 import crypto from "crypto";
 import { eq, and, desc, or, gte, sql } from "drizzle-orm";
@@ -86,6 +87,13 @@ export interface IStorage {
     fromAmount: string,
     toAmount: string
   ): Promise<Transaction>;
+  
+  // WebAuthn credentials
+  createWebAuthnCredential(credential: InsertWebAuthnCredential): Promise<WebAuthnCredential>;
+  getUserWebAuthnCredentials(userId: string): Promise<WebAuthnCredential[]>;
+  getWebAuthnCredentialByCredentialId(credentialId: string): Promise<WebAuthnCredential | undefined>;
+  updateWebAuthnCredentialCounter(id: string, counter: string): Promise<WebAuthnCredential>;
+  deleteWebAuthnCredential(id: string, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1016,6 +1024,40 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return result[0];
+  }
+
+  // WebAuthn credentials
+  async createWebAuthnCredential(credential: InsertWebAuthnCredential): Promise<WebAuthnCredential> {
+    const result = await db.insert(webauthnCredentials).values(credential).returning();
+    return result[0];
+  }
+
+  async getUserWebAuthnCredentials(userId: string): Promise<WebAuthnCredential[]> {
+    return await db.select().from(webauthnCredentials)
+      .where(eq(webauthnCredentials.userId, userId));
+  }
+
+  async getWebAuthnCredentialByCredentialId(credentialId: string): Promise<WebAuthnCredential | undefined> {
+    const result = await db.select().from(webauthnCredentials)
+      .where(eq(webauthnCredentials.credentialId, credentialId))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateWebAuthnCredentialCounter(id: string, counter: string): Promise<WebAuthnCredential> {
+    const result = await db.update(webauthnCredentials)
+      .set({ counter, lastUsedAt: new Date() })
+      .where(eq(webauthnCredentials.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteWebAuthnCredential(id: string, userId: string): Promise<void> {
+    await db.delete(webauthnCredentials)
+      .where(and(
+        eq(webauthnCredentials.id, id),
+        eq(webauthnCredentials.userId, userId)
+      ));
   }
 }
 

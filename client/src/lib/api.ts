@@ -728,3 +728,202 @@ export async function resetPassword(token: string, newPassword: string): Promise
   }
   return response.json();
 }
+
+// ==================== WEBAUTHN / BIOMETRIC LOGIN ====================
+
+export interface WebAuthnCredential {
+  id: string;
+  deviceName: string;
+  deviceType: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export async function getWebAuthnRegistrationOptions(): Promise<any> {
+  const response = await fetch(`${API_BASE}/webauthn/register/options`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get registration options");
+  }
+  return response.json();
+}
+
+export async function verifyWebAuthnRegistration(credential: any, deviceName?: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/webauthn/register/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential, deviceName }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to verify registration");
+  }
+  return response.json();
+}
+
+export async function getWebAuthnLoginOptions(email?: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/webauthn/login/options`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get login options");
+  }
+  return response.json();
+}
+
+export async function verifyWebAuthnLogin(credential: any, email?: string): Promise<any> {
+  const response = await fetch(`${API_BASE}/webauthn/login/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential, email }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to verify login");
+  }
+  return response.json();
+}
+
+export async function getWebAuthnCredentials(): Promise<WebAuthnCredential[]> {
+  const response = await fetch(`${API_BASE}/webauthn/credentials`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get credentials");
+  }
+  return response.json();
+}
+
+export async function deleteWebAuthnCredential(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/webauthn/credentials/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to delete credential");
+  }
+}
+
+// WebAuthn browser helpers
+function bufferToBase64url(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function base64urlToBuffer(base64url: string): ArrayBuffer {
+  const padding = '='.repeat((4 - base64url.length % 4) % 4);
+  const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/') + padding;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+export async function registerBiometric(deviceName?: string): Promise<boolean> {
+  try {
+    const options = await getWebAuthnRegistrationOptions();
+    
+    const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
+      challenge: base64urlToBuffer(options.challenge),
+      rp: options.rp,
+      user: {
+        id: base64urlToBuffer(options.user.id),
+        name: options.user.name,
+        displayName: options.user.displayName,
+      },
+      pubKeyCredParams: options.pubKeyCredParams,
+      authenticatorSelection: options.authenticatorSelection,
+      timeout: options.timeout,
+      excludeCredentials: options.excludeCredentials?.map((cred: any) => ({
+        id: base64urlToBuffer(cred.id),
+        type: cred.type,
+      })),
+    };
+    
+    const credential = await navigator.credentials.create({
+      publicKey: publicKeyCredentialCreationOptions,
+    }) as PublicKeyCredential;
+    
+    if (!credential) {
+      throw new Error("No credential created");
+    }
+    
+    const response = credential.response as AuthenticatorAttestationResponse;
+    
+    const credentialData = {
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      type: credential.type,
+      response: {
+        clientDataJSON: bufferToBase64url(response.clientDataJSON),
+        attestationObject: bufferToBase64url(response.attestationObject),
+        publicKey: bufferToBase64url(response.getPublicKey?.() || response.attestationObject),
+        transports: response.getTransports?.() || [],
+      },
+    };
+    
+    await verifyWebAuthnRegistration(credentialData, deviceName);
+    return true;
+  } catch (error: any) {
+    console.error("Biometric registration failed:", error);
+    throw error;
+  }
+}
+
+export async function loginWithBiometric(email?: string): Promise<any> {
+  try {
+    const options = await getWebAuthnLoginOptions(email);
+    
+    const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
+      challenge: base64urlToBuffer(options.challenge),
+      rpId: options.rpId,
+      timeout: options.timeout,
+      userVerification: options.userVerification as UserVerificationRequirement,
+      allowCredentials: options.allowCredentials?.map((cred: any) => ({
+        id: base64urlToBuffer(cred.id),
+        type: cred.type,
+      })),
+    };
+    
+    const credential = await navigator.credentials.get({
+      publicKey: publicKeyCredentialRequestOptions,
+    }) as PublicKeyCredential;
+    
+    if (!credential) {
+      throw new Error("No credential received");
+    }
+    
+    const response = credential.response as AuthenticatorAssertionResponse;
+    
+    const credentialData = {
+      id: credential.id,
+      rawId: bufferToBase64url(credential.rawId),
+      type: credential.type,
+      response: {
+        clientDataJSON: bufferToBase64url(response.clientDataJSON),
+        authenticatorData: bufferToBase64url(response.authenticatorData),
+        signature: bufferToBase64url(response.signature),
+        userHandle: response.userHandle ? bufferToBase64url(response.userHandle) : null,
+      },
+    };
+    
+    return await verifyWebAuthnLogin(credentialData, email);
+  } catch (error: any) {
+    console.error("Biometric login failed:", error);
+    throw error;
+  }
+}
+
+export function isBiometricSupported(): boolean {
+  return window.PublicKeyCredential !== undefined;
+}
