@@ -4,14 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
+import { get2FAStatus, setup2FA, verify2FA, disable2FA, changePassword } from "@/lib/api";
 
-type SecurityView = "main" | "change-password" | "setup-2fa" | "login-history";
+type SecurityView = "main" | "change-password" | "setup-2fa" | "disable-2fa" | "login-history";
 
 const translations: Record<"en" | "pt-BR", Record<string, string>> = {
   en: {
@@ -57,6 +58,13 @@ const translations: Record<"en" | "pt-BR", Record<string, string>> = {
     location: "Location",
     time: "Time",
     current: "Current",
+    disable2FA: "Disable 2FA",
+    disable2FADesc: "Enter your password to disable two-factor authentication.",
+    disableConfirm: "Disable 2FA",
+    password: "Password",
+    wrongPassword: "Incorrect password",
+    incorrectCode: "Incorrect verification code",
+    loading: "Loading...",
   },
   "pt-BR": {
     securityCenter: "Central de Segurança",
@@ -101,6 +109,13 @@ const translations: Record<"en" | "pt-BR", Record<string, string>> = {
     location: "Localização",
     time: "Horário",
     current: "Atual",
+    disable2FA: "Desativar 2FA",
+    disable2FADesc: "Digite sua senha para desativar a autenticação de dois fatores.",
+    disableConfirm: "Desativar 2FA",
+    password: "Senha",
+    wrongPassword: "Senha incorreta",
+    incorrectCode: "Código de verificação incorreto",
+    loading: "Carregando...",
   },
 };
 
@@ -109,8 +124,33 @@ export default function Security() {
   const [view, setView] = useState<SecurityView>("main");
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const { language } = useLanguage();
   const t = translations[language as "en" | "pt-BR"] || translations.en;
+
+  useEffect(() => {
+    const fetch2FAStatus = async () => {
+      try {
+        const status = await get2FAStatus();
+        setIs2FAEnabled(status.enabled);
+      } catch (error) {
+        console.error("Failed to fetch 2FA status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetch2FAStatus();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <PageContainer>
+        <div className="p-6 flex items-center justify-center h-full">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -132,6 +172,9 @@ export default function Security() {
         )}
         {view === "setup-2fa" && (
           <Setup2FAView key="2fa" t={t} setView={setView} onComplete={() => setIs2FAEnabled(true)} />
+        )}
+        {view === "disable-2fa" && (
+          <Disable2FAView key="disable-2fa" t={t} setView={setView} onComplete={() => setIs2FAEnabled(false)} />
         )}
         {view === "login-history" && (
           <LoginHistoryView key="history" t={t} setView={setView} />
@@ -213,8 +256,7 @@ function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabl
                   if (checked) {
                     setView("setup-2fa");
                   } else {
-                    setIs2FAEnabled(false);
-                    toast.success("2FA disabled");
+                    setView("disable-2fa");
                   }
                 }}
                 className="data-[state=checked]:bg-green-500" 
@@ -306,19 +348,26 @@ function ChangePasswordView({ t, setView }: { t: any; setView: (view: SecurityVi
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  const isValid = currentPassword.length >= 8 && 
+  const isValid = currentPassword.length >= 1 && 
                   newPassword.length >= 8 && 
                   /\d/.test(newPassword) && 
                   newPassword === confirmPassword;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!isValid) return;
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setError("");
+    
+    try {
+      await changePassword(currentPassword, newPassword);
       setIsSuccess(true);
-    }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Failed to change password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSuccess) {
@@ -371,6 +420,13 @@ function ChangePasswordView({ t, setView }: { t: any; setView: (view: SecurityVi
         <h1 className="font-display font-bold text-lg tracking-wide">{t.changePassword}</h1>
         <div className="w-10" />
       </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
 
       <div className="space-y-6">
         <div className="space-y-2">
@@ -483,22 +539,31 @@ function ChangePasswordView({ t, setView }: { t: any; setView: (view: SecurityVi
 }
 
 function Setup2FAView({ t, setView, onComplete }: { t: any; setView: (view: SecurityView) => void; onComplete: () => void }) {
-  const [step, setStep] = useState<"scan" | "verify" | "backup" | "success">("scan");
+  const [step, setStep] = useState<"loading" | "scan" | "verify" | "backup">("loading");
   const [verificationCode, setVerificationCode] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
-  const secretKey = "JBSW Y3DP EHPK 3PXP";
-  const otpAuthUrl = `otpauth://totp/OtsemPay:user@example.com?secret=${secretKey.replace(/\s/g, "")}&issuer=OtsemPay`;
+  const [secretKey, setSecretKey] = useState("");
+  const [otpAuthUrl, setOtpAuthUrl] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
-  const backupCodes = [
-    "A1B2-C3D4-E5F6",
-    "G7H8-I9J0-K1L2",
-    "M3N4-O5P6-Q7R8",
-    "S9T0-U1V2-W3X4",
-    "Y5Z6-A7B8-C9D0",
-    "E1F2-G3H4-I5J6",
-  ];
+  useEffect(() => {
+    const init2FA = async () => {
+      try {
+        const data = await setup2FA();
+        setSecretKey(data.secret);
+        setOtpAuthUrl(data.otpAuthUrl);
+        setBackupCodes(data.backupCodes);
+        setStep("scan");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to setup 2FA");
+        setView("main");
+      }
+    };
+    init2FA();
+  }, []);
 
   const handleCopySecret = () => {
     navigator.clipboard.writeText(secretKey);
@@ -507,13 +572,19 @@ function Setup2FAView({ t, setView, onComplete }: { t: any; setView: (view: Secu
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     if (verificationCode.length !== 6) return;
     setIsVerifying(true);
-    setTimeout(() => {
-      setIsVerifying(false);
+    setError("");
+    
+    try {
+      await verify2FA(verificationCode);
       setStep("backup");
-    }, 1500);
+    } catch (err: any) {
+      setError(err.message || t.incorrectCode);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleComplete = () => {
@@ -521,6 +592,19 @@ function Setup2FAView({ t, setView, onComplete }: { t: any; setView: (view: Secu
     setView("main");
     toast.success(t.twoFAEnabled);
   };
+
+  if (step === "loading") {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="p-6 flex flex-col h-full min-h-[80vh] items-center justify-center"
+      >
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground mt-4">{t.loading}</p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
@@ -566,10 +650,10 @@ function Setup2FAView({ t, setView, onComplete }: { t: any; setView: (view: Secu
             <div className="glass-card rounded-2xl p-4 border border-white/10">
               <p className="text-xs text-muted-foreground mb-2">{t.manualEntry}</p>
               <div className="flex items-center justify-between">
-                <code className="text-sm font-mono text-primary tracking-wider">{secretKey}</code>
+                <code className="text-sm font-mono text-primary tracking-wider break-all">{secretKey}</code>
                 <button 
                   onClick={handleCopySecret}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors flex-shrink-0 ml-2"
                   data-testid="button-copy-secret"
                 >
                   {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
@@ -599,6 +683,13 @@ function Setup2FAView({ t, setView, onComplete }: { t: any; setView: (view: Secu
               <h2 className="text-xl font-bold font-display">{t.enterCode}</h2>
               <p className="text-sm text-muted-foreground">{t.enter6Digit}</p>
             </div>
+
+            {error && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
 
             <div className="flex justify-center gap-2">
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -703,12 +794,105 @@ function Setup2FAView({ t, setView, onComplete }: { t: any; setView: (view: Secu
   );
 }
 
+function Disable2FAView({ t, setView, onComplete }: { t: any; setView: (view: SecurityView) => void; onComplete: () => void }) {
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleDisable = async () => {
+    if (!password) return;
+    setIsLoading(true);
+    setError("");
+
+    try {
+      await disable2FA(password);
+      onComplete();
+      setView("main");
+      toast.success("2FA disabled");
+    } catch (err: any) {
+      setError(err.message || t.wrongPassword);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      className="p-6 flex flex-col h-full space-y-8"
+    >
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+        <button 
+          onClick={() => setView("main")}
+          className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
+          data-testid="button-back"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="font-display font-bold text-lg tracking-wide">{t.disable2FA}</h1>
+        <div className="w-10" />
+      </div>
+
+      <div className="text-center space-y-2">
+        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+          <Smartphone className="w-8 h-8 text-red-500" />
+        </div>
+        <p className="text-sm text-muted-foreground">{t.disable2FADesc}</p>
+      </div>
+
+      {error && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-muted-foreground">{t.password}</label>
+        <div className="relative">
+          <Input 
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="h-14 bg-white/5 border-white/10 rounded-xl pr-12 text-base"
+            placeholder="••••••••"
+            data-testid="input-password"
+          />
+          <button 
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      <Button 
+        onClick={handleDisable}
+        disabled={!password || isLoading}
+        className="w-full h-14 rounded-2xl font-bold text-base bg-red-500 hover:bg-red-600 mt-auto disabled:opacity-50"
+        data-testid="button-disable-2fa"
+      >
+        {isLoading ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          t.disableConfirm
+        )}
+      </Button>
+    </motion.div>
+  );
+}
+
 function LoginHistoryView({ t, setView }: { t: any; setView: (view: SecurityView) => void }) {
   const loginHistory = [
     { device: "iPhone 14 Pro", location: "São Paulo, BR", time: "Now", current: true },
     { device: "MacBook Pro", location: "São Paulo, BR", time: "2 hours ago", current: false },
-    { device: "Chrome / Windows", location: "Rio de Janeiro, BR", time: "Yesterday", current: false },
-    { device: "Safari / macOS", location: "São Paulo, BR", time: "3 days ago", current: false },
+    { device: "Windows PC", location: "Rio de Janeiro, BR", time: "Yesterday", current: false },
+    { device: "iPad Pro", location: "São Paulo, BR", time: "3 days ago", current: false },
   ];
 
   return (
@@ -731,43 +915,43 @@ function LoginHistoryView({ t, setView }: { t: any; setView: (view: SecurityView
       </div>
 
       <div className="space-y-3">
-        {loginHistory.map((login, i) => (
-          <motion.div
+        {loginHistory.map((session, i) => (
+          <div 
             key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
             className={cn(
               "glass-card rounded-2xl p-4 border",
-              login.current ? "border-green-500/30 bg-green-500/5" : "border-white/10"
+              session.current ? "border-primary/30 bg-primary/5" : "border-white/10"
             )}
           >
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4 text-muted-foreground" />
-                <span className="font-bold text-sm">{login.device}</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center",
+                  session.current ? "bg-primary/10" : "bg-white/5"
+                )}>
+                  <Smartphone className={cn(
+                    "w-5 h-5",
+                    session.current ? "text-primary" : "text-white"
+                  )} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">{session.device}</p>
+                  <p className="text-xs text-muted-foreground">{session.location}</p>
+                </div>
               </div>
-              {login.current && (
-                <span className="text-[10px] bg-green-500/20 text-green-500 px-2 py-0.5 rounded-full font-bold uppercase">
-                  {t.current}
-                </span>
-              )}
+              <div className="text-right">
+                {session.current ? (
+                  <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
+                    {t.current}
+                  </span>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{session.time}</p>
+                )}
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{login.location}</span>
-              <span>{login.time}</span>
-            </div>
-          </motion.div>
+          </div>
         ))}
       </div>
-
-      <Button 
-        variant="outline"
-        className="w-full h-12 rounded-xl text-red-400 border-red-500/20 hover:bg-red-500/10 mt-auto"
-        data-testid="button-revoke-all"
-      >
-        Revoke All Other Sessions
-      </Button>
     </motion.div>
   );
 }

@@ -352,3 +352,77 @@ export async function getWebSocketToken(): Promise<{ token: string }> {
   }
   return response.json();
 }
+
+// ==================== SECURITY ====================
+
+export interface TwoFactorSetup {
+  secret: string;
+  otpAuthUrl: string;
+  backupCodes: string[];
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  hasSecret: boolean;
+}
+
+export async function changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to change password");
+  }
+  return response.json();
+}
+
+export async function get2FAStatus(): Promise<TwoFactorStatus> {
+  const response = await fetch(`${API_BASE}/auth/2fa/status`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get 2FA status");
+  }
+  return response.json();
+}
+
+export async function setup2FA(): Promise<TwoFactorSetup> {
+  const response = await fetch(`${API_BASE}/auth/2fa/setup`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to setup 2FA");
+  }
+  return response.json();
+}
+
+export async function verify2FA(code: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/auth/2fa/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Invalid verification code");
+  }
+  return response.json();
+}
+
+export async function disable2FA(password: string): Promise<{ success: boolean; message: string }> {
+  const response = await fetch(`${API_BASE}/auth/2fa/disable`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to disable 2FA");
+  }
+  return response.json();
+}
