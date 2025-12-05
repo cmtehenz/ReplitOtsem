@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  virtualCards, kycSubmissions, userSecuritySettings, activeSessions, referrals,
+  virtualCards, kycSubmissions, userSecuritySettings, activeSessions, referrals, dashboardWidgets,
   type User, type InsertUser, type UpsertUser,
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -14,7 +14,8 @@ import {
   type KycSubmission, type InsertKycSubmission,
   type SecuritySettings, type InsertSecuritySettings,
   type ActiveSession, type InsertActiveSession,
-  type Referral, type InsertReferral
+  type Referral, type InsertReferral,
+  type DashboardWidget, type InsertDashboardWidget
 } from "@shared/schema";
 import { eq, and, desc, or, sql, gte } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -120,6 +121,11 @@ export interface IStorage {
     exchanges: number;
     dailyData: { date: string; income: number; expense: number }[];
   }>;
+  
+  // Dashboard Widgets
+  getUserDashboardWidgets(userId: string): Promise<DashboardWidget[]>;
+  saveDashboardWidgets(userId: string, widgets: { widgetType: string; order: number; visible: boolean; config?: string }[]): Promise<DashboardWidget[]>;
+  updateWidgetVisibility(widgetId: string, userId: string, visible: boolean): Promise<DashboardWidget>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -721,6 +727,41 @@ export class DatabaseStorage implements IStorage {
       .sort((a, b) => a.date.localeCompare(b.date));
     
     return { income, expenses, exchanges, dailyData };
+  }
+  
+  // Dashboard Widgets
+  async getUserDashboardWidgets(userId: string): Promise<DashboardWidget[]> {
+    const widgets = await db.select().from(dashboardWidgets)
+      .where(eq(dashboardWidgets.userId, userId))
+      .orderBy(dashboardWidgets.order);
+    return widgets;
+  }
+  
+  async saveDashboardWidgets(userId: string, widgets: { widgetType: string; order: number; visible: boolean; config?: string }[]): Promise<DashboardWidget[]> {
+    // Delete existing widgets for user
+    await db.delete(dashboardWidgets).where(eq(dashboardWidgets.userId, userId));
+    
+    // Insert new widgets
+    if (widgets.length === 0) return [];
+    
+    const toInsert = widgets.map(w => ({
+      userId,
+      widgetType: w.widgetType as any,
+      order: String(w.order),
+      visible: w.visible,
+      config: w.config || null,
+    }));
+    
+    const inserted = await db.insert(dashboardWidgets).values(toInsert).returning();
+    return inserted;
+  }
+  
+  async updateWidgetVisibility(widgetId: string, userId: string, visible: boolean): Promise<DashboardWidget> {
+    const [updated] = await db.update(dashboardWidgets)
+      .set({ visible, updatedAt: new Date() })
+      .where(and(eq(dashboardWidgets.id, widgetId), eq(dashboardWidgets.userId, userId)))
+      .returning();
+    return updated;
   }
 }
 
