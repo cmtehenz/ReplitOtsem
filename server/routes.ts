@@ -140,9 +140,10 @@ export async function registerRoutes(
       const loginSchema = z.object({
         username: z.string(),
         password: z.string(),
+        twoFactorCode: z.string().optional(),
       });
 
-      const { username, password } = loginSchema.parse(req.body);
+      const { username, password, twoFactorCode } = loginSchema.parse(req.body);
 
       // Find user by username or email
       let user = await storage.getUserByUsername(username);
@@ -157,6 +158,40 @@ export async function registerRoutes(
       const isValid = await storage.validatePassword(user, password);
       if (!isValid) {
         return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Check if 2FA is enabled
+      if (user.twoFactorEnabled && user.twoFactorSecret) {
+        // If no 2FA code provided, return challenge
+        if (!twoFactorCode) {
+          return res.status(200).json({
+            requiresTwoFactor: true,
+            userId: user.id,
+            message: "Two-factor authentication required",
+          });
+        }
+
+        // Verify the 2FA code
+        const { TOTP, Secret } = await import("otpauth");
+        const secret = Secret.fromBase32(user.twoFactorSecret);
+        const totp = new TOTP({
+          issuer: "OtsemPay",
+          label: user.email,
+          algorithm: "SHA1",
+          digits: 6,
+          period: 30,
+          secret: secret,
+        });
+
+        const delta = totp.validate({ token: twoFactorCode, window: 1 });
+        
+        // If TOTP code invalid, try backup codes
+        if (delta === null) {
+          const isBackupValid = await storage.validateBackupCode(user, twoFactorCode);
+          if (!isBackupValid) {
+            return res.status(401).json({ error: "Invalid verification code" });
+          }
+        }
       }
 
       // Set session

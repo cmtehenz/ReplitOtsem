@@ -73,11 +73,24 @@ export async function register(data: {
   return response.json();
 }
 
-export async function login(username: string, password: string): Promise<User> {
+export interface LoginResponse {
+  requiresTwoFactor?: boolean;
+  userId?: string;
+  message?: string;
+  id?: string;
+  username?: string;
+  email?: string;
+  name?: string;
+  phone?: string;
+  profilePhoto?: string;
+  verified?: boolean;
+}
+
+export async function login(username: string, password: string, twoFactorCode?: string): Promise<LoginResponse> {
   const response = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username, password, twoFactorCode }),
   });
   if (!response.ok) {
     const error = await response.json();

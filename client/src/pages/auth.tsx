@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
-import { Eye, EyeOff, Wallet, ArrowRight, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, ArrowLeft } from "lucide-react";
 import logo from "@assets/Untitled_1764830265098.png";
 
 export default function AuthPage() {
@@ -15,7 +15,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { login, register } = useAuth();
+  const { login, register, twoFactorChallenge, completeTwoFactorLogin, cancelTwoFactorLogin } = useAuth();
   const [, navigate] = useLocation();
   const { t } = useLanguage();
 
@@ -24,6 +24,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,16 +33,40 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        await login(username, password);
+        const result = await login(username, password);
+        if (!result.requiresTwoFactor) {
+          navigate("/");
+        }
       } else {
         await register({ username, email, password, name, cpf: cpf || undefined });
+        navigate("/");
       }
-      navigate("/");
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTwoFactorSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await completeTwoFactorLogin(twoFactorCode);
+      navigate("/");
+    } catch (err: any) {
+      setError(err.message || "Invalid verification code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelTwoFactor = () => {
+    cancelTwoFactorLogin();
+    setTwoFactorCode("");
+    setError("");
   };
 
   const formatCPF = (value: string) => {
@@ -54,6 +79,115 @@ export default function AuthPage() {
     }
     return value.slice(0, 14);
   };
+
+  if (twoFactorChallenge) {
+    return (
+      <div className="min-h-screen bg-otsem-gradient text-foreground flex flex-col relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-primary/10 to-transparent" />
+          <div className="absolute bottom-0 right-0 w-full h-1/2 bg-gradient-to-t from-accent/5 to-transparent" />
+        </div>
+
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6">
+          <div className="pt-8 pb-6 text-center flex flex-col items-center">
+            <img src={logo} alt="Otsem Pay" className="w-28 h-auto mb-4 drop-shadow-lg" />
+          </div>
+
+          <Card className="w-full max-w-md border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
+            <CardHeader className="space-y-1">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldCheck className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl text-center">
+                {t("auth.twoFactorTitle") || "Two-Factor Authentication"}
+              </CardTitle>
+              <CardDescription className="text-center">
+                {t("auth.twoFactorDescription") || "Enter the 6-digit code from your authenticator app"}
+              </CardDescription>
+            </CardHeader>
+            
+            <form onSubmit={handleTwoFactorSubmit}>
+              <CardContent className="space-y-6">
+                <div className="flex justify-center gap-2">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <input
+                      key={i}
+                      type="text"
+                      maxLength={1}
+                      value={twoFactorCode[i] || ""}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        if (val) {
+                          const newCode = twoFactorCode.slice(0, i) + val + twoFactorCode.slice(i + 1);
+                          setTwoFactorCode(newCode.slice(0, 6));
+                          if (i < 5) {
+                            const next = e.target.nextElementSibling as HTMLInputElement;
+                            next?.focus();
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Backspace" && !twoFactorCode[i] && i > 0) {
+                          const prev = (e.target as HTMLInputElement).previousElementSibling as HTMLInputElement;
+                          prev?.focus();
+                        }
+                      }}
+                      className="w-12 h-14 text-center text-xl font-bold bg-background/50 border border-border rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                      data-testid={`input-2fa-code-${i}`}
+                    />
+                  ))}
+                </div>
+
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-sm text-destructive text-center p-3 bg-destructive/10 rounded-xl"
+                    data-testid="text-error"
+                  >
+                    {error}
+                  </motion.p>
+                )}
+
+                <p className="text-xs text-muted-foreground text-center">
+                  {t("auth.twoFactorBackupHint") || "You can also use a backup code"}
+                </p>
+              </CardContent>
+
+              <CardFooter className="flex flex-col gap-4">
+                <Button
+                  type="submit"
+                  className="w-full h-12 text-base rounded-xl"
+                  disabled={loading || twoFactorCode.length !== 6}
+                  data-testid="button-verify-2fa"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      {t("auth.verify") || "Verify"}
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleCancelTwoFactor}
+                  className="w-full h-10 text-sm"
+                  data-testid="button-cancel-2fa"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  {t("auth.backToLogin") || "Back to login"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground flex flex-col relative overflow-hidden">
