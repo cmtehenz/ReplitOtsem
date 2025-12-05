@@ -113,6 +113,9 @@ Required secrets (stored in Replit Secrets):
 - `kyc_documents` - KYC document submissions and review status
 
 ## Recent Changes
+- 2024-12-05: Added full bilingual translations to welcome, exchange-success, not-found, and pix-actions pages
+- 2024-12-05: Implemented exchange success flow with real data storage (sessionStorage)
+- 2024-12-05: Exchange now navigates to success page with actual transaction details
 - 2024-12-05: Added login session tracking with device, IP, location metadata
 - 2024-12-05: Created backend APIs for login history, crypto news, and transaction statistics
 - 2024-12-05: Updated feed page to use real crypto news API
