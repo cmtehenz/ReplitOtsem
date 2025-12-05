@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
-import { submitKycDocument } from "@/lib/api";
+import { submitKycDocument, completeKycVerification } from "@/lib/api";
 
 type Step = "intro" | "select-document" | "upload-front" | "upload-back" | "selfie" | "review" | "pending" | "success";
 type DocumentType = "passport" | "drivers_license" | "national_id";
@@ -139,36 +139,67 @@ export default function KYCVerification() {
 
   const [showCamera, setShowCamera] = useState(false);
   const [cameraType, setCameraType] = useState<"front" | "back" | "selfie">("front");
+  const [cameraReady, setCameraReady] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = useCallback(async (type: "front" | "back" | "selfie") => {
+  const startCamera = useCallback((type: "front" | "back" | "selfie") => {
     setCameraType(type);
-    try {
-      const facingMode = type === "selfie" ? "user" : "environment";
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+    setCameraReady(false);
+    setShowCamera(true);
+  }, []);
+
+  useEffect(() => {
+    if (!showCamera || !videoRef.current) return;
+    
+    let cancelled = false;
+    
+    async function initCamera() {
+      try {
+        const facingMode = cameraType === "selfie" ? "user" : "environment";
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        
+        if (cancelled) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+          setCameraReady(true);
+        }
+      } catch (err) {
+        console.error("Camera access denied:", err);
+        if (!cancelled) {
+          setShowCamera(false);
+          toast.error(language === "pt-BR" ? "Acesso à câmera negado" : "Camera access denied");
+          handleSimulatedCapture(cameraType);
+        }
       }
-      setShowCamera(true);
-    } catch (err) {
-      console.error("Camera access denied:", err);
-      toast.error(language === "pt-BR" ? "Acesso à câmera negado" : "Camera access denied");
-      handleSimulatedCapture(type);
     }
-  }, [language]);
+    
+    const timer = setTimeout(() => {
+      initCamera();
+    }, 100);
+    
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [showCamera, cameraType, language]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    setCameraReady(false);
     setShowCamera(false);
   }, []);
 
@@ -243,7 +274,8 @@ export default function KYCVerification() {
           selfieImage,
         };
         await submitKycDocument(documentType || "national_id", JSON.stringify(kycData));
-        setStep("pending");
+        await completeKycVerification();
+        setStep("success");
       } catch (error: any) {
         toast.error(error.message || (language === "pt-BR" ? "Erro ao enviar documentos" : "Failed to submit documents"));
       } finally {
@@ -401,6 +433,14 @@ export default function KYCVerification() {
               </div>
 
               <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+                {!cameraReady && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+                    <p className="text-sm text-muted-foreground">
+                      {language === "pt-BR" ? "Iniciando câmera..." : "Starting camera..."}
+                    </p>
+                  </div>
+                )}
                 <video
                   ref={videoRef}
                   autoPlay
@@ -413,7 +453,7 @@ export default function KYCVerification() {
                 />
                 
                 {/* Frame overlay for documents */}
-                {cameraType !== "selfie" && (
+                {cameraType !== "selfie" && cameraReady && (
                   <div className="absolute inset-8 border-2 border-white/50 rounded-xl pointer-events-none">
                     <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-lg" />
                     <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-lg" />
@@ -423,7 +463,7 @@ export default function KYCVerification() {
                 )}
 
                 {/* Oval frame for selfie */}
-                {cameraType === "selfie" && (
+                {cameraType === "selfie" && cameraReady && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-64 h-80 border-4 border-primary rounded-[50%] opacity-70" />
                   </div>
@@ -433,10 +473,14 @@ export default function KYCVerification() {
               <div className="p-8 flex justify-center">
                 <button
                   onClick={captureFromCamera}
-                  className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 backdrop-blur-md hover:bg-white/40 transition-all active:scale-95"
+                  disabled={!cameraReady}
+                  className={cn(
+                    "w-20 h-20 rounded-full border-4 border-white flex items-center justify-center backdrop-blur-md transition-all active:scale-95",
+                    cameraReady ? "bg-white/20 hover:bg-white/40" : "bg-white/5 opacity-50 cursor-not-allowed"
+                  )}
                   data-testid="button-shutter"
                 >
-                  <div className="w-16 h-16 bg-white rounded-full" />
+                  <div className={cn("w-16 h-16 rounded-full", cameraReady ? "bg-white" : "bg-white/30")} />
                 </button>
               </div>
             </motion.div>

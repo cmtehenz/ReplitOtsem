@@ -1252,14 +1252,14 @@ export async function registerRoutes(
     try {
       const docs = await storage.getUserKycDocuments(req.session.userId!);
       
-      // Check if user has submitted required documents
-      const hasSelfie = docs.some(d => d.documentType === "selfie");
-      const hasId = docs.some(d => d.documentType === "id_front" || d.documentType === "id_back");
+      // Check if user has submitted any documents (we store the full KYC data as JSON)
+      // Document types from frontend: passport, drivers_license, national_id
+      const hasDocuments = docs.length > 0;
       
+      // Auto-approve to "basic" level when documents are submitted
+      // The frontend submits all data (front, back, selfie) in a single document
       let newKycLevel = "none";
-      if (hasSelfie && hasId) {
-        newKycLevel = "full";
-      } else if (hasSelfie || hasId) {
+      if (hasDocuments) {
         newKycLevel = "basic";
       }
 
