@@ -327,6 +327,22 @@ export const insertPasswordResetSchema = createInsertSchema(passwordResets).omit
 export type InsertPasswordReset = z.infer<typeof insertPasswordResetSchema>;
 export type PasswordReset = typeof passwordResets.$inferSelect;
 
+// Crypto Wallets - stores encrypted seed phrases and wallet data for non-custodial wallets
+export const cryptoWallets = pgTable("crypto_wallets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  encryptedSeed: text("encrypted_seed").notNull(), // AES encrypted mnemonic
+  seedIv: text("seed_iv").notNull(), // Initialization vector for AES
+  evmAddress: text("evm_address").notNull(), // ETH/EVM address (same for all EVM chains)
+  tronAddress: text("tron_address").notNull(), // Tron address (TRC20)
+  seedBackedUp: boolean("seed_backed_up").default(false), // User has confirmed backup
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCryptoWalletSchema = createInsertSchema(cryptoWallets).omit({ id: true, createdAt: true });
+export type InsertCryptoWallet = z.infer<typeof insertCryptoWalletSchema>;
+export type CryptoWallet = typeof cryptoWallets.$inferSelect;
+
 // WebAuthn credentials - stores passkeys/biometric login credentials
 export const webauthnCredentials = pgTable("webauthn_credentials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
