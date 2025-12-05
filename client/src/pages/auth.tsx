@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/context/LanguageContext";
-import { Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, ArrowLeft, Gift, Check } from "lucide-react";
+import { validateReferralCode } from "@/lib/api";
 import logo from "@assets/Untitled_1764830265098.png";
 
 export default function AuthPage() {
@@ -17,14 +18,45 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const { login, register, twoFactorChallenge, completeTwoFactorLogin, cancelTwoFactorLogin } = useAuth();
   const [, navigate] = useLocation();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+  const [referralValid, setReferralValid] = useState<boolean | null>(null);
+  const [validatingReferral, setValidatingReferral] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralCode(ref.toUpperCase());
+      setIsLogin(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (referralCode.length >= 6 && !isLogin) {
+      const timer = setTimeout(async () => {
+        setValidatingReferral(true);
+        try {
+          const result = await validateReferralCode(referralCode);
+          setReferralValid(result.valid);
+        } catch {
+          setReferralValid(null);
+        } finally {
+          setValidatingReferral(false);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setReferralValid(null);
+    }
+  }, [referralCode, isLogin]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +70,14 @@ export default function AuthPage() {
           navigate("/");
         }
       } else {
-        await register({ username, email, password, name, cpf: cpf || undefined });
+        await register({ 
+          username, 
+          email, 
+          password, 
+          name, 
+          cpf: cpf || undefined,
+          referralCode: referralCode || undefined
+        });
         navigate("/");
       }
     } catch (err: any) {
@@ -330,6 +369,58 @@ export default function AuthPage() {
                     <p className="text-xs text-muted-foreground">
                       {t("auth.cpfHelp")}
                     </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence mode="wait">
+                {!isLogin && (
+                  <motion.div
+                    key="referral"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-2"
+                  >
+                    <Label htmlFor="referralCode">
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-primary" />
+                        {language === "pt-BR" ? "Código de Indicação" : "Referral Code"}
+                        <span className="text-muted-foreground text-sm">({t("auth.optional")})</span>
+                      </div>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="referralCode"
+                        data-testid="input-referral-code"
+                        placeholder="OTSEM-XXXXXX"
+                        value={referralCode}
+                        onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                        maxLength={12}
+                        className="h-12 bg-background/50 font-mono tracking-wider uppercase"
+                      />
+                      {validatingReferral && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      {!validatingReferral && referralValid === true && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Check className="w-4 h-4 text-green-500" />
+                        </div>
+                      )}
+                    </div>
+                    {referralValid === true && (
+                      <p className="text-xs text-green-500">
+                        {language === "pt-BR" ? "Código válido!" : "Valid code!"}
+                      </p>
+                    )}
+                    {referralValid === false && referralCode.length >= 6 && (
+                      <p className="text-xs text-yellow-500">
+                        {language === "pt-BR" ? "Código não encontrado (você ainda pode se cadastrar)" : "Code not found (you can still sign up)"}
+                      </p>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

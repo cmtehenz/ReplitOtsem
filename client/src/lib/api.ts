@@ -60,6 +60,7 @@ export async function register(data: {
   password: string;
   name: string;
   cpf?: string;
+  referralCode?: string;
 }): Promise<User> {
   const response = await fetch(`${API_BASE}/auth/register`, {
     method: "POST",
@@ -458,6 +459,48 @@ export async function disable2FA(password: string): Promise<{ success: boolean; 
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to disable 2FA");
+  }
+  return response.json();
+}
+
+// ==================== REFERRAL ====================
+
+export interface ReferralStats {
+  totalReferrals: number;
+  activeReferrals: number;
+  pendingReferrals: number;
+}
+
+export async function getReferralCode(): Promise<{ code: string }> {
+  const response = await fetch(`${API_BASE}/referral/code`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get referral code");
+  }
+  return response.json();
+}
+
+export async function getReferralStats(): Promise<ReferralStats> {
+  const response = await fetch(`${API_BASE}/referral/stats`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get referral stats");
+  }
+  return response.json();
+}
+
+export async function validateReferralCode(code: string): Promise<{ valid: boolean }> {
+  const response = await fetch(`${API_BASE}/referral/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to validate referral code");
   }
   return response.json();
 }

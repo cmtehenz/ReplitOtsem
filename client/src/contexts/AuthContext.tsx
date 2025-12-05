@@ -13,7 +13,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<{ requiresTwoFactor: boolean }>;
   completeTwoFactorLogin: (code: string) => Promise<void>;
   cancelTwoFactorLogin: () => void;
-  register: (data: { username: string; email: string; password: string; name: string; cpf?: string }) => Promise<void>;
+  register: (data: { username: string; email: string; password: string; name: string; cpf?: string; referralCode?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (user: User) => void;
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTwoFactorChallenge(null);
   };
 
-  const register = async (data: { username: string; email: string; password: string; name: string; cpf?: string }) => {
+  const register = async (data: { username: string; email: string; password: string; name: string; cpf?: string; referralCode?: string }) => {
     const registeredUser = await apiRegister(data);
     setUser(registeredUser);
   };
