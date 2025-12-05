@@ -366,6 +366,28 @@ export async function getWebSocketToken(): Promise<{ token: string }> {
   return response.json();
 }
 
+// ==================== KYC ====================
+
+export interface KycStatus {
+  kycLevel: "none" | "basic" | "full";
+  kycVerifiedAt: string | null;
+  monthlyLimit: number;
+  monthlyUsed: number;
+  monthlyRemaining: number;
+  isUnlimited: boolean;
+}
+
+export async function getKycStatus(): Promise<KycStatus> {
+  const response = await fetch(`${API_BASE}/kyc/status`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get KYC status");
+  }
+  return response.json();
+}
+
 // ==================== SECURITY ====================
 
 export interface TwoFactorSetup {

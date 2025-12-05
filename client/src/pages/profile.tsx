@@ -1,16 +1,65 @@
-import { User as UserIcon, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe, Loader2 } from "lucide-react";
+import { User as UserIcon, Shield, CreditCard, LogOut, ChevronRight, HelpCircle, BadgeCheck, Users, Globe, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BottomNav } from "@/components/bottom-nav";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getKycStatus, type KycStatus } from "@/lib/api";
 
 export default function Profile() {
   const { language, setLanguage, t } = useLanguage();
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [kycStatus, setKycStatus] = useState<KycStatus | null>(null);
+  const [loadingKyc, setLoadingKyc] = useState(true);
+
+  useEffect(() => {
+    async function fetchKycStatus() {
+      try {
+        const status = await getKycStatus();
+        setKycStatus(status);
+      } catch (error) {
+        console.error("Failed to fetch KYC status:", error);
+      } finally {
+        setLoadingKyc(false);
+      }
+    }
+    fetchKycStatus();
+  }, []);
+
+  const getKycLevelLabel = () => {
+    if (!kycStatus) return "---";
+    switch (kycStatus.kycLevel) {
+      case "full": return "Full";
+      case "basic": return "Basic";
+      default: return "None";
+    }
+  };
+
+  const getKycLevelNumber = () => {
+    if (!kycStatus) return 0;
+    switch (kycStatus.kycLevel) {
+      case "full": return 3;
+      case "basic": return 2;
+      default: return 1;
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const getUsagePercentage = () => {
+    if (!kycStatus || kycStatus.isUnlimited || kycStatus.monthlyLimit <= 0) return 0;
+    return Math.min(100, (kycStatus.monthlyUsed / kycStatus.monthlyLimit) * 100);
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -73,19 +122,59 @@ export default function Profile() {
           <div className="flex justify-between items-start mb-3">
             <h3 className="font-bold text-primary font-display text-base">{t("profile.limits")}</h3>
             <span className="text-[10px] bg-background/50 px-2 py-1 rounded-md flex items-center gap-1 backdrop-blur-md border border-white/5">
-              Level 2 <ChevronRight className="w-3 h-3 text-muted-foreground" />
+              {loadingKyc ? "..." : `Level ${getKycLevelNumber()}`} <ChevronRight className="w-3 h-3 text-muted-foreground" />
             </span>
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-medium">
-              <span className="text-muted-foreground">{t("profile.pixDeposit")}</span>
-              <span>R$ 4.250 / R$ 50.000</span>
+          {loadingKyc ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
-            <div className="h-1.5 bg-background/50 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-gradient-to-r from-primary to-accent w-[8%] shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+          ) : kycStatus?.kycLevel === "none" ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-amber-500 text-xs">
+                <AlertCircle className="w-4 h-4" />
+                <span className="font-medium">{language === "pt-BR" ? "Verificação necessária" : "Verification required"}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {language === "pt-BR" 
+                  ? "Complete a verificação KYC para fazer saques e trocas" 
+                  : "Complete KYC verification to make withdrawals and exchanges"}
+              </p>
+              <p className="text-[10px] text-primary/80 mt-1 text-center font-medium group-hover:text-primary transition-colors">
+                {language === "pt-BR" ? "Iniciar verificação →" : "Start verification →"}
+              </p>
             </div>
-            <p className="text-[10px] text-primary/80 mt-1 text-center font-medium group-hover:text-primary transition-colors">{t("profile.upgradeButton")}</p>
-          </div>
+          ) : kycStatus?.isUnlimited ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-green-500 text-xs">
+                <BadgeCheck className="w-4 h-4" />
+                <span className="font-medium">{language === "pt-BR" ? "Limite ilimitado" : "Unlimited"}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {language === "pt-BR" 
+                  ? "Você tem verificação completa sem limites mensais" 
+                  : "You have full verification with no monthly limits"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-medium">
+                <span className="text-muted-foreground">{t("profile.monthlyLimit")}</span>
+                <span>{formatCurrency(kycStatus?.monthlyUsed || 0)} / {formatCurrency(kycStatus?.monthlyLimit || 0)}</span>
+              </div>
+              <div className="h-1.5 bg-background/50 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-accent shadow-[0_0_10px_rgba(139,92,246,0.5)]" 
+                  style={{ width: `${getUsagePercentage()}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>{language === "pt-BR" ? "Restante" : "Remaining"}: {formatCurrency(kycStatus?.monthlyRemaining || 0)}</span>
+                <span>{getUsagePercentage().toFixed(0)}%</span>
+              </div>
+              <p className="text-[10px] text-primary/80 mt-1 text-center font-medium group-hover:text-primary transition-colors">{t("profile.upgradeButton")}</p>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">

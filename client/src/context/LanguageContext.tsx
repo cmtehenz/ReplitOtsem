@@ -65,8 +65,9 @@ const translations: Record<Language, Record<string, string>> = {
     "profile.help": "Help & Support",
     "profile.signOut": "Sign Out",
     "profile.verified": "Verified Level 2",
-    "profile.limits": "Daily Limits",
+    "profile.limits": "Monthly Limits",
     "profile.pixDeposit": "Pix Deposit",
+    "profile.monthlyLimit": "Monthly Limit",
     "profile.upgradeButton": "Tap to upgrade limits",
     
     // Activity
@@ -190,8 +191,9 @@ const translations: Record<Language, Record<string, string>> = {
     "profile.help": "Ajuda & Suporte",
     "profile.signOut": "Sair",
     "profile.verified": "Nível 2 Verificado",
-    "profile.limits": "Limites Diários",
+    "profile.limits": "Limites Mensais",
     "profile.pixDeposit": "Depósito Pix",
+    "profile.monthlyLimit": "Limite Mensal",
     "profile.upgradeButton": "Toque para aumentar limites",
     
     // Activity
