@@ -35,11 +35,24 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string; border:
 };
 
 export default function Activity() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["transactions"],
     queryFn: () => getTransactions(50),
   });
+
+  const getStatusText = (status: string) => {
+    if (language === "pt-BR") {
+      switch (status) {
+        case "completed": return "concluído";
+        case "pending": return "pendente";
+        case "failed": return "falhou";
+        case "cancelled": return "cancelado";
+        default: return status;
+      }
+    }
+    return status;
+  };
 
   const groupTransactionsByDate = (txs: any[]) => {
     const today = new Date();
@@ -47,10 +60,10 @@ export default function Activity() {
     yesterday.setDate(yesterday.getDate() - 1);
 
     const groups: { label: string; transactions: any[] }[] = [
-      { label: t("activity.today") || "Today", transactions: [] },
-      { label: t("activity.yesterday") || "Yesterday", transactions: [] },
-      { label: t("activity.thisWeek") || "This Week", transactions: [] },
-      { label: t("activity.earlier") || "Earlier", transactions: [] },
+      { label: t("activity.today"), transactions: [] },
+      { label: t("activity.yesterday"), transactions: [] },
+      { label: t("activity.thisWeek"), transactions: [] },
+      { label: t("activity.earlier"), transactions: [] },
     ];
 
     txs.forEach((tx) => {
@@ -73,7 +86,7 @@ export default function Activity() {
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
       <div className="max-w-md mx-auto p-6 space-y-6">
         <h1 className="text-2xl font-display font-bold tracking-tight">
-          {t("activity.title") || "Activity"}
+          {t("activity.title")}
         </h1>
 
         <div className="flex gap-4">
@@ -81,7 +94,7 @@ export default function Activity() {
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder={t("activity.search") || "Search transactions..."} 
+              placeholder={t("activity.search")} 
               className="w-full bg-card/50 border border-white/10 rounded-2xl py-4 pl-14 pr-5 text-base focus:outline-none focus:border-primary/50 focus:bg-card/70 transition-all placeholder:text-muted-foreground/50 backdrop-blur-sm font-medium"
               data-testid="input-search-transactions"
             />
@@ -104,10 +117,10 @@ export default function Activity() {
               <RefreshCw className="w-8 h-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground font-medium">
-              {t("activity.empty") || "No transactions yet"}
+              {t("activity.empty")}
             </p>
             <p className="text-sm text-muted-foreground/60 mt-1">
-              {t("activity.emptyDesc") || "Your transactions will appear here"}
+              {t("activity.emptyDesc")}
             </p>
           </div>
         ) : (
@@ -118,9 +131,73 @@ export default function Activity() {
                   {group.label}
                 </h3>
                 <div className="space-y-3">
-                  {group.transactions.map((tx, index) => (
-                    <TransactionItem key={tx.id} tx={tx} index={index} />
-                  ))}
+                  {group.transactions.map((tx, index) => {
+                    const config = typeConfig[tx.type] || typeConfig.transfer;
+                    const Icon = config.icon;
+                    
+                    let displayAmount = "";
+                    if (tx.type === "deposit" && tx.toAmount) {
+                      displayAmount = `+${parseFloat(tx.toAmount).toFixed(2)} ${tx.toCurrency}`;
+                    } else if (tx.type === "withdrawal" && tx.fromAmount) {
+                      displayAmount = `-${parseFloat(tx.fromAmount).toFixed(2)} ${tx.fromCurrency}`;
+                    } else if (tx.type === "exchange") {
+                      if (tx.toAmount) {
+                        displayAmount = `+${parseFloat(tx.toAmount).toFixed(2)} ${tx.toCurrency}`;
+                      }
+                    }
+
+                    return (
+                      <motion.div
+                        key={tx.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-all duration-300 cursor-pointer group border border-transparent hover:border-white/5"
+                        data-testid={`transaction-item-${tx.id}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 border duration-300",
+                            config.bg, config.color, config.border
+                          )}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm group-hover:text-primary transition-colors">
+                              {tx.description}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-muted-foreground font-medium">
+                                {format(new Date(tx.createdAt), "HH:mm")}
+                              </span>
+                              <span className={cn(
+                                "text-[10px] px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider",
+                                tx.status === "completed" 
+                                  ? "border-green-500/20 text-green-500 bg-green-500/5" 
+                                  : tx.status === "pending"
+                                  ? "border-yellow-500/20 text-yellow-500 bg-yellow-500/5"
+                                  : "border-red-500/20 text-red-500 bg-red-500/5"
+                              )}>
+                                {getStatusText(tx.status)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={cn("font-bold text-sm tracking-wide", 
+                            displayAmount.startsWith("+") ? "text-green-400" : "text-white"
+                          )}>
+                            {displayAmount}
+                          </div>
+                          {tx.type === "exchange" && tx.fromAmount && (
+                            <div className="text-xs text-muted-foreground mt-0.5 font-medium">
+                              -{parseFloat(tx.fromAmount).toFixed(2)} {tx.fromCurrency}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -130,72 +207,5 @@ export default function Activity() {
 
       <BottomNav active="activity" />
     </div>
-  );
-}
-
-function TransactionItem({ tx, index }: { tx: any; index: number }) {
-  const config = typeConfig[tx.type] || typeConfig.transfer;
-  const Icon = config.icon;
-
-  let displayAmount = "";
-  if (tx.type === "deposit" && tx.toAmount) {
-    displayAmount = `+${parseFloat(tx.toAmount).toFixed(2)} ${tx.toCurrency}`;
-  } else if (tx.type === "withdrawal" && tx.fromAmount) {
-    displayAmount = `-${parseFloat(tx.fromAmount).toFixed(2)} ${tx.fromCurrency}`;
-  } else if (tx.type === "exchange") {
-    if (tx.toAmount) {
-      displayAmount = `+${parseFloat(tx.toAmount).toFixed(2)} ${tx.toCurrency}`;
-    }
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-all duration-300 cursor-pointer group border border-transparent hover:border-white/5"
-      data-testid={`transaction-item-${tx.id}`}
-    >
-      <div className="flex items-center gap-4">
-        <div className={cn(
-          "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 border duration-300",
-          config.bg, config.color, config.border
-        )}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div>
-          <h4 className="font-bold text-sm group-hover:text-primary transition-colors">
-            {tx.description}
-          </h4>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-muted-foreground font-medium">
-              {format(new Date(tx.createdAt), "HH:mm")}
-            </span>
-            <span className={cn(
-              "text-[10px] px-2 py-0.5 rounded-md border font-bold uppercase tracking-wider",
-              tx.status === "completed" 
-                ? "border-green-500/20 text-green-500 bg-green-500/5" 
-                : tx.status === "pending"
-                ? "border-yellow-500/20 text-yellow-500 bg-yellow-500/5"
-                : "border-red-500/20 text-red-500 bg-red-500/5"
-            )}>
-              {tx.status}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="text-right">
-        <div className={cn("font-bold text-sm tracking-wide", 
-          displayAmount.startsWith("+") ? "text-green-400" : "text-white"
-        )}>
-          {displayAmount}
-        </div>
-        {tx.type === "exchange" && tx.fromAmount && (
-          <div className="text-xs text-muted-foreground mt-0.5 font-medium">
-            -{parseFloat(tx.fromAmount).toFixed(2)} {tx.fromCurrency}
-          </div>
-        )}
-      </div>
-    </motion.div>
   );
 }

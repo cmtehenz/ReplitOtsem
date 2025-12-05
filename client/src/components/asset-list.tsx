@@ -1,42 +1,69 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { getWallets } from "@/lib/api";
-
-const assetConfig: Record<string, { name: string; icon: string; color: string; price: string }> = {
-  USDT: {
-    name: "Tether",
-    icon: "T",
-    color: "text-[#26A17B] bg-[#26A17B]/10",
-    price: "R$ 5,15",
-  },
-  BRL: {
-    name: "Brazilian Real",
-    icon: "R$",
-    color: "text-green-500 bg-green-500/10",
-    price: "1.00",
-  },
-  BTC: {
-    name: "Bitcoin",
-    icon: "₿",
-    color: "text-orange-500 bg-orange-500/10",
-    price: "R$ 345k",
-  },
-};
+import { getWallets, getRates } from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 
 export function AssetList() {
+  const { t } = useLanguage();
+  
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["wallets"],
     queryFn: () => getWallets(),
   });
 
+  const { data: rates } = useQuery({
+    queryKey: ["rates"],
+    queryFn: getRates,
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+
+  const usdtRate = rates?.usdtBrl?.buy || 5.15;
+  const btcRate = usdtRate * 65000;
+
+  const getAssetConfig = (currency: string) => {
+    switch (currency) {
+      case "USDT":
+        return {
+          name: t("assets.tether"),
+          icon: "T",
+          color: "text-[#26A17B] bg-[#26A17B]/10",
+          price: `R$ ${usdtRate.toFixed(2)}`,
+        };
+      case "BRL":
+        return {
+          name: t("assets.brazilianReal"),
+          icon: "R$",
+          color: "text-green-500 bg-green-500/10",
+          price: "R$ 1,00",
+        };
+      case "BTC":
+        return {
+          name: t("assets.bitcoin"),
+          icon: "₿",
+          color: "text-orange-500 bg-orange-500/10",
+          price: `R$ ${(btcRate / 1000).toFixed(0)}k`,
+        };
+      default:
+        return {
+          name: currency,
+          icon: "?",
+          color: "text-gray-500 bg-gray-500/10",
+          price: "-",
+        };
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1 mb-2">
-          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Assets</h3>
+          <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+            {t("assets.title")}
+          </h3>
         </div>
-        <div className="text-sm text-muted-foreground">Loading...</div>
+        <div className="text-sm text-muted-foreground">{t("common.loading")}</div>
       </div>
     );
   }
@@ -44,12 +71,14 @@ export function AssetList() {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1 mb-2">
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Assets</h3>
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+          {t("assets.title")}
+        </h3>
       </div>
       
       <div className="space-y-1">
         {wallets?.map((wallet, index) => {
-          const config = assetConfig[wallet.currency];
+          const config = getAssetConfig(wallet.currency);
           const balance = parseFloat(wallet.balance);
           const formattedBalance = wallet.currency === "BRL" 
             ? `R$ ${balance.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -62,6 +91,7 @@ export function AssetList() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+              data-testid={`asset-${wallet.currency}`}
             >
               <div className="flex items-center gap-3">
                 <div className={cn(

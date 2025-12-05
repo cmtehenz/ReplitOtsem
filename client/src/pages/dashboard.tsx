@@ -29,7 +29,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                {t("nav.home") === "Início" ? "Bem-vindo" : "Welcome back"}
+                {t("dashboard.welcome")}
               </p>
               <p className="text-sm font-bold font-display tracking-wide group-hover:text-primary transition-colors" data-testid="text-username">
                 {user?.name || user?.username || "User"}

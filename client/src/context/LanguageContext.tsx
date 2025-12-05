@@ -206,6 +206,40 @@ const translations: Record<Language, Record<string, string>> = {
     "common.next": "Next",
     "common.done": "Done",
     "common.close": "Close",
+    "common.viewAll": "View all",
+    
+    // Dashboard
+    "dashboard.welcome": "Welcome back",
+    
+    // Activity
+    "activity.today": "Today",
+    "activity.yesterday": "Yesterday",
+    "activity.thisWeek": "This Week",
+    "activity.earlier": "Earlier",
+    "activity.empty": "No transactions yet",
+    "activity.emptyDesc": "Your transactions will appear here",
+    "activity.recentActivity": "Recent Activity",
+    
+    // Assets
+    "assets.title": "Assets",
+    "assets.tether": "Tether",
+    "assets.brazilianReal": "Brazilian Real",
+    "assets.bitcoin": "Bitcoin",
+    
+    // Transaction Details
+    "transaction.receipt": "Receipt",
+    "transaction.transferSuccessful": "Transfer Successful",
+    "transaction.type": "Transaction Type",
+    "transaction.recipient": "Recipient",
+    "transaction.pixKey": "Pix Key",
+    "transaction.transactionId": "Transaction ID",
+    "transaction.savePdf": "Save PDF",
+    "transaction.newTransfer": "New Transfer",
+    "transaction.pixSent": "Pix Sent",
+    "transaction.pixReceived": "Pix Received",
+    "transaction.exchangeComplete": "Exchange Complete",
+    "transaction.depositComplete": "Deposit Complete",
+    "transaction.withdrawalComplete": "Withdrawal Complete",
   },
   "pt-BR": {
     // Navigation
@@ -402,6 +436,40 @@ const translations: Record<Language, Record<string, string>> = {
     "common.next": "Próximo",
     "common.done": "Concluir",
     "common.close": "Fechar",
+    "common.viewAll": "Ver tudo",
+    
+    // Dashboard
+    "dashboard.welcome": "Bem-vindo",
+    
+    // Activity
+    "activity.today": "Hoje",
+    "activity.yesterday": "Ontem",
+    "activity.thisWeek": "Esta Semana",
+    "activity.earlier": "Anteriores",
+    "activity.empty": "Nenhuma transação ainda",
+    "activity.emptyDesc": "Suas transações aparecerão aqui",
+    "activity.recentActivity": "Atividade Recente",
+    
+    // Assets
+    "assets.title": "Ativos",
+    "assets.tether": "Tether",
+    "assets.brazilianReal": "Real Brasileiro",
+    "assets.bitcoin": "Bitcoin",
+    
+    // Transaction Details
+    "transaction.receipt": "Comprovante",
+    "transaction.transferSuccessful": "Transferência Realizada",
+    "transaction.type": "Tipo de Transação",
+    "transaction.recipient": "Destinatário",
+    "transaction.pixKey": "Chave Pix",
+    "transaction.transactionId": "ID da Transação",
+    "transaction.savePdf": "Salvar PDF",
+    "transaction.newTransfer": "Nova Transferência",
+    "transaction.pixSent": "Pix Enviado",
+    "transaction.pixReceived": "Pix Recebido",
+    "transaction.exchangeComplete": "Câmbio Realizado",
+    "transaction.depositComplete": "Depósito Concluído",
+    "transaction.withdrawalComplete": "Saque Concluído",
   },
 };
 
