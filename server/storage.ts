@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
+  referralCodes, referrals,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -8,7 +9,9 @@ import {
   type PixDeposit, type InsertPixDeposit,
   type PixWithdrawal, type InsertPixWithdrawal,
   type WebhookLog, type InsertWebhookLog,
-  type Notification, type InsertNotification
+  type Notification, type InsertNotification,
+  type ReferralCode, type InsertReferralCode,
+  type Referral, type InsertReferral
 } from "@shared/schema";
 import { eq, and, desc, or, gte, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -581,6 +584,105 @@ export class DatabaseStorage implements IStorage {
       limit: BASIC_LIMIT,
       kycLevel
     };
+  }
+
+  // Referral System
+  private generateReferralCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude confusing chars like 0/O, 1/I
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `OTSEM-${code}`;
+  }
+
+  async createReferralCode(userId: string): Promise<ReferralCode> {
+    // Check if user already has an active code
+    const existingCode = await this.getUserReferralCode(userId);
+    if (existingCode) {
+      return existingCode;
+    }
+
+    // Generate unique code with retry logic
+    let code = this.generateReferralCode();
+    let attempts = 0;
+    while (attempts < 10) {
+      try {
+        const result = await db.insert(referralCodes).values({
+          userId,
+          code,
+          isActive: true
+        }).returning();
+        return result[0];
+      } catch (error: any) {
+        if (error.code === '23505') { // Unique violation
+          code = this.generateReferralCode();
+          attempts++;
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error("Failed to generate unique referral code");
+  }
+
+  async getUserReferralCode(userId: string): Promise<ReferralCode | undefined> {
+    const result = await db.select().from(referralCodes)
+      .where(and(
+        eq(referralCodes.userId, userId),
+        eq(referralCodes.isActive, true)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async getReferralCodeByCode(code: string): Promise<ReferralCode | undefined> {
+    const result = await db.select().from(referralCodes)
+      .where(and(
+        eq(referralCodes.code, code.toUpperCase()),
+        eq(referralCodes.isActive, true)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async createReferral(referrerId: string, referredUserId: string, referralCodeId: string): Promise<Referral> {
+    const result = await db.insert(referrals).values({
+      referrerId,
+      referredUserId,
+      referralCodeId,
+      status: "pending"
+    }).returning();
+    return result[0];
+  }
+
+  async getReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    activeReferrals: number;
+    pendingReferrals: number;
+  }> {
+    const allReferrals = await db.select().from(referrals)
+      .where(eq(referrals.referrerId, userId));
+    
+    return {
+      totalReferrals: allReferrals.length,
+      activeReferrals: allReferrals.filter(r => r.status === "active" || r.status === "rewarded").length,
+      pendingReferrals: allReferrals.filter(r => r.status === "pending").length
+    };
+  }
+
+  async getUserReferrals(userId: string): Promise<Referral[]> {
+    return await db.select().from(referrals)
+      .where(eq(referrals.referrerId, userId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async updateReferralStatus(id: string, status: string): Promise<Referral> {
+    const result = await db.update(referrals)
+      .set({ status })
+      .where(eq(referrals.id, id))
+      .returning();
+    return result[0];
   }
 }
 
