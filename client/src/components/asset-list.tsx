@@ -1,118 +1,71 @@
-import { useQuery } from "@tanstack/react-query";
-import { getWallets, getRates } from "@/lib/api";
-import { useLanguage } from "@/context/LanguageContext";
-import { useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
-const assetConfig: Record<string, { name: string; icon: string; color: string; bgColor: string }> = {
-  USDT: {
+const assets = [
+  {
+    id: "usdt",
     name: "Tether",
+    symbol: "USDT",
+    balance: "1,420.00",
+    price: "R$ 5,15",
     icon: "T",
-    color: "text-[#26A17B]",
-    bgColor: "bg-[#26A17B]/10",
+    color: "text-[#26A17B] bg-[#26A17B]/10",
   },
-  BRL: {
+  {
+    id: "brl",
     name: "Brazilian Real",
+    symbol: "BRL",
+    balance: "R$ 4.250,00",
+    price: "1.00",
     icon: "R$",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    color: "text-green-500 bg-green-500/10",
   },
-  BTC: {
+  {
+    id: "btc",
     name: "Bitcoin",
+    symbol: "BTC",
+    balance: "0.0045",
+    price: "R$ 345k",
     icon: "₿",
-    color: "text-orange-500",
-    bgColor: "bg-orange-50",
+    color: "text-orange-500 bg-orange-500/10",
   },
-};
+];
 
 export function AssetList() {
-  const { t } = useLanguage();
-  const isPortuguese = t("nav.home") === "Início";
-  const [, setLocation] = useLocation();
-  
-  const { data: wallets, isLoading } = useQuery({
-    queryKey: ["wallets"],
-    queryFn: () => getWallets(),
-  });
-
-  const { data: rates } = useQuery({
-    queryKey: ["rates"],
-    queryFn: () => getRates(),
-    refetchInterval: 60000,
-  });
-
-  const getPrice = (currency: string) => {
-    if (currency === "BRL") return "R$ 1,00";
-    if (currency === "USDT" && rates?.usdtBrl?.sell) {
-      return `R$ ${rates.usdtBrl.sell.toFixed(2).replace(".", ",")}`;
-    }
-    return "—";
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-          {isPortuguese ? "Ativos" : "Assets"}
-        </h3>
-        <div className="bg-white rounded-2xl card-shadow divide-y divide-gray-50">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gray-100 animate-pulse" />
-                <div className="space-y-2">
-                  <div className="h-4 w-20 bg-gray-100 rounded animate-pulse" />
-                  <div className="h-3 w-14 bg-gray-50 rounded animate-pulse" />
-                </div>
-              </div>
-              <div className="space-y-2 text-right">
-                <div className="h-4 w-16 bg-gray-100 rounded animate-pulse ml-auto" />
-                <div className="h-3 w-10 bg-gray-50 rounded animate-pulse ml-auto" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-        {isPortuguese ? "Ativos" : "Assets"}
-      </h3>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1 mb-2">
+        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Assets</h3>
+      </div>
       
-      <div className="bg-white rounded-2xl card-shadow divide-y divide-gray-50">
-        {wallets?.map((wallet) => {
-          const config = assetConfig[wallet.currency];
-          const balance = parseFloat(wallet.balance);
-          const formattedBalance = wallet.currency === "BRL" 
-            ? `R$ ${balance.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: wallet.currency === "BTC" ? 8 : 2 });
-
-          return (
-            <div
-              key={wallet.id}
-              className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-              onClick={() => setLocation("/wallet")}
-              data-testid={`asset-${wallet.currency}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${config.bgColor} ${config.color}`}>
-                  {config.icon}
-                </div>
-                <div>
-                  <div className="font-semibold text-gray-900">{config.name}</div>
-                  <div className="text-sm text-gray-500">{getPrice(wallet.currency)}</div>
-                </div>
+      <div className="space-y-1">
+        {assets.map((asset, index) => (
+          <motion.div
+            key={asset.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
+                asset.color
+              )}>
+                {asset.icon}
               </div>
-
-              <div className="text-right">
-                <div className="font-semibold text-gray-900">{formattedBalance}</div>
-                <div className="text-sm text-gray-500">{wallet.currency}</div>
+              <div>
+                <div className="font-bold text-sm text-white">{asset.name}</div>
+                <div className="text-xs text-muted-foreground font-medium">{asset.price}</div>
               </div>
             </div>
-          );
-        })}
+
+            <div className="text-right">
+              <div className="font-bold text-sm text-white">{asset.balance}</div>
+              <div className="text-xs text-muted-foreground">{asset.symbol}</div>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </div>
   );

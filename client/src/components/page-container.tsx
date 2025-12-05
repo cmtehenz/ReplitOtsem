@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface PageContainerProps {
@@ -7,8 +8,14 @@ interface PageContainerProps {
 
 export function PageContainer({ children, className }: PageContainerProps) {
   return (
-    <div className={cn("min-h-screen bg-background pb-24", className)}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className={cn("min-h-screen bg-otsem-gradient text-foreground pb-32", className)}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }

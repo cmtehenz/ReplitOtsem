@@ -3,76 +3,81 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
-}
-
 @theme inline {
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-  --color-background: hsl(0 0% 98%);
-  --color-foreground: hsl(220 20% 10%);
+  --color-background: hsl(260 30% 6%);
+  --color-foreground: hsl(0 0% 100%);
 
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(220 20% 10%);
+  --color-card: hsl(260 25% 10%);
+  --color-card-foreground: hsl(0 0% 100%);
 
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(220 20% 10%);
+  --color-popover: hsl(260 25% 10%);
+  --color-popover-foreground: hsl(0 0% 100%);
 
-  --color-primary: hsl(220 90% 56%);
+  /* Purple from Logo - Primary Action Color */
+  --color-primary: hsl(265 90% 65%);
   --color-primary-foreground: hsl(0 0% 100%);
 
-  --color-secondary: hsl(220 14% 96%);
-  --color-secondary-foreground: hsl(220 20% 20%);
+  --color-secondary: hsl(260 20% 18%);
+  --color-secondary-foreground: hsl(0 0% 100%);
 
-  --color-muted: hsl(220 14% 96%);
-  --color-muted-foreground: hsl(220 10% 46%);
+  --color-muted: hsl(260 20% 18%);
+  --color-muted-foreground: hsl(260 10% 70%);
 
-  --color-accent: hsl(160 84% 39%);
-  --color-accent-foreground: hsl(0 0% 100%);
+  /* Yellow/Gold from Logo - Accent/Highlight */
+  --color-accent: hsl(45 95% 55%);
+  --color-accent-foreground: hsl(260 40% 5%);
 
-  --color-destructive: hsl(0 72% 51%);
+  --color-destructive: hsl(0 80% 60%);
   --color-destructive-foreground: hsl(0 0% 100%);
 
-  --color-border: hsl(220 13% 91%);
-  --color-input: hsl(220 13% 91%);
-  --color-ring: hsl(220 90% 56%);
+  --color-border: hsl(260 20% 18%);
+  --color-input: hsl(260 20% 18%);
+  --color-ring: hsl(265 90% 65%);
 
-  --radius: 0.75rem;
+  --radius: 0.875rem; /* 14px as requested */
 }
 
+/* Global Reset & Base Styles */
 @layer base {
   * {
     @apply border-border;
   }
-  
-  html {
-    -webkit-tap-highlight-color: transparent;
-  }
-  
   body {
-    @apply font-sans antialiased bg-background text-foreground;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply font-sans antialiased bg-background text-foreground selection:bg-primary selection:text-primary-foreground;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
   }
 }
 
+/* Custom Utilities */
 @layer utilities {
-  .pb-safe {
-    padding-bottom: max(1rem, var(--safe-area-inset-bottom));
+  .glass {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10 shadow-lg;
+  }
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent to-primary;
+  }
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
   
-  .card-shadow {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
+  /* Otsem Pay Specific Gradients */
+  .bg-otsem-gradient {
+    @apply bg-gradient-to-br from-background via-[#1a0b2e] to-[#120820];
   }
   
-  .card-shadow-lg {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  .bg-card-gradient {
+    @apply bg-gradient-to-br from-card/80 via-card/60 to-[#2a1b3d]/40;
   }
-  
-  .balance-text {
-    font-feature-settings: "tnum";
-    letter-spacing: -0.02em;
+
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98];
   }
 }

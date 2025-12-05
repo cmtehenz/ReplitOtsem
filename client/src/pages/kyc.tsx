@@ -1,371 +1,251 @@
-import { useState, useEffect } from "react";
-import { ArrowLeft, ShieldCheck, Upload, Camera, FileCheck, Clock, CheckCircle2, AlertCircle, ChevronRight, Loader2 } from "lucide-react";
-import { useLocation } from "wouter";
-import { useLanguage } from "@/context/LanguageContext";
+import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { ArrowLeft, Camera, Upload, CheckCircle2, Loader2, ShieldCheck, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getKyc, updateKyc, submitKyc, type KycSubmission } from "@/lib/api";
 
-interface VerificationStep {
-  id: string;
-  title: string;
-  titlePt: string;
-  description: string;
-  descriptionPt: string;
-  icon: any;
-  docKey: "id_front" | "id_back" | "selfie";
-}
+type Step = "intro" | "document" | "selfie" | "review" | "success";
 
 export default function KYCVerification() {
+  const [step, setStep] = useState<Step>("intro");
   const [, setLocation] = useLocation();
-  const { t } = useLanguage();
-  const queryClient = useQueryClient();
-  const isPortuguese = t("nav.home") === "Início";
-  
-  const [currentStep, setCurrentStep] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const { data: kyc, isLoading } = useQuery({
-    queryKey: ["kyc"],
-    queryFn: getKyc,
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: (step: "id_front" | "id_back" | "selfie") => updateKyc(step),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["kyc"], data);
-      toast.success(isPortuguese ? "Documento enviado!" : "Document uploaded!");
-    },
-    onError: () => {
-      toast.error(isPortuguese ? "Erro ao enviar" : "Upload failed");
-    },
-  });
-
-  const submitMutation = useMutation({
-    mutationFn: submitKyc,
-    onSuccess: (data) => {
-      queryClient.setQueryData(["kyc"], data);
-      toast.success(isPortuguese 
-        ? "Verificação enviada! Você será notificado em até 24h." 
-        : "Verification submitted! You'll be notified within 24h."
-      );
-      setLocation("/profile");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-
-  useEffect(() => {
-    if (kyc) {
-      if (kyc.idFrontUploaded && kyc.idBackUploaded && kyc.selfieUploaded) {
-        setCurrentStep(3);
-      } else if (kyc.idBackUploaded) {
-        setCurrentStep(2);
-      } else if (kyc.idFrontUploaded) {
-        setCurrentStep(1);
-      }
-    }
-  }, [kyc]);
-
-  const steps: VerificationStep[] = [
-    {
-      id: "id_front",
-      title: "ID Document (Front)",
-      titlePt: "Documento (Frente)",
-      description: "Upload the front of your ID or passport",
-      descriptionPt: "Envie a frente do seu RG ou CNH",
-      icon: Upload,
-      docKey: "id_front",
-    },
-    {
-      id: "id_back",
-      title: "ID Document (Back)",
-      titlePt: "Documento (Verso)",
-      description: "Upload the back of your ID",
-      descriptionPt: "Envie o verso do seu documento",
-      icon: Upload,
-      docKey: "id_back",
-    },
-    {
-      id: "selfie",
-      title: "Selfie Verification",
-      titlePt: "Verificação por Selfie",
-      description: "Take a selfie holding your ID",
-      descriptionPt: "Tire uma selfie segurando seu documento",
-      icon: Camera,
-      docKey: "selfie",
-    },
-  ];
-
-  const getStepStatus = (index: number): "pending" | "completed" | "current" => {
-    if (!kyc) return index === 0 ? "current" : "pending";
-    
-    const uploaded = [kyc.idFrontUploaded, kyc.idBackUploaded, kyc.selfieUploaded];
-    if (uploaded[index]) return "completed";
-    if (index === currentStep) return "current";
-    return "pending";
-  };
-
-  const handleUpload = (docType: "id_front" | "id_back" | "selfie") => {
-    uploadMutation.mutate(docType);
-    if (docType === "id_front") setCurrentStep(1);
-    else if (docType === "id_back") setCurrentStep(2);
-    else if (docType === "selfie") setCurrentStep(3);
-  };
-
-  const handleSubmit = () => {
-    if (!kyc?.idFrontUploaded || !kyc?.idBackUploaded || !kyc?.selfieUploaded) {
-      toast.error(isPortuguese ? "Complete todos os passos" : "Complete all steps");
-      return;
-    }
-    submitMutation.mutate();
-  };
-
-  const getStatusBadge = () => {
-    if (!kyc) return null;
-    
-    switch (kyc.status) {
-      case "approved":
-        return (
-          <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full text-xs font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            {isPortuguese ? "Verificado" : "Verified"}
-          </div>
-        );
-      case "in_review":
-        return (
-          <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full text-xs font-medium">
-            <Clock className="w-3.5 h-3.5" />
-            {isPortuguese ? "Em Análise" : "In Review"}
-          </div>
-        );
-      case "rejected":
-        return (
-          <div className="flex items-center gap-1.5 bg-red-50 text-red-600 px-2.5 py-1 rounded-full text-xs font-medium">
-            <AlertCircle className="w-3.5 h-3.5" />
-            {isPortuguese ? "Rejeitado" : "Rejected"}
-          </div>
-        );
-      default:
-        return null;
+  const handleNext = () => {
+    if (step === "document") {
+      setIsUploading(true);
+      setTimeout(() => {
+        setIsUploading(false);
+        setStep("selfie");
+      }, 1500);
+    } else if (step === "selfie") {
+      setIsUploading(true);
+      setTimeout(() => {
+        setIsUploading(false);
+        setStep("review");
+      }, 1500);
+    } else if (step === "review") {
+      setIsUploading(true);
+      setTimeout(() => {
+        setIsUploading(false);
+        setStep("success");
+      }, 2000);
+    } else {
+      setStep("document");
     }
   };
-
-  const allUploaded = kyc?.idFrontUploaded && kyc?.idBackUploaded && kyc?.selfieUploaded;
-  const isInReview = kyc?.status === "in_review";
-  const isApproved = kyc?.status === "approved";
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-background pb-8">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <button 
-            onClick={() => setLocation("/profile")}
-            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-            data-testid="button-back"
-          >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
-          </button>
-          <h1 className="text-lg font-semibold text-gray-900">
-            {isPortuguese ? "Verificação KYC" : "KYC Verification"}
-          </h1>
-          <div className="w-10 flex justify-end">{getStatusBadge()}</div>
+    <PageContainer>
+      <div className="p-6 flex flex-col h-full min-h-[80vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+           {step !== "success" && (
+            <button 
+              onClick={() => step === "intro" ? setLocation("/profile") : setStep("intro")}
+              className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+           )}
+           {step === "success" && <div className="w-10" />}
+           
+          <h1 className="font-display font-bold text-lg tracking-wide">Verification</h1>
+          <div className="w-10" />
         </div>
 
-        <div className="bg-white rounded-2xl p-5 card-shadow">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">
-                {isPortuguese ? "Verificação de Identidade" : "Identity Verification"}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {isApproved 
-                  ? (isPortuguese ? "Sua conta está verificada!" : "Your account is verified!")
-                  : isInReview
-                    ? (isPortuguese ? "Seus documentos estão em análise" : "Your documents are under review")
-                    : (isPortuguese ? "Verifique para aumentar limites" : "Verify to increase limits")
-                }
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 mt-5">
-            <div className="text-center p-3 rounded-xl bg-gray-50">
-              <p className="text-lg font-bold text-primary">R$ 50k</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                {isPortuguese ? "Limite Mensal" : "Monthly Limit"}
-              </p>
-            </div>
-            <div className="text-center p-3 rounded-xl bg-gray-50">
-              <p className="text-lg font-bold text-emerald-600">R$ 10k</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                {isPortuguese ? "Por Transação" : "Per Transaction"}
-              </p>
-            </div>
-            <div className="text-center p-3 rounded-xl bg-gray-50">
-              <p className="text-lg font-bold text-accent">24h</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                {isPortuguese ? "Aprovação" : "Approval"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {kyc?.status === "rejected" && kyc.rejectionReason && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
-              <div>
-                <p className="font-medium text-sm text-red-600">
-                  {isPortuguese ? "Motivo da Rejeição" : "Rejection Reason"}
-                </p>
-                <p className="text-sm text-red-600/80 mt-1">
-                  {kyc.rejectionReason}
+        {/* Content Area */}
+        <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto w-full py-4">
+          {step === "intro" && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center space-y-8"
+            >
+              <div className="relative mx-auto w-fit">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                <div className="w-28 h-28 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative z-10 shadow-2xl">
+                  <div className="w-24 h-24 bg-background rounded-full flex items-center justify-center">
+                    <ShieldCheck className="w-12 h-12 text-primary" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <h2 className="text-3xl font-display font-bold tracking-tight">Verify Identity</h2>
+                <p className="text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                  Increase your limits and unlock full features by verifying your identity. It only takes 2 minutes.
                 </p>
               </div>
-            </div>
-          </div>
-        )}
 
-        {!isApproved && !isInReview && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-1">
-              {isPortuguese ? "Passos de Verificação" : "Verification Steps"}
-            </h3>
-
-            <div className="space-y-3">
-              {steps.map((step, index) => {
-                const status = getStepStatus(index);
-                return (
-                  <div
-                    key={step.id}
-                    className={cn(
-                      "bg-white rounded-2xl p-4 card-shadow transition-all",
-                      status === "current" && "ring-1 ring-primary/30"
-                    )}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={cn(
-                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                        status === "completed" 
-                          ? "bg-emerald-50 text-emerald-600"
-                          : status === "current"
-                            ? "bg-primary/10 text-primary"
-                            : "bg-gray-100 text-gray-400"
-                      )}>
-                        {status === "completed" ? (
-                          <FileCheck className="w-5 h-5" />
-                        ) : (
-                          <step.icon className="w-5 h-5" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className={cn(
-                          "font-medium text-sm",
-                          status === "completed" ? "text-emerald-600" : "text-gray-900"
-                        )}>
-                          {isPortuguese ? step.titlePt : step.title}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {isPortuguese ? step.descriptionPt : step.description}
-                        </p>
-                      </div>
-                      {status === "current" && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpload(step.docKey)}
-                          disabled={uploadMutation.isPending}
-                          className="bg-primary hover:bg-primary/90 text-white text-xs h-8"
-                          data-testid={`button-upload-step-${index}`}
-                        >
-                          {uploadMutation.isPending ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <>
-                              <Upload className="w-3.5 h-3.5 mr-1" />
-                              {isPortuguese ? "Enviar" : "Upload"}
-                            </>
-                          )}
-                        </Button>
-                      )}
-                      {status === "completed" && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                      )}
-                    </div>
+              <div className="glass-card rounded-3xl p-6 text-left space-y-4 border border-white/10">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 text-green-500 mt-1">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                  <div>
+                    <p className="font-bold text-base">Government ID</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Passport, Driver's License, or National ID</p>
+                  </div>
+                </div>
+                <div className="w-full h-px bg-white/5" />
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0 text-green-500 mt-1">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-base">Selfie Photo</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">To match your face with your ID</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
-        {!isApproved && !isInReview && (
-          <div className="pt-4">
-            <Button
-              onClick={handleSubmit}
-              disabled={!allUploaded || submitMutation.isPending}
-              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium"
-              data-testid="button-submit-kyc"
+          {step === "document" && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="w-full space-y-8"
             >
-              {submitMutation.isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  {isPortuguese ? "Enviar para Verificação" : "Submit for Verification"}
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </>
-              )}
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold font-display">Scan Document</h2>
+                <p className="text-sm text-muted-foreground">
+                  Take a clear photo of the front of your ID.
+                </p>
+              </div>
+              
+              <div className="aspect-[1.6/1] w-full bg-black/30 border-2 border-dashed border-white/20 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-primary/50 hover:bg-white/5 transition-all group relative overflow-hidden">
+                {isUploading ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform border border-white/10">
+                      <Camera className="w-8 h-8 text-primary" />
+                    </div>
+                    <p className="text-sm font-bold group-hover:text-primary transition-colors">Tap to take photo</p>
+                  </>
+                )}
+              </div>
+              
+              <div className="text-center">
+                <button className="text-sm text-primary flex items-center justify-center gap-2 mx-auto hover:underline font-medium">
+                  <Upload className="w-4 h-4" /> Upload file instead
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === "selfie" && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="w-full space-y-8"
+            >
+              <div className="text-center space-y-2">
+                <h2 className="text-2xl font-bold font-display">Take a Selfie</h2>
+                <p className="text-sm text-muted-foreground">
+                  Position your face in the oval frame.
+                </p>
+              </div>
+              
+              <div className="aspect-[3/4] w-3/4 mx-auto bg-black/30 border-2 border-white/20 rounded-[3rem] flex flex-col items-center justify-center gap-4 relative overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 border-[30px] border-black/40 rounded-[3rem] pointer-events-none z-10" />
+                
+                {isUploading ? (
+                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-b from-transparent to-black/60 flex items-end justify-center pb-8">
+                    <button 
+                      onClick={handleNext}
+                      className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 backdrop-blur-md hover:bg-white/40 transition-all hover:scale-105 active:scale-95"
+                    >
+                      <div className="w-16 h-16 bg-white rounded-full" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {step === "review" && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center space-y-8"
+            >
+              <div className="relative mx-auto w-fit">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+                <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center relative z-10 border border-white/10">
+                  <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold font-display">Verifying...</h2>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto leading-relaxed">
+                  We are securely analyzing your documents. This usually takes less than a minute.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {step === "success" && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center space-y-8 w-full"
+            >
+              <div className="relative mx-auto w-fit">
+                <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full" />
+                <div className="w-28 h-28 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center relative z-10 shadow-2xl">
+                  <CheckCircle2 className="w-14 h-14 text-white" />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h2 className="text-3xl font-display font-bold tracking-tight">Verified!</h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  Your identity has been successfully verified.
+                </p>
+              </div>
+
+              <div className="glass-card rounded-3xl p-6 border border-green-500/20 bg-green-500/5">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-muted-foreground">New Daily Limit</span>
+                  <span className="text-xs bg-green-500/20 text-green-500 px-3 py-1 rounded-full font-bold border border-green-500/20">UPGRADED</span>
+                </div>
+                <div className="flex justify-between items-end">
+                   <span className="text-muted-foreground/50 line-through text-sm font-mono mb-1">R$ 5.000</span>
+                   <span className="text-3xl font-bold font-display text-white">R$ 50.000</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Footer Button */}
+        {step !== "review" && (
+          <div className="mt-auto w-full max-w-md mx-auto pt-8">
+            <Button 
+              onClick={step === "success" ? () => setLocation("/profile") : handleNext}
+              className="w-full h-16 text-lg rounded-2xl font-bold shadow-lg shadow-primary/25 bg-gradient-to-r from-primary to-[#7c3aed] text-white hover:shadow-xl hover:shadow-primary/40 hover:scale-[1.02] transition-all active:scale-95"
+              disabled={isUploading}
+            >
+              {step === "intro" && "Start Verification"}
+              {step === "document" && "Take Photo"}
+              {step === "selfie" && "I'm Ready"}
+              {step === "success" && "Back to Profile"}
             </Button>
-            
-            <p className="text-xs text-center text-gray-500 mt-4">
-              {isPortuguese 
-                ? "Seus dados são criptografados e protegidos" 
-                : "Your data is encrypted and protected"}
-            </p>
-          </div>
-        )}
-
-        {isInReview && (
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 text-center">
-            <Clock className="w-10 h-10 text-amber-500 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg text-gray-900 mb-2">
-              {isPortuguese ? "Análise em Andamento" : "Review in Progress"}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {isPortuguese 
-                ? "Seus documentos estão sendo analisados. Você será notificado quando o processo for concluído."
-                : "Your documents are being reviewed. You'll be notified when the process is complete."}
-            </p>
-          </div>
-        )}
-
-        {isApproved && (
-          <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6 text-center">
-            <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-4" />
-            <h3 className="font-semibold text-lg text-emerald-600 mb-2">
-              {isPortuguese ? "Verificação Aprovada!" : "Verification Approved!"}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {isPortuguese 
-                ? "Sua conta está totalmente verificada. Aproveite todos os recursos!"
-                : "Your account is fully verified. Enjoy all features!"}
-            </p>
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

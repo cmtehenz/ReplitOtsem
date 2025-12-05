@@ -2,14 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { notificationWS } from "./websocket";
-import { getInterClient } from "./inter-api";
 
 const app = express();
-
-// Trust proxy for proper rate limiting behind reverse proxy
-app.set("trust proxy", 1);
-
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -76,10 +70,6 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // Initialize WebSocket server for real-time notifications BEFORE Vite
-  // to avoid conflicts with Vite's HMR WebSocket
-  notificationWS.initialize(httpServer);
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -101,37 +91,8 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     },
-    async () => {
+    () => {
       log(`serving on port ${port}`);
-      
-      // Test Inter API connection on startup
-      try {
-        const interClient = getInterClient();
-        const result = await interClient.testConnection();
-        if (result.success) {
-          log(`[Inter API] Connection successful`, "inter");
-          
-          // Register webhook for PIX notifications
-          const pixKey = process.env.INTER_PIX_KEY;
-          if (pixKey && process.env.NODE_ENV === "production") {
-            try {
-              // Get the app URL from environment or construct it
-              const appUrl = process.env.APP_URL || `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-              const webhookUrl = `${appUrl}/api/webhooks/pix`;
-              
-              await interClient.configureWebhook(webhookUrl, pixKey);
-              log(`[Inter API] Webhook registered: ${webhookUrl}`, "inter");
-            } catch (webhookError: any) {
-              log(`[Inter API] Webhook registration failed: ${webhookError.message}`, "inter");
-            }
-          }
-        } else {
-          log(`[Inter API] Connection failed: ${result.message}`, "inter");
-          console.log("[Inter API] Details:", result.details);
-        }
-      } catch (error: any) {
-        log(`[Inter API] Error initializing: ${error.message}`, "inter");
-      }
     },
   );
 })();

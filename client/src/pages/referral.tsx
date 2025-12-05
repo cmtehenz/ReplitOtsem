@@ -1,284 +1,166 @@
-import { useState } from "react";
-import { Users, ArrowLeft, Copy, Check, Gift, Share2, Trophy, Star, Loader2 } from "lucide-react";
-import { useLocation } from "wouter";
-import { useLanguage } from "@/context/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
+import { PageContainer } from "@/components/page-container";
+import { Users, Copy, Share2, TrendingUp, DollarSign, ArrowUpRight, ArrowLeft, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { getReferrals, type ReferralData } from "@/lib/api";
+import { useState } from "react";
+import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useLocation } from "wouter";
 
 export default function ReferralProgram() {
   const [, setLocation] = useLocation();
-  const { t } = useLanguage();
-  const { user } = useAuth();
-  const isPortuguese = t("nav.home") === "Início";
-  
+  const [commission, setCommission] = useState([2.5]);
   const [copied, setCopied] = useState(false);
+  const referralCode = "ALEX2024";
 
-  const { data: referralData, isLoading } = useQuery({
-    queryKey: ["referrals"],
-    queryFn: getReferrals,
-  });
-
-  const referralCode = referralData?.code || `OTSEM${user?.username?.toUpperCase().slice(0, 4) || "USER"}0000`;
-  const referralLink = `https://otsempay.com/ref/${referralCode}`;
-
-  const stats = referralData?.stats || {
-    invited: 0,
-    active: 0,
-    earned: 0,
-    pending: 0,
-  };
-
-  const rewards = [
-    { level: 1, friends: 1, reward: "R$ 10", achieved: stats.active >= 1 },
-    { level: 2, friends: 5, reward: "R$ 50", achieved: stats.active >= 5 },
-    { level: 3, friends: 10, reward: "R$ 100", achieved: stats.active >= 10 },
-    { level: 4, friends: 25, reward: "R$ 300", achieved: stats.active >= 25 },
-    { level: 5, friends: 50, reward: "R$ 750", achieved: stats.active >= 50 },
-  ];
-
-  const recentReferrals = referralData?.recentReferrals || [];
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(referralCode);
     setCopied(true);
-    toast.success(isPortuguese ? "Copiado!" : "Copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Otsem Pay",
-          text: isPortuguese 
-            ? `Use meu código ${referralCode} e ganhe R$ 20 de bônus!`
-            : `Use my code ${referralCode} and get R$ 20 bonus!`,
-          url: referralLink,
-        });
-      } catch (err) {
-        handleCopy(referralLink);
-      }
-    } else {
-      handleCopy(referralLink);
-    }
-  };
-
-  const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffDays === 0) return isPortuguese ? "Hoje" : "Today";
-    if (diffDays === 1) return isPortuguese ? "Ontem" : "Yesterday";
-    return date.toLocaleDateString(isPortuguese ? "pt-BR" : "en-US", { 
-      month: "short", 
-      day: "numeric" 
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background pb-8">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center justify-between">
+    <PageContainer>
+      <div className="p-6 flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8 sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
           <button 
             onClick={() => setLocation("/profile")}
-            className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-            data-testid="button-back"
+            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-600" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-semibold text-gray-900">
-            {isPortuguese ? "Programa de Indicação" : "Referral Program"}
-          </h1>
+          <h1 className="font-display font-bold text-lg tracking-wide">Referral Program</h1>
           <div className="w-10" />
         </div>
 
-        <div className="bg-gradient-to-br from-primary/10 via-white to-accent/10 rounded-2xl p-5 card-shadow border border-primary/10">
-          <div className="text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-              <Gift className="w-7 h-7 text-primary" />
-            </div>
-            <h2 className="font-bold text-xl text-gray-900">
-              {isPortuguese ? "Ganhe R$ 20 por amigo" : "Earn R$ 20 per friend"}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {isPortuguese 
-                ? "Convide amigos e ambos ganham R$ 20 quando eles fizerem o primeiro depósito"
-                : "Invite friends and you both earn R$ 20 when they make their first deposit"}
-            </p>
+        <div className="space-y-8">
+          {/* Hero Stats */}
+          <div className="bg-gradient-to-br from-primary via-[#7c3aed] to-accent rounded-[2.5rem] p-1 shadow-[0_0_30px_rgba(139,92,246,0.2)]">
+             <div className="bg-background/90 backdrop-blur-xl rounded-[2.3rem] p-6 text-center space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                  <Users className="w-32 h-32" />
+                </div>
+                
+                <div className="relative z-10 space-y-2">
+                  <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">Total Earnings</p>
+                  <h2 className="text-5xl font-display font-bold text-white tracking-tight">R$ 1.240,50</h2>
+                  <div className="inline-flex items-center gap-1.5 mt-2 bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>+12% this week</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/10 relative z-10">
+                  <div className="text-left p-3 rounded-2xl hover:bg-white/5 transition-colors">
+                    <p className="text-xs text-muted-foreground font-medium">Invited Users</p>
+                    <p className="text-2xl font-bold font-display">42</p>
+                  </div>
+                  <div className="text-left p-3 rounded-2xl hover:bg-white/5 transition-colors">
+                    <p className="text-xs text-muted-foreground font-medium">Total Volume</p>
+                    <p className="text-2xl font-bold font-display">R$ 45k</p>
+                  </div>
+                </div>
+             </div>
           </div>
 
-          <div className="mt-5 space-y-3">
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-gray-100">
-              <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider font-medium">
-                {isPortuguese ? "Seu Código" : "Your Code"}
+          {/* Commission Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="font-display font-bold text-lg">Your Commission</h3>
+              <span className="text-2xl font-bold text-primary font-display">{commission}%</span>
+            </div>
+            <div className="glass-card rounded-3xl p-6 space-y-8 border border-white/10">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Set your kickback rate. You earn up to 5% from every trade made by your referrals.
               </p>
-              <div className="flex items-center justify-between">
-                <p className="font-mono font-bold text-xl tracking-wider text-primary" data-testid="text-referral-code">
-                  {referralCode}
-                </p>
-                <button
-                  onClick={() => handleCopy(referralCode)}
-                  className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors"
-                  data-testid="button-copy-code"
-                >
-                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4 text-primary" />}
-                </button>
+              <div>
+                <Slider 
+                  value={commission} 
+                  onValueChange={setCommission} 
+                  max={5} 
+                  step={0.1}
+                  className="py-4" 
+                />
+                <div className="flex justify-between text-xs text-muted-foreground font-mono mt-2 font-medium">
+                  <span>0%</span>
+                  <span>2.5%</span>
+                  <span>5%</span>
+                </div>
               </div>
             </div>
+          </div>
 
-            <Button
-              onClick={handleShare}
-              className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium"
-              data-testid="button-share"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              {isPortuguese ? "Compartilhar Link" : "Share Link"}
+          {/* Referral Code */}
+          <div className="space-y-4">
+            <h3 className="font-display font-bold text-lg px-1">Share your code</h3>
+            <div className="flex gap-3">
+              <div className="flex-1 glass-card border border-white/10 rounded-2xl p-4 flex items-center justify-center font-mono text-xl font-bold tracking-[0.2em] text-white">
+                {referralCode}
+              </div>
+              <Button 
+                onClick={handleCopy}
+                className={cn(
+                  "h-14 px-6 rounded-2xl transition-all w-20 font-bold shadow-lg hover:shadow-xl",
+                  copied ? "bg-green-500 text-white shadow-green-500/25 hover:shadow-green-500/40" : "bg-white/10 text-white hover:bg-white/20 shadow-white/10"
+                )}
+              >
+                {copied ? <Check className="w-7 h-7" /> : <Copy className="w-7 h-7" />}
+              </Button>
+            </div>
+            <Button className="w-full h-16 bg-gradient-to-r from-primary to-[#7c3aed] text-white hover:shadow-lg hover:shadow-primary/30 rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all active:scale-95">
+              <Share2 className="w-6 h-6 mr-2" />
+              Invite Friends
             </Button>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white rounded-2xl p-4 card-shadow text-center">
-            <p className="text-2xl font-bold text-primary">{stats.invited}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {isPortuguese ? "Convidados" : "Invited"}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-4 card-shadow text-center">
-            <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {isPortuguese ? "Ativos" : "Active"}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-4 card-shadow text-center">
-            <p className="text-2xl font-bold text-accent">R$ {stats.earned.toFixed(0)}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {isPortuguese ? "Ganhos" : "Earned"}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl p-4 card-shadow text-center">
-            <p className="text-2xl font-bold text-amber-500">R$ {stats.pending.toFixed(0)}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {isPortuguese ? "Pendente" : "Pending"}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 px-1">
-            <Trophy className="w-4 h-4 text-accent" />
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
-              {isPortuguese ? "Níveis de Recompensa" : "Reward Levels"}
-            </h3>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 card-shadow">
-            <div className="space-y-2">
-              {rewards.map((reward, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl transition-all",
-                    reward.achieved ? "bg-primary/5" : "opacity-60"
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold",
-                    reward.achieved 
-                      ? "bg-primary/10 text-primary"
-                      : "bg-gray-100 text-gray-400"
-                  )}>
-                    {reward.level}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {reward.friends} {isPortuguese ? "amigos" : "friends"}
+          {/* Recent Earnings */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="font-display font-bold text-lg">Recent Earnings</h3>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="rounded-xl border-primary/30 text-primary hover:bg-primary/15 hover:text-primary font-bold h-12 px-4 shadow-lg shadow-primary/10 hover:shadow-xl hover:shadow-primary/20 transition-all">
+                    Withdraw <ArrowUpRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-card border-white/10 rounded-3xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-center font-display text-xl">Withdraw Earnings</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-6 py-4">
+                    <div className="bg-background/50 p-6 rounded-2xl border border-white/5 flex justify-between items-center">
+                      <span className="text-muted-foreground font-medium">Available</span>
+                      <span className="font-bold text-2xl font-display text-white">R$ 1.240,50</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed text-center">
+                      Minimum withdrawal amount is R$ 50,00. Funds are sent to your main wallet instantly.
                     </p>
+                    <Button className="w-full h-14 bg-gradient-to-r from-primary to-[#7c3aed] text-white rounded-2xl font-bold text-lg shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-95">Confirm Withdrawal</Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "font-bold text-sm",
-                      reward.achieved ? "text-accent" : "text-gray-400"
-                    )}>
-                      {reward.reward}
-                    </span>
-                    {reward.achieved && <Star className="w-4 h-4 text-accent fill-accent" />}
-                  </div>
-                </div>
-              ))}
+                </DialogContent>
+              </Dialog>
             </div>
-          </div>
-        </div>
 
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-1">
-            {isPortuguese ? "Indicações Recentes" : "Recent Referrals"}
-          </h3>
-
-          {recentReferrals.length === 0 ? (
-            <div className="bg-white rounded-2xl p-6 card-shadow text-center">
-              <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">
-                {isPortuguese 
-                  ? "Nenhuma indicação ainda. Compartilhe seu código!"
-                  : "No referrals yet. Share your code!"}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {recentReferrals.map((referral, index) => (
-                <div
-                  key={referral.id}
-                  className="bg-white rounded-2xl p-4 card-shadow flex items-center justify-between"
-                  data-testid={`card-referral-${referral.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-sm font-bold text-primary">
-                      {referral.name.charAt(0)}
+            <div className="space-y-3">
+              {[1, 2, 3].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-4 rounded-2xl glass-card border border-white/5 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#26A17B]/10 flex items-center justify-center text-[#26A17B] border border-[#26A17B]/20">
+                      <DollarSign className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-gray-900">{referral.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(referral.date)}
-                      </p>
+                      <p className="font-bold text-sm">Commission Earned</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 font-medium">From User_8492 • Trade Volume R$ 1.2k</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "text-sm font-bold",
-                      referral.status === "active" ? "text-emerald-600" : "text-amber-500"
-                    )}>
-                      {referral.earned ? `R$ ${parseFloat(referral.earned).toFixed(0)}` : "R$ 20"}
-                    </p>
-                    <p className={cn(
-                      "text-[10px] uppercase tracking-wider font-medium",
-                      referral.status === "active" ? "text-emerald-500" : "text-amber-400"
-                    )}>
-                      {referral.status === "active" 
-                        ? (isPortuguese ? "Ativo" : "Active")
-                        : (isPortuguese ? "Pendente" : "Pending")}
-                    </p>
-                  </div>
+                  <span className="font-bold text-[#26A17B]">+R$ 15,40</span>
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
