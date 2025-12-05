@@ -24,6 +24,7 @@ import Cards from "@/pages/cards";
 import Feed from "@/pages/feed";
 import Welcome from "@/pages/welcome";
 import VerifyEmail from "@/pages/verify-email";
+import ResetPassword from "@/pages/reset-password";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/welcome" component={Welcome} />
       <Route path="/auth" component={Auth} />
       <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
       <Route path="/">
         {() => <ProtectedRoute component={Dashboard} />}
       </Route>
