@@ -630,3 +630,71 @@ export async function getStats(days: number = 7): Promise<TransactionStats> {
   }
   return response.json();
 }
+
+// ==================== DASHBOARD WIDGETS ====================
+
+export interface DashboardWidget {
+  id: string;
+  widgetType: "balance_summary" | "quick_actions" | "portfolio_chart" | "exchange_rates" | "recent_transactions" | "news_feed" | "asset_allocation";
+  order: string;
+  visible: boolean;
+  config: string | null;
+}
+
+export async function getDashboardWidgets(): Promise<DashboardWidget[]> {
+  const response = await fetch(`${API_BASE}/dashboard/widgets`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch dashboard widgets");
+  }
+  return response.json();
+}
+
+export async function saveDashboardWidgets(widgets: { widgetType: string; order: number; visible: boolean; config?: string }[]): Promise<DashboardWidget[]> {
+  const response = await fetch(`${API_BASE}/dashboard/widgets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ widgets }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to save dashboard widgets");
+  }
+  return response.json();
+}
+
+export async function updateWidgetVisibility(widgetId: string, visible: boolean): Promise<DashboardWidget> {
+  const response = await fetch(`${API_BASE}/dashboard/widgets/${widgetId}/visibility`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ visible }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update widget visibility");
+  }
+  return response.json();
+}
+
+// ==================== NEWS FEED ====================
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  timestamp: string;
+  category: string;
+  url: string;
+}
+
+export async function getNews(): Promise<NewsItem[]> {
+  const response = await fetch(`${API_BASE}/news`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to fetch news");
+  }
+  return response.json();
+}
