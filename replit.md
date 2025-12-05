@@ -10,6 +10,7 @@ Otsem Pay is a production-ready cryptocurrency wallet application featuring real
 - **Exchange**: BRL ↔ USDT exchange functionality with OKX rates
 - **Real-time Notifications**: WebSocket-based push notifications for account activities
 - **Profile Management**: Name, email, phone editing and profile photo upload
+- **Security Features**: Password change with verification, 2FA with TOTP (Google Authenticator compatible)
 - **Bilingual**: Full support for English and Portuguese (PT-BR)
 
 ## Tech Stack
@@ -61,6 +62,13 @@ Required secrets (stored in Replit Secrets):
 - `GET /api/auth/me` - Get current user
 - `PATCH /api/auth/profile` - Update user profile
 - `GET /api/auth/ws-token` - Get WebSocket authentication token
+- `POST /api/auth/change-password` - Change user password
+
+### Security (2FA)
+- `GET /api/auth/2fa/status` - Get 2FA status
+- `POST /api/auth/2fa/setup` - Setup 2FA (generate QR code and backup codes)
+- `POST /api/auth/2fa/verify` - Verify 2FA code and enable
+- `POST /api/auth/2fa/disable` - Disable 2FA
 
 ### Wallets & Transactions
 - `GET /api/wallets` - Get user's wallet balances
@@ -98,6 +106,9 @@ Required secrets (stored in Replit Secrets):
 - `webhook_logs` - Idempotency tracking for webhooks
 
 ## Recent Changes
+- 2024-12-05: Implemented security backend with password change and 2FA (TOTP)
+- 2024-12-05: Added Two-Factor Authentication with Google Authenticator compatibility
+- 2024-12-05: Added backup codes generation for 2FA recovery
 - 2024-12-04: Implemented real-time notification system with secure WebSocket authentication
 - 2024-12-04: Added profile management (name, email, phone, photo upload)
 - 2024-12-04: Added notification triggers for deposits, withdrawals, and exchanges
