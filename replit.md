@@ -75,6 +75,9 @@ Required secrets (stored in Replit Secrets):
 - `GET /api/transactions` - Get transaction history
 - `POST /api/exchange` - Execute currency exchange
 
+### KYC & Limits
+- `GET /api/kyc/status` - Get KYC level and monthly transaction limits
+
 ### PIX Operations
 - `POST /api/pix/deposit` - Create PIX deposit (generate QR code)
 - `GET /api/pix/deposits/pending` - Get pending deposits
@@ -96,7 +99,7 @@ Required secrets (stored in Replit Secrets):
 - `POST /api/webhooks/pix` - Banco Inter PIX payment webhook
 
 ## Database Schema
-- `users` - User accounts with bcrypt-hashed passwords
+- `users` - User accounts with bcrypt-hashed passwords, KYC level (none/basic/full)
 - `wallets` - User balances (BRL, USDT, BTC)
 - `transactions` - All wallet activity
 - `user_pix_keys` - Registered PIX keys for withdrawals
@@ -106,6 +109,9 @@ Required secrets (stored in Replit Secrets):
 - `webhook_logs` - Idempotency tracking for webhooks
 
 ## Recent Changes
+- 2024-12-05: Implemented KYC-based transaction limits (Basic: R$50k/month, Full: unlimited)
+- 2024-12-05: Added KYC status display in profile page with real-time limit tracking
+- 2024-12-05: Enforced limits on exchange and withdrawal endpoints
 - 2024-12-05: Implemented security backend with password change and 2FA (TOTP)
 - 2024-12-05: Added Two-Factor Authentication with Google Authenticator compatibility
 - 2024-12-05: Added backup codes generation for 2FA recovery
