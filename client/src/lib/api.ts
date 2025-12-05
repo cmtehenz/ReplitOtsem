@@ -677,7 +677,7 @@ export async function claimReferralRewards(): Promise<{ success: boolean; amount
 
 // ==================== EMAIL VERIFICATION ====================
 
-export async function requestEmailVerification(): Promise<{ message: string }> {
+export async function requestEmailVerification(): Promise<{ message: string; token?: string }> {
   const response = await fetch(`${API_BASE}/auth/verify-email/request`, {
     method: "POST",
   });

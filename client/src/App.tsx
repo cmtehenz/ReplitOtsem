@@ -23,6 +23,7 @@ import PersonalInfo from "@/pages/personal-info";
 import Cards from "@/pages/cards";
 import Feed from "@/pages/feed";
 import Welcome from "@/pages/welcome";
+import VerifyEmail from "@/pages/verify-email";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -91,6 +92,9 @@ function Router() {
       </Route>
       <Route path="/feed">
         {() => <ProtectedRoute component={Feed} />}
+      </Route>
+      <Route path="/verify-email">
+        {() => <ProtectedRoute component={VerifyEmail} />}
       </Route>
       <Route component={NotFound} />
     </Switch>
