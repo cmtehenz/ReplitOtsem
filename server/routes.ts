@@ -358,10 +358,7 @@ export async function registerRoutes(
       await storage.updatePassword(user.id, newPassword);
 
       // Create security notification
-      await notificationService.createNotification(user.id, "security_alert", {
-        title: "Password Changed",
-        message: "Your password was successfully changed.",
-      });
+      await notificationService.notifySecurityAlert(user.id, "Your password was successfully changed.");
 
       res.json({ success: true, message: "Password updated successfully" });
     } catch (error: any) {
@@ -460,10 +457,7 @@ export async function registerRoutes(
       await storage.enable2FA(user.id);
 
       // Create security notification
-      await notificationService.createNotification(user.id, "security_alert", {
-        title: "2FA Enabled",
-        message: "Two-factor authentication has been enabled on your account.",
-      });
+      await notificationService.notifySecurityAlert(user.id, "Two-factor authentication has been enabled on your account.");
 
       res.json({ success: true, message: "2FA enabled successfully" });
     } catch (error: any) {
@@ -498,10 +492,7 @@ export async function registerRoutes(
       await storage.disable2FA(user.id);
 
       // Create security notification
-      await notificationService.createNotification(user.id, "security_alert", {
-        title: "2FA Disabled",
-        message: "Two-factor authentication has been disabled on your account.",
-      });
+      await notificationService.notifySecurityAlert(user.id, "Two-factor authentication has been disabled on your account.");
 
       res.json({ success: true, message: "2FA disabled successfully" });
     } catch (error: any) {
