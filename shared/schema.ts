@@ -317,3 +317,30 @@ export const referrals = pgTable("referrals", {
 export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true, activatedAt: true, rewardPaid: true });
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
+
+// Widget type enum
+export const widgetTypeEnum = pgEnum("widget_type", [
+  "portfolio_chart",
+  "news_feed",
+  "quick_actions",
+  "balance_summary",
+  "recent_transactions",
+  "exchange_rates",
+  "asset_allocation"
+]);
+
+// Dashboard Widget Configuration - stores user's widget layout preferences
+export const dashboardWidgets = pgTable("dashboard_widgets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  widgetType: widgetTypeEnum("widget_type").notNull(),
+  order: decimal("order", { precision: 5, scale: 0 }).notNull().default("0"),
+  visible: boolean("visible").default(true),
+  config: text("config"), // JSON stringified widget-specific config
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertDashboardWidgetSchema = createInsertSchema(dashboardWidgets).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDashboardWidget = z.infer<typeof insertDashboardWidgetSchema>;
+export type DashboardWidget = typeof dashboardWidgets.$inferSelect;
