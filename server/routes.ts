@@ -155,10 +155,12 @@ export async function registerRoutes(
         verified: user.verified,
       });
     } catch (error: any) {
+      console.error("Registration error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors[0].message });
       }
-      res.status(500).json({ error: "Failed to register user" });
+      // Return more specific error message
+      res.status(500).json({ error: error.message || "Failed to register user" });
     }
   });
 

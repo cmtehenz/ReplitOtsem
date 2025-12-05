@@ -20,7 +20,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Wallet
     "wallet.title": "Wallet",
-    "wallet.subtitle": "The future of crypto payments",
+    "wallet.subtitle": "",
     "wallet.balance": "Total Balance",
     "wallet.deposit": "Deposit",
     "wallet.send": "Send",
@@ -146,7 +146,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Wallet
     "wallet.title": "Carteira",
-    "wallet.subtitle": "O futuro dos pagamentos cripto",
+    "wallet.subtitle": "",
     "wallet.balance": "Saldo Total",
     "wallet.deposit": "Depositar",
     "wallet.send": "Enviar",

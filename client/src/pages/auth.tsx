@@ -238,7 +238,6 @@ export default function AuthPage() {
       <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6">
         <div className="pt-8 pb-6 text-center flex flex-col items-center">
           <img src={logo} alt="Otsem Pay" className="w-28 h-auto mb-4 drop-shadow-lg" />
-          <p className="text-muted-foreground text-sm">{t("wallet.subtitle")}</p>
         </div>
 
         <Card className="w-full max-w-md border-border/50 shadow-lg bg-card/80 backdrop-blur-sm">
@@ -321,7 +320,19 @@ export default function AuthPage() {
               </AnimatePresence>
 
               <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">{t("auth.password")}</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => navigate("/forgot-password")}
+                      className="text-xs text-primary hover:underline font-medium"
+                      data-testid="button-forgot-password"
+                    >
+                      {language === "pt-BR" ? "Esqueceu a senha?" : "Forgot password?"}
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
