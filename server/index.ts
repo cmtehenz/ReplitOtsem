@@ -2,8 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { notificationWS } from "./websocket";
 
 const app = express();
+
+// Trust proxy for proper rate limiting behind reverse proxy
+app.set("trust proxy", 1);
+
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -79,6 +84,9 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
+
+  // Initialize WebSocket server for real-time notifications
+  notificationWS.initialize(httpServer);
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.

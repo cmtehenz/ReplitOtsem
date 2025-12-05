@@ -20,11 +20,31 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Wallet
     "wallet.title": "Wallet",
+    "wallet.subtitle": "The future of crypto payments",
     "wallet.balance": "Total Balance",
     "wallet.deposit": "Deposit",
     "wallet.send": "Send",
     "wallet.receive": "Receive",
     "wallet.assets": "Your Assets",
+    
+    // Auth
+    "auth.login": "Sign In",
+    "auth.register": "Sign Up",
+    "auth.loginDescription": "Enter your credentials to access your wallet",
+    "auth.registerDescription": "Create an account to start trading",
+    "auth.name": "Full Name",
+    "auth.namePlaceholder": "Your full name",
+    "auth.username": "Username",
+    "auth.usernameOrEmail": "Username or Email",
+    "auth.usernamePlaceholder": "Choose a username",
+    "auth.usernameOrEmailPlaceholder": "Your username or email",
+    "auth.email": "Email",
+    "auth.emailPlaceholder": "your@email.com",
+    "auth.password": "Password",
+    "auth.optional": "optional",
+    "auth.cpfHelp": "Required for PIX withdrawals to your own account",
+    "auth.noAccount": "Don't have an account?",
+    "auth.hasAccount": "Already have an account?",
     
     // Feed
     "feed.title": "Feed",
@@ -77,6 +97,44 @@ const translations: Record<Language, Record<string, string>> = {
     "kyc.ready": "I'm Ready",
     "kyc.verified": "Verified!",
     "kyc.back": "Back to Profile",
+    
+    // Exchange
+    "exchange.title": "Exchange",
+    "exchange.youPay": "You pay",
+    "exchange.youReceive": "You receive",
+    "exchange.balance": "Balance",
+    "exchange.estimated": "Estimated",
+    "exchange.fee": "Fee",
+    "exchange.minimum": "Minimum",
+    "exchange.buyUsdt": "Buy USDT",
+    "exchange.sellUsdt": "Sell USDT",
+    "exchange.success": "Exchange completed successfully!",
+    "exchange.failed": "Exchange failed",
+    "exchange.invalidAmount": "Please enter a valid amount",
+    "exchange.insufficientBalance": "Insufficient balance",
+    "exchange.minAmount": "Minimum exchange is 10 USDT",
+    "exchange.ratesUnavailable": "Exchange rates temporarily unavailable",
+    "exchange.loadingRate": "Loading rate...",
+    
+    // Personal Info
+    "personalInfo.title": "Personal Information",
+    "personalInfo.name": "Full Name",
+    "personalInfo.namePlaceholder": "Enter your full name",
+    "personalInfo.email": "Email",
+    "personalInfo.emailPlaceholder": "Enter your email",
+    "personalInfo.phone": "Phone",
+    "personalInfo.phonePlaceholder": "Enter your phone number",
+    "personalInfo.tapToChange": "Tap to change photo",
+    "personalInfo.save": "Save Changes",
+    "personalInfo.saved": "Profile updated successfully",
+    "personalInfo.saveFailed": "Failed to update profile",
+    "personalInfo.nameRequired": "Name is required",
+    "personalInfo.emailInvalid": "Please enter a valid email",
+    "personalInfo.photoTooLarge": "Photo must be less than 2MB",
+    
+    // Common
+    "common.processing": "Processing...",
+    "common.retry": "Try Again",
   },
   "pt-BR": {
     // Navigation
@@ -87,11 +145,31 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Wallet
     "wallet.title": "Carteira",
+    "wallet.subtitle": "O futuro dos pagamentos cripto",
     "wallet.balance": "Saldo Total",
     "wallet.deposit": "Depositar",
     "wallet.send": "Enviar",
     "wallet.receive": "Receber",
     "wallet.assets": "Seus Ativos",
+    
+    // Auth
+    "auth.login": "Entrar",
+    "auth.register": "Criar Conta",
+    "auth.loginDescription": "Digite suas credenciais para acessar sua carteira",
+    "auth.registerDescription": "Crie uma conta para começar a negociar",
+    "auth.name": "Nome Completo",
+    "auth.namePlaceholder": "Seu nome completo",
+    "auth.username": "Nome de Usuário",
+    "auth.usernameOrEmail": "Usuário ou Email",
+    "auth.usernamePlaceholder": "Escolha um nome de usuário",
+    "auth.usernameOrEmailPlaceholder": "Seu usuário ou email",
+    "auth.email": "Email",
+    "auth.emailPlaceholder": "seu@email.com",
+    "auth.password": "Senha",
+    "auth.optional": "opcional",
+    "auth.cpfHelp": "Necessário para saques PIX para sua própria conta",
+    "auth.noAccount": "Não tem uma conta?",
+    "auth.hasAccount": "Já tem uma conta?",
     
     // Feed
     "feed.title": "Feed",
@@ -144,6 +222,44 @@ const translations: Record<Language, Record<string, string>> = {
     "kyc.ready": "Estou Pronto",
     "kyc.verified": "Verificado!",
     "kyc.back": "Voltar ao Perfil",
+    
+    // Exchange
+    "exchange.title": "Câmbio",
+    "exchange.youPay": "Você paga",
+    "exchange.youReceive": "Você recebe",
+    "exchange.balance": "Saldo",
+    "exchange.estimated": "Estimado",
+    "exchange.fee": "Taxa",
+    "exchange.minimum": "Mínimo",
+    "exchange.buyUsdt": "Comprar USDT",
+    "exchange.sellUsdt": "Vender USDT",
+    "exchange.success": "Câmbio realizado com sucesso!",
+    "exchange.failed": "Falha no câmbio",
+    "exchange.invalidAmount": "Por favor, insira um valor válido",
+    "exchange.insufficientBalance": "Saldo insuficiente",
+    "exchange.minAmount": "Câmbio mínimo é 10 USDT",
+    "exchange.ratesUnavailable": "Taxas de câmbio temporariamente indisponíveis",
+    "exchange.loadingRate": "Carregando taxa...",
+    
+    // Personal Info
+    "personalInfo.title": "Informações Pessoais",
+    "personalInfo.name": "Nome Completo",
+    "personalInfo.namePlaceholder": "Digite seu nome completo",
+    "personalInfo.email": "Email",
+    "personalInfo.emailPlaceholder": "Digite seu email",
+    "personalInfo.phone": "Telefone",
+    "personalInfo.phonePlaceholder": "Digite seu telefone",
+    "personalInfo.tapToChange": "Toque para alterar foto",
+    "personalInfo.save": "Salvar Alterações",
+    "personalInfo.saved": "Perfil atualizado com sucesso",
+    "personalInfo.saveFailed": "Falha ao atualizar perfil",
+    "personalInfo.nameRequired": "Nome é obrigatório",
+    "personalInfo.emailInvalid": "Por favor, insira um email válido",
+    "personalInfo.photoTooLarge": "Foto deve ter menos de 2MB",
+    
+    // Common
+    "common.processing": "Processando...",
+    "common.retry": "Tentar Novamente",
   },
 };
 
