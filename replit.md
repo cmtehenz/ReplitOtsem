@@ -11,7 +11,9 @@ Otsem Pay is a production-ready cryptocurrency wallet application featuring real
 - **Real-time Notifications**: WebSocket-based push notifications for account activities
 - **Profile Management**: Name, email, phone editing and profile photo upload
 - **Security Features**: Password change, 2FA with TOTP, WebAuthn biometric login (FaceID/TouchID)
-- **Crypto Wallets**: Real wallet addresses for BTC and USDT with QR code display
+- **Non-Custodial Crypto Wallets**: Real BIP39 seed phrase generation, EVM + Tron address derivation, AES-encrypted private key storage
+- **Multi-Chain USDT Support**: Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche (EVM), and Tron networks
+- **Seed Phrase Backup**: Secure 12-word recovery phrase with backup verification flow
 - **Price Charts**: Interactive price charts with multiple time ranges (1H, 1D, 1W, 1M, 1Y)
 - **Transaction Export**: PDF receipt generation and Web Share API for sharing
 - **Referral Program**: Referral rewards tracking with crypto wallet address generation
@@ -89,6 +91,14 @@ Required secrets (stored in Replit Secrets):
 - `GET /api/transactions` - Get transaction history
 - `POST /api/exchange` - Execute currency exchange
 
+### Crypto Wallet (Non-Custodial)
+- `GET /api/crypto/wallet` - Get user's crypto wallet addresses
+- `POST /api/crypto/wallet/create` - Create new wallet with BIP39 mnemonic
+- `POST /api/crypto/wallet/confirm-backup` - Confirm seed phrase backup
+- `POST /api/crypto/wallet/import` - Import wallet from seed phrase
+- `GET /api/crypto/balances` - Get real-time USDT balances across all networks
+- `GET /api/crypto/networks` - Get supported blockchain networks
+
 ### KYC & Limits
 - `GET /api/kyc/status` - Get KYC level and monthly transaction limits
 
@@ -123,8 +133,16 @@ Required secrets (stored in Replit Secrets):
 - `webhook_logs` - Idempotency tracking for webhooks
 - `login_sessions` - Login history with device/IP/location tracking
 - `kyc_documents` - KYC document submissions and review status
+- `crypto_wallets` - Non-custodial wallet with AES-encrypted seed phrase, EVM/Tron addresses
 
 ## Recent Changes
+- 2024-12-05: Implemented real non-custodial crypto wallets with BIP39 seed phrase generation (ethers.js)
+- 2024-12-05: Added multi-chain USDT support (Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, Tron)
+- 2024-12-05: Built seed phrase backup/verification flow with AES-256 encrypted storage
+- 2024-12-05: Created wallet import feature from existing seed phrase
+- 2024-12-05: Added real-time blockchain balance checking via RPC endpoints
+- 2024-12-05: Created /crypto-wallet page with complete wallet management UI
+- 2024-12-05: Added crypto wallet link to security settings page
 - 2024-12-05: Added interactive price charts with multiple time ranges (1H, 1D, 1W, 1M, 1Y) using Recharts
 - 2024-12-05: Created asset details page (/asset/:currency) with price statistics
 - 2024-12-05: Implemented PDF receipt generation for transactions (print-to-PDF)

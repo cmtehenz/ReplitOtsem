@@ -1,5 +1,5 @@
 import { PageContainer } from "@/components/page-container";
-import { ArrowLeft, Lock, Smartphone, Key, History, ChevronRight, ShieldCheck, LogOut, Eye, EyeOff, Copy, Check, Loader2, CheckCircle2, AlertCircle, X, Fingerprint, Trash2 } from "lucide-react";
+import { ArrowLeft, Lock, Smartphone, Key, History, ChevronRight, ShieldCheck, LogOut, Eye, EyeOff, Copy, Check, Loader2, CheckCircle2, AlertCircle, X, Fingerprint, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
@@ -65,6 +65,8 @@ const translations: Record<"en" | "pt-BR", Record<string, string>> = {
     wrongPassword: "Incorrect password",
     incorrectCode: "Incorrect verification code",
     loading: "Loading...",
+    cryptoWallet: "Crypto Wallet",
+    cryptoWalletDesc: "Manage your non-custodial blockchain wallet",
   },
   "pt-BR": {
     securityCenter: "Central de Segurança",
@@ -116,6 +118,8 @@ const translations: Record<"en" | "pt-BR", Record<string, string>> = {
     wrongPassword: "Senha incorreta",
     incorrectCode: "Código de verificação incorreto",
     loading: "Carregando...",
+    cryptoWallet: "Carteira Crypto",
+    cryptoWalletDesc: "Gerencie sua carteira blockchain não-custodial",
   },
 };
 
@@ -425,6 +429,28 @@ function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabl
                 <div>
                   <p className="text-sm font-bold group-hover:text-primary transition-colors">{t.loginHistory}</p>
                   <p className="text-xs text-muted-foreground">{t.viewDevices}</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">{t.cryptoWallet}</h2>
+          <div className="glass-card rounded-3xl overflow-hidden border border-white/10">
+            <button 
+              className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-colors text-left group"
+              onClick={() => setLocation("/crypto-wallet")}
+              data-testid="button-crypto-wallet"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20 group-hover:border-primary/30 group-hover:text-primary transition-colors">
+                  <Wallet className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold group-hover:text-primary transition-colors">{t.cryptoWallet}</p>
+                  <p className="text-xs text-muted-foreground">{t.cryptoWalletDesc}</p>
                 </div>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
