@@ -1363,6 +1363,131 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== DASHBOARD WIDGETS ====================
+
+  // Get user's dashboard widget configuration
+  app.get("/api/dashboard/widgets", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const widgets = await storage.getUserDashboardWidgets(userId);
+      
+      // If no widgets configured, return default layout
+      if (widgets.length === 0) {
+        const defaultWidgets = [
+          { id: "default-1", widgetType: "balance_summary", order: "0", visible: true, config: null },
+          { id: "default-2", widgetType: "quick_actions", order: "1", visible: true, config: null },
+          { id: "default-3", widgetType: "portfolio_chart", order: "2", visible: true, config: null },
+          { id: "default-4", widgetType: "exchange_rates", order: "3", visible: true, config: null },
+          { id: "default-5", widgetType: "recent_transactions", order: "4", visible: true, config: null },
+          { id: "default-6", widgetType: "news_feed", order: "5", visible: true, config: null },
+          { id: "default-7", widgetType: "asset_allocation", order: "6", visible: false, config: null },
+        ];
+        return res.json(defaultWidgets);
+      }
+      
+      res.json(widgets);
+    } catch (error) {
+      console.error("Dashboard widgets error:", error);
+      res.status(500).json({ error: "Failed to fetch dashboard widgets" });
+    }
+  });
+
+  // Save user's dashboard widget configuration
+  app.post("/api/dashboard/widgets", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { widgets } = req.body;
+      
+      if (!Array.isArray(widgets)) {
+        return res.status(400).json({ error: "Invalid widgets format" });
+      }
+      
+      const savedWidgets = await storage.saveDashboardWidgets(userId, widgets);
+      res.json(savedWidgets);
+    } catch (error) {
+      console.error("Save widgets error:", error);
+      res.status(500).json({ error: "Failed to save dashboard widgets" });
+    }
+  });
+
+  // Toggle widget visibility
+  app.patch("/api/dashboard/widgets/:id/visibility", requireAuth, async (req, res) => {
+    try {
+      const userId = getUserId(req)!;
+      const { id } = req.params;
+      const { visible } = req.body;
+      
+      if (typeof visible !== "boolean") {
+        return res.status(400).json({ error: "Invalid visibility value" });
+      }
+      
+      const updated = await storage.updateWidgetVisibility(id, userId, visible);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update widget visibility error:", error);
+      res.status(500).json({ error: "Failed to update widget visibility" });
+    }
+  });
+
+  // Get crypto news feed
+  app.get("/api/news", requireAuth, async (_req, res) => {
+    try {
+      // Return curated crypto news (in real app, this would call a news API)
+      const news = [
+        {
+          id: "1",
+          title: "Bitcoin Hits New High Amid ETF Optimism",
+          summary: "Bitcoin surged past $100,000 as institutional interest continues to grow with ETF inflows reaching record levels.",
+          source: "CoinDesk",
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          category: "bitcoin",
+          url: "#",
+        },
+        {
+          id: "2",
+          title: "Tether Expands USDT on New Blockchain",
+          summary: "Tether announces USDT integration with additional blockchain networks to improve accessibility and reduce fees.",
+          source: "The Block",
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          category: "stablecoin",
+          url: "#",
+        },
+        {
+          id: "3",
+          title: "Brazil Central Bank Updates PIX Regulations",
+          summary: "New PIX regulations aim to enhance security and expand functionality for instant payments in Brazil.",
+          source: "Reuters",
+          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+          category: "regulation",
+          url: "#",
+        },
+        {
+          id: "4",
+          title: "DeFi Protocol Reaches $10B TVL Milestone",
+          summary: "Leading decentralized finance protocol celebrates reaching $10 billion in total value locked.",
+          source: "Decrypt",
+          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+          category: "defi",
+          url: "#",
+        },
+        {
+          id: "5",
+          title: "Crypto Adoption Surges in Latin America",
+          summary: "Latin American countries lead global crypto adoption rates, with Brazil and Argentina at the forefront.",
+          source: "CoinTelegraph",
+          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+          category: "adoption",
+          url: "#",
+        },
+      ];
+      
+      res.json(news);
+    } catch (error) {
+      console.error("News fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch news" });
+    }
+  });
+
   // ==================== PIX WEBHOOK ====================
 
   // PIX payment webhook from Banco Inter
