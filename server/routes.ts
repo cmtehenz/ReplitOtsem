@@ -1961,5 +1961,186 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== CRYPTO WALLET ROUTES ====================
+  
+  // Import wallet service
+  const walletService = await import("./wallet-service");
+  
+  // Get user's crypto wallet (or create one if doesn't exist)
+  app.get("/api/crypto/wallet", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const existingWallet = await storage.getUserCryptoWallet(userId);
+      
+      if (existingWallet) {
+        return res.json({
+          evmAddress: existingWallet.evmAddress,
+          tronAddress: existingWallet.tronAddress,
+          seedBackedUp: existingWallet.seedBackedUp,
+          createdAt: existingWallet.createdAt
+        });
+      }
+      
+      return res.json({ wallet: null });
+    } catch (error) {
+      console.error("Failed to get crypto wallet:", error);
+      res.status(500).json({ error: "Failed to get crypto wallet" });
+    }
+  });
+  
+  // Create new crypto wallet
+  app.post("/api/crypto/wallet/create", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Check if wallet already exists
+      const existingWallet = await storage.getUserCryptoWallet(userId);
+      if (existingWallet) {
+        return res.status(400).json({ error: "Wallet already exists" });
+      }
+      
+      // Generate new wallet using user's password as encryption key
+      const { password } = req.body;
+      if (!password) {
+        return res.status(400).json({ error: "Password required to create wallet" });
+      }
+      
+      // Verify password
+      const isValidPassword = await storage.validatePassword(user, password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+      
+      // Create encrypted wallet
+      const walletData = walletService.createEncryptedWallet(password);
+      
+      // Store wallet in database
+      const wallet = await storage.createCryptoWallet({
+        userId,
+        encryptedSeed: walletData.encryptedSeed,
+        seedIv: walletData.seedIv,
+        evmAddress: walletData.evmAddress,
+        tronAddress: walletData.tronAddress,
+        seedBackedUp: false
+      });
+      
+      // Return mnemonic ONCE for user to backup (this is the only time it's shown)
+      res.json({
+        mnemonic: walletData.mnemonic,
+        evmAddress: wallet.evmAddress,
+        tronAddress: wallet.tronAddress,
+        message: "IMPORTANT: Write down your 12-word recovery phrase and store it safely. This is the ONLY time it will be shown."
+      });
+    } catch (error) {
+      console.error("Failed to create crypto wallet:", error);
+      res.status(500).json({ error: "Failed to create crypto wallet" });
+    }
+  });
+  
+  // Confirm seed phrase backup
+  app.post("/api/crypto/wallet/confirm-backup", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      
+      const wallet = await storage.getUserCryptoWallet(userId);
+      if (!wallet) {
+        return res.status(404).json({ error: "Wallet not found" });
+      }
+      
+      await storage.updateCryptoWalletBackupStatus(userId, true);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to confirm backup:", error);
+      res.status(500).json({ error: "Failed to confirm backup" });
+    }
+  });
+  
+  // Import wallet from seed phrase
+  app.post("/api/crypto/wallet/import", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Check if wallet already exists
+      const existingWallet = await storage.getUserCryptoWallet(userId);
+      if (existingWallet) {
+        return res.status(400).json({ error: "Wallet already exists. Contact support to reset." });
+      }
+      
+      const { mnemonic, password } = req.body;
+      if (!mnemonic || !password) {
+        return res.status(400).json({ error: "Mnemonic and password required" });
+      }
+      
+      // Verify password
+      const isValidPassword = await storage.validatePassword(user, password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid password" });
+      }
+      
+      // Import and encrypt wallet
+      const walletData = walletService.importEncryptedWallet(mnemonic, password);
+      
+      // Store wallet in database
+      const wallet = await storage.createCryptoWallet({
+        userId,
+        encryptedSeed: walletData.encryptedSeed,
+        seedIv: walletData.seedIv,
+        evmAddress: walletData.evmAddress,
+        tronAddress: walletData.tronAddress,
+        seedBackedUp: true // Imported wallet is assumed to be backed up
+      });
+      
+      res.json({
+        evmAddress: wallet.evmAddress,
+        tronAddress: wallet.tronAddress,
+        message: "Wallet imported successfully"
+      });
+    } catch (error: any) {
+      console.error("Failed to import wallet:", error);
+      res.status(400).json({ error: error.message || "Failed to import wallet" });
+    }
+  });
+  
+  // Get balances from blockchain
+  app.get("/api/crypto/balances", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const wallet = await storage.getUserCryptoWallet(userId);
+      
+      if (!wallet) {
+        return res.json({ balances: {} });
+      }
+      
+      const balances = await walletService.getAllUsdtBalances(
+        wallet.evmAddress,
+        wallet.tronAddress
+      );
+      
+      res.json({ 
+        balances,
+        evmAddress: wallet.evmAddress,
+        tronAddress: wallet.tronAddress
+      });
+    } catch (error) {
+      console.error("Failed to get balances:", error);
+      res.status(500).json({ error: "Failed to get balances" });
+    }
+  });
+  
+  // Get supported networks
+  app.get("/api/crypto/networks", (req, res) => {
+    res.json(walletService.SUPPORTED_NETWORKS);
+  });
+
   return httpServer;
 }

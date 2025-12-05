@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets, webauthnCredentials,
+  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets, webauthnCredentials, cryptoWallets,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -18,7 +18,8 @@ import {
   type ReferralReward, type InsertReferralReward,
   type EmailVerification, type InsertEmailVerification,
   type PasswordReset, type InsertPasswordReset,
-  type WebAuthnCredential, type InsertWebAuthnCredential
+  type WebAuthnCredential, type InsertWebAuthnCredential,
+  type CryptoWallet, type InsertCryptoWallet
 } from "@shared/schema";
 import crypto from "crypto";
 import { eq, and, desc, or, gte, sql } from "drizzle-orm";
@@ -94,6 +95,11 @@ export interface IStorage {
   getWebAuthnCredentialByCredentialId(credentialId: string): Promise<WebAuthnCredential | undefined>;
   updateWebAuthnCredentialCounter(id: string, counter: string): Promise<WebAuthnCredential>;
   deleteWebAuthnCredential(id: string, userId: string): Promise<void>;
+  
+  // Crypto Wallets (non-custodial)
+  createCryptoWallet(wallet: InsertCryptoWallet): Promise<CryptoWallet>;
+  getUserCryptoWallet(userId: string): Promise<CryptoWallet | undefined>;
+  updateCryptoWalletBackupStatus(userId: string, backedUp: boolean): Promise<CryptoWallet>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1058,6 +1064,27 @@ export class DatabaseStorage implements IStorage {
         eq(webauthnCredentials.id, id),
         eq(webauthnCredentials.userId, userId)
       ));
+  }
+
+  // Crypto Wallets (non-custodial)
+  async createCryptoWallet(wallet: InsertCryptoWallet): Promise<CryptoWallet> {
+    const result = await db.insert(cryptoWallets).values(wallet).returning();
+    return result[0];
+  }
+
+  async getUserCryptoWallet(userId: string): Promise<CryptoWallet | undefined> {
+    const result = await db.select().from(cryptoWallets)
+      .where(eq(cryptoWallets.userId, userId))
+      .limit(1);
+    return result[0];
+  }
+
+  async updateCryptoWalletBackupStatus(userId: string, backedUp: boolean): Promise<CryptoWallet> {
+    const result = await db.update(cryptoWallets)
+      .set({ seedBackedUp: backedUp })
+      .where(eq(cryptoWallets.userId, userId))
+      .returning();
+    return result[0];
   }
 }
 
