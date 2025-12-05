@@ -97,7 +97,15 @@ Required secrets (stored in Replit Secrets):
 - `POST /api/crypto/wallet/confirm-backup` - Confirm seed phrase backup
 - `POST /api/crypto/wallet/import` - Import wallet from seed phrase
 - `GET /api/crypto/balances` - Get real-time USDT balances across all networks
+- `GET /api/crypto/native-balances` - Get native token balances (ETH, MATIC, etc.) for gas fees
 - `GET /api/crypto/networks` - Get supported blockchain networks
+- `POST /api/crypto/validate-address` - Validate blockchain address format
+- `POST /api/crypto/estimate-gas` - Estimate gas fees for transaction
+- `POST /api/crypto/send` - Send USDT on any supported network
+- `GET /api/crypto/transactions` - Get crypto transaction history
+- `GET /api/crypto/address-book` - Get saved recipient addresses
+- `POST /api/crypto/address-book` - Add new address to address book
+- `DELETE /api/crypto/address-book/:id` - Remove address from address book
 
 ### KYC & Limits
 - `GET /api/kyc/status` - Get KYC level and monthly transaction limits
@@ -134,8 +142,14 @@ Required secrets (stored in Replit Secrets):
 - `login_sessions` - Login history with device/IP/location tracking
 - `kyc_documents` - KYC document submissions and review status
 - `crypto_wallets` - Non-custodial wallet with AES-encrypted seed phrase, EVM/Tron addresses
+- `crypto_transactions` - Crypto send/receive transaction history
+- `crypto_address_book` - Saved recipient addresses for quick sending
 
 ## Recent Changes
+- 2024-12-05: Added native token balances display (ETH, MATIC, BNB, TRX, AVAX) for gas fee visibility
+- 2024-12-05: Implemented crypto transaction history with send/receive tracking
+- 2024-12-05: Created address book for saving frequently used recipient addresses
+- 2024-12-05: Added tabbed UI for balances vs history view in crypto wallet page
 - 2024-12-05: Implemented real non-custodial crypto wallets with BIP39 seed phrase generation (ethers.js)
 - 2024-12-05: Added multi-chain USDT support (Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, Tron)
 - 2024-12-05: Built seed phrase backup/verification flow with AES-256 encrypted storage
