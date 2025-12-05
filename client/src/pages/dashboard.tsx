@@ -1,9 +1,5 @@
 import { BottomNav } from "@/components/bottom-nav";
-import { WalletCard } from "@/components/wallet-card";
-import { ActionGrid } from "@/components/action-grid";
-import { ExchangeCard } from "@/components/exchange-card";
-import { AssetList } from "@/components/asset-list";
-import { TransactionHistory } from "@/components/transaction-history";
+import { CustomizableDashboard } from "@/components/dashboard-widgets";
 import { NotificationBell } from "@/components/notification-bell";
 import { Settings, User } from "lucide-react";
 import { useLocation } from "wouter";
@@ -59,26 +55,8 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 pt-6 space-y-6">
-        <section>
-          <WalletCard />
-        </section>
-        
-        <section className="py-2">
-          <ActionGrid />
-        </section>
-
-        <section>
-          <ExchangeCard />
-        </section>
-        
-        <section>
-          <AssetList />
-        </section>
-        
-        <section>
-          <TransactionHistory />
-        </section>
+      <main className="max-w-lg mx-auto px-4 pt-6">
+        <CustomizableDashboard />
       </main>
 
       <BottomNav active="home" />
