@@ -360,3 +360,39 @@ export const webauthnCredentials = pgTable("webauthn_credentials", {
 export const insertWebAuthnCredentialSchema = createInsertSchema(webauthnCredentials).omit({ id: true, createdAt: true, lastUsedAt: true });
 export type InsertWebAuthnCredential = z.infer<typeof insertWebAuthnCredentialSchema>;
 export type WebAuthnCredential = typeof webauthnCredentials.$inferSelect;
+
+// Crypto address book - saves frequently used recipient addresses
+export const cryptoAddressBook = pgTable("crypto_address_book", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  network: text("network").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCryptoAddressBookSchema = createInsertSchema(cryptoAddressBook).omit({ id: true, createdAt: true });
+export type InsertCryptoAddressBook = z.infer<typeof insertCryptoAddressBookSchema>;
+export type CryptoAddressBookEntry = typeof cryptoAddressBook.$inferSelect;
+
+// Crypto transactions - tracks on-chain send/receive transactions
+export const cryptoTransactions = pgTable("crypto_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // send, receive
+  network: text("network").notNull(),
+  txHash: text("tx_hash").notNull(),
+  fromAddress: text("from_address").notNull(),
+  toAddress: text("to_address").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  token: text("token").notNull().default("USDT"),
+  status: text("status").notNull().default("pending"), // pending, confirmed, failed
+  gasUsed: decimal("gas_used", { precision: 18, scale: 8 }),
+  gasFee: decimal("gas_fee", { precision: 18, scale: 8 }),
+  explorerUrl: text("explorer_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCryptoTransactionSchema = createInsertSchema(cryptoTransactions).omit({ id: true, createdAt: true });
+export type InsertCryptoTransaction = z.infer<typeof insertCryptoTransactionSchema>;
+export type CryptoTransaction = typeof cryptoTransactions.$inferSelect;

@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets, webauthnCredentials, cryptoWallets,
+  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets, webauthnCredentials, cryptoWallets, cryptoAddressBook, cryptoTransactions,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -19,7 +19,9 @@ import {
   type EmailVerification, type InsertEmailVerification,
   type PasswordReset, type InsertPasswordReset,
   type WebAuthnCredential, type InsertWebAuthnCredential,
-  type CryptoWallet, type InsertCryptoWallet
+  type CryptoWallet, type InsertCryptoWallet,
+  type CryptoAddressBookEntry, type InsertCryptoAddressBook,
+  type CryptoTransaction, type InsertCryptoTransaction
 } from "@shared/schema";
 import crypto from "crypto";
 import { eq, and, desc, or, gte, sql } from "drizzle-orm";
@@ -100,6 +102,16 @@ export interface IStorage {
   createCryptoWallet(wallet: InsertCryptoWallet): Promise<CryptoWallet>;
   getUserCryptoWallet(userId: string): Promise<CryptoWallet | undefined>;
   updateCryptoWalletBackupStatus(userId: string, backedUp: boolean): Promise<CryptoWallet>;
+  
+  // Crypto Address Book
+  createAddressBookEntry(entry: InsertCryptoAddressBook): Promise<CryptoAddressBookEntry>;
+  getUserAddressBook(userId: string): Promise<CryptoAddressBookEntry[]>;
+  deleteAddressBookEntry(id: string, userId: string): Promise<void>;
+  
+  // Crypto Transactions
+  createCryptoTransaction(tx: InsertCryptoTransaction): Promise<CryptoTransaction>;
+  getUserCryptoTransactions(userId: string, limit?: number): Promise<CryptoTransaction[]>;
+  updateCryptoTransactionStatus(id: string, status: string): Promise<CryptoTransaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1083,6 +1095,47 @@ export class DatabaseStorage implements IStorage {
     const result = await db.update(cryptoWallets)
       .set({ seedBackedUp: backedUp })
       .where(eq(cryptoWallets.userId, userId))
+      .returning();
+    return result[0];
+  }
+
+  // Crypto Address Book
+  async createAddressBookEntry(entry: InsertCryptoAddressBook): Promise<CryptoAddressBookEntry> {
+    const result = await db.insert(cryptoAddressBook).values(entry).returning();
+    return result[0];
+  }
+
+  async getUserAddressBook(userId: string): Promise<CryptoAddressBookEntry[]> {
+    return await db.select().from(cryptoAddressBook)
+      .where(eq(cryptoAddressBook.userId, userId))
+      .orderBy(desc(cryptoAddressBook.createdAt));
+  }
+
+  async deleteAddressBookEntry(id: string, userId: string): Promise<void> {
+    await db.delete(cryptoAddressBook)
+      .where(and(
+        eq(cryptoAddressBook.id, id),
+        eq(cryptoAddressBook.userId, userId)
+      ));
+  }
+
+  // Crypto Transactions
+  async createCryptoTransaction(tx: InsertCryptoTransaction): Promise<CryptoTransaction> {
+    const result = await db.insert(cryptoTransactions).values(tx).returning();
+    return result[0];
+  }
+
+  async getUserCryptoTransactions(userId: string, limit: number = 50): Promise<CryptoTransaction[]> {
+    return await db.select().from(cryptoTransactions)
+      .where(eq(cryptoTransactions.userId, userId))
+      .orderBy(desc(cryptoTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async updateCryptoTransactionStatus(id: string, status: string): Promise<CryptoTransaction> {
+    const result = await db.update(cryptoTransactions)
+      .set({ status })
+      .where(eq(cryptoTransactions.id, id))
       .returning();
     return result[0];
   }

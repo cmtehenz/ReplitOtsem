@@ -2261,6 +2261,21 @@ export async function registerRoutes(
       }
       
       if (result.success) {
+        // Save crypto transaction
+        const fromAddress = networkConfig.type === "tron" ? wallet.tronAddress : wallet.evmAddress;
+        await storage.createCryptoTransaction({
+          userId,
+          type: "send",
+          network,
+          txHash: result.txHash || "",
+          fromAddress,
+          toAddress,
+          amount,
+          token: "USDT",
+          status: "confirmed",
+          explorerUrl: result.explorerUrl
+        });
+        
         // Create notification
         await storage.createNotification({
           userId,
@@ -2283,6 +2298,108 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Send USDT error:", error);
       res.status(500).json({ error: error.message || "Failed to send USDT" });
+    }
+  });
+
+  // Get native token balances (ETH, MATIC, BNB, etc. for gas fees)
+  app.get("/api/crypto/native-balances", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const wallet = await storage.getUserCryptoWallet(userId);
+      
+      if (!wallet) {
+        return res.json({ balances: {} });
+      }
+      
+      const balances = await walletService.getAllNativeBalances(
+        wallet.evmAddress,
+        wallet.tronAddress
+      );
+      
+      res.json({ balances });
+    } catch (error) {
+      console.error("Failed to get native balances:", error);
+      res.status(500).json({ error: "Failed to get native balances" });
+    }
+  });
+
+  // Get crypto transaction history
+  app.get("/api/crypto/transactions", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getUserCryptoTransactions(userId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Failed to get crypto transactions:", error);
+      res.status(500).json({ error: "Failed to get transactions" });
+    }
+  });
+
+  // Address Book - Get user's saved addresses
+  app.get("/api/crypto/address-book", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const addresses = await storage.getUserAddressBook(userId);
+      res.json(addresses);
+    } catch (error) {
+      console.error("Failed to get address book:", error);
+      res.status(500).json({ error: "Failed to get address book" });
+    }
+  });
+
+  // Address Book - Add new address
+  app.post("/api/crypto/address-book", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, address, network } = req.body;
+      
+      if (!name || !address || !network) {
+        return res.status(400).json({ error: "Name, address, and network are required" });
+      }
+      
+      // Validate address format
+      const networkConfig = walletService.SUPPORTED_NETWORKS[network as walletService.NetworkKey];
+      if (!networkConfig) {
+        return res.status(400).json({ error: "Invalid network" });
+      }
+      
+      let isValid = false;
+      if (networkConfig.type === "tron") {
+        isValid = walletService.validateTronAddress(address);
+      } else {
+        isValid = walletService.validateEvmAddress(address);
+      }
+      
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid address format" });
+      }
+      
+      const entry = await storage.createAddressBookEntry({
+        userId,
+        name,
+        address,
+        network
+      });
+      
+      res.json(entry);
+    } catch (error) {
+      console.error("Failed to add address:", error);
+      res.status(500).json({ error: "Failed to add address" });
+    }
+  });
+
+  // Address Book - Delete address
+  app.delete("/api/crypto/address-book/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { id } = req.params;
+      
+      await storage.deleteAddressBookEntry(id, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete address:", error);
+      res.status(500).json({ error: "Failed to delete address" });
     }
   });
 

@@ -1084,3 +1084,82 @@ export async function sendCryptoUsdt(
   }
   return response.json();
 }
+
+// Native token balances (for gas fees)
+export interface NativeBalances {
+  balances: Record<string, { balance: string; symbol: string }>;
+}
+
+export async function getNativeBalances(): Promise<NativeBalances> {
+  const response = await fetch(`${API_BASE}/crypto/native-balances`);
+  if (!response.ok) {
+    throw new Error("Failed to get native balances");
+  }
+  return response.json();
+}
+
+// Crypto transaction history
+export interface CryptoTransaction {
+  id: string;
+  userId: string;
+  type: "send" | "receive";
+  network: string;
+  txHash: string;
+  fromAddress: string;
+  toAddress: string;
+  amount: string;
+  token: string;
+  status: string;
+  gasUsed?: string;
+  gasFee?: string;
+  explorerUrl?: string;
+  createdAt: string;
+}
+
+export async function getCryptoTransactions(limit: number = 50): Promise<CryptoTransaction[]> {
+  const response = await fetch(`${API_BASE}/crypto/transactions?limit=${limit}`);
+  if (!response.ok) {
+    throw new Error("Failed to get crypto transactions");
+  }
+  return response.json();
+}
+
+// Address book
+export interface AddressBookEntry {
+  id: string;
+  userId: string;
+  name: string;
+  address: string;
+  network: string;
+  createdAt: string;
+}
+
+export async function getAddressBook(): Promise<AddressBookEntry[]> {
+  const response = await fetch(`${API_BASE}/crypto/address-book`);
+  if (!response.ok) {
+    throw new Error("Failed to get address book");
+  }
+  return response.json();
+}
+
+export async function addAddressBookEntry(name: string, address: string, network: string): Promise<AddressBookEntry> {
+  const response = await fetch(`${API_BASE}/crypto/address-book`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, address, network }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to add address");
+  }
+  return response.json();
+}
+
+export async function deleteAddressBookEntry(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/crypto/address-book/${id}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to delete address");
+  }
+}

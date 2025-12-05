@@ -318,6 +318,51 @@ export async function getAllUsdtBalances(
   return balances as Record<NetworkKey, string>;
 }
 
+export async function getNativeBalance(
+  address: string,
+  network: NetworkKey
+): Promise<string> {
+  const networkConfig = SUPPORTED_NETWORKS[network];
+  
+  try {
+    if (networkConfig.type === "tron") {
+      const response = await fetch(`https://apilist.tronscanapi.com/api/account?address=${address}`);
+      if (!response.ok) return "0.000000";
+      const data = await response.json();
+      const balance = data.balance ? parseFloat(data.balance) / 1e6 : 0;
+      return balance.toFixed(6);
+    } else {
+      const provider = new ethers.JsonRpcProvider(networkConfig.rpcUrl);
+      const balance = await provider.getBalance(address);
+      const formatted = ethers.formatEther(balance);
+      return parseFloat(formatted).toFixed(6);
+    }
+  } catch (error) {
+    console.error(`Failed to get native balance on ${network}:`, error);
+    return "0.000000";
+  }
+}
+
+export async function getAllNativeBalances(
+  evmAddress: string,
+  tronAddress: string
+): Promise<Record<NetworkKey, { balance: string; symbol: string }>> {
+  const balances: Record<string, { balance: string; symbol: string }> = {};
+  
+  const promises = Object.entries(SUPPORTED_NETWORKS).map(async ([key, config]) => {
+    const address = config.type === "tron" ? tronAddress : evmAddress;
+    try {
+      const balance = await getNativeBalance(address, key as NetworkKey);
+      balances[key] = { balance, symbol: config.symbol };
+    } catch {
+      balances[key] = { balance: "0.000000", symbol: config.symbol };
+    }
+  });
+  
+  await Promise.all(promises);
+  return balances as Record<NetworkKey, { balance: string; symbol: string }>;
+}
+
 const ERC20_TRANSFER_ABI = [
   "function transfer(address to, uint256 amount) returns (bool)",
   "function balanceOf(address owner) view returns (uint256)",
