@@ -5,12 +5,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { executeExchange, getWallets, getRates } from "@/lib/api";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLocation } from "wouter";
 
 export function ExchangeCard() {
   const [mode, setMode] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const queryClient = useQueryClient();
   const { t } = useLanguage();
+  const [, setLocation] = useLocation();
 
   const { data: rates, isLoading: ratesLoading, error: ratesError, refetch: refetchRates } = useQuery({
     queryKey: ["rates"],
@@ -30,8 +32,22 @@ export function ExchangeCard() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success(t("exchange.success"));
+      
+      const outputAmount = calculateOutput();
+      const exchangeData = {
+        fromAmount: amount,
+        fromCurrency,
+        toAmount: outputAmount,
+        toCurrency,
+        rate: currentRate.toFixed(2),
+        fee: rates?.fee?.toString() || "0.95",
+        feePercent: rates?.fee?.toString() || "0.95",
+        transactionId: result?.transactionId || `EX-${Date.now().toString(36).toUpperCase()}`,
+      };
+      sessionStorage.setItem("lastExchange", JSON.stringify(exchangeData));
+      
       setAmount("");
+      setLocation("/exchange-success");
     },
     onError: (error: any) => {
       toast.error(error.message || t("exchange.failed"));
