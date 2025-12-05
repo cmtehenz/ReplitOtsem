@@ -911,12 +911,59 @@ function Disable2FAView({ t, setView, onComplete }: { t: any; setView: (view: Se
 }
 
 function LoginHistoryView({ t, setView }: { t: any; setView: (view: SecurityView) => void }) {
-  const loginHistory = [
-    { device: "iPhone 14 Pro", location: "São Paulo, BR", time: "Now", current: true },
-    { device: "MacBook Pro", location: "São Paulo, BR", time: "2 hours ago", current: false },
-    { device: "Windows PC", location: "Rio de Janeiro, BR", time: "Yesterday", current: false },
-    { device: "iPad Pro", location: "São Paulo, BR", time: "3 days ago", current: false },
-  ];
+  const { language } = useLanguage();
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLoginHistory = async () => {
+      try {
+        const response = await fetch("/api/auth/login-history");
+        if (response.ok) {
+          const data = await response.json();
+          setSessions(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch login history:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLoginHistory();
+  }, []);
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMins < 5) return language === "pt-BR" ? "Agora" : "Now";
+    if (diffHours < 1) return language === "pt-BR" ? `${diffMins} min atrás` : `${diffMins} min ago`;
+    if (diffHours < 24) return language === "pt-BR" ? `${diffHours}h atrás` : `${diffHours}h ago`;
+    if (diffDays === 1) return language === "pt-BR" ? "Ontem" : "Yesterday";
+    return language === "pt-BR" ? `${diffDays} dias atrás` : `${diffDays} days ago`;
+  };
+
+  const parseDeviceInfo = (deviceInfo: string | null) => {
+    if (!deviceInfo) return language === "pt-BR" ? "Dispositivo desconhecido" : "Unknown device";
+    
+    if (deviceInfo.includes("Chrome")) return "Chrome Browser";
+    if (deviceInfo.includes("Firefox")) return "Firefox Browser";
+    if (deviceInfo.includes("Safari") && !deviceInfo.includes("Chrome")) return "Safari Browser";
+    if (deviceInfo.includes("Edge")) return "Edge Browser";
+    if (deviceInfo.includes("iPhone")) return "iPhone";
+    if (deviceInfo.includes("iPad")) return "iPad";
+    if (deviceInfo.includes("Android")) return "Android Device";
+    if (deviceInfo.includes("Mac")) return "MacOS";
+    if (deviceInfo.includes("Windows")) return "Windows PC";
+    if (deviceInfo.includes("Linux")) return "Linux";
+    
+    return deviceInfo.substring(0, 30);
+  };
 
   return (
     <motion.div 
@@ -937,44 +984,57 @@ function LoginHistoryView({ t, setView }: { t: any; setView: (view: SecurityView
         <div className="w-10" />
       </div>
 
-      <div className="space-y-3">
-        {loginHistory.map((session, i) => (
-          <div 
-            key={i}
-            className={cn(
-              "glass-card rounded-2xl p-4 border",
-              session.current ? "border-primary/30 bg-primary/5" : "border-white/10"
-            )}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center",
-                  session.current ? "bg-primary/10" : "bg-white/5"
-                )}>
-                  <Smartphone className={cn(
-                    "w-5 h-5",
-                    session.current ? "text-primary" : "text-white"
-                  )} />
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </div>
+      ) : sessions.length === 0 ? (
+        <div className="text-center py-10 text-muted-foreground">
+          {language === "pt-BR" ? "Nenhum histórico de login" : "No login history"}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sessions.map((session, i) => (
+            <div 
+              key={session.id || i}
+              className={cn(
+                "glass-card rounded-2xl p-4 border",
+                session.isCurrent ? "border-primary/30 bg-primary/5" : "border-white/10"
+              )}
+              data-testid={`login-session-${i}`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center",
+                    session.isCurrent ? "bg-primary/10" : "bg-white/5"
+                  )}>
+                    <Smartphone className={cn(
+                      "w-5 h-5",
+                      session.isCurrent ? "text-primary" : "text-white"
+                    )} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">{parseDeviceInfo(session.deviceInfo)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {session.location || session.ipAddress || (language === "pt-BR" ? "Local desconhecido" : "Unknown location")}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold">{session.device}</p>
-                  <p className="text-xs text-muted-foreground">{session.location}</p>
+                <div className="text-right">
+                  {session.isCurrent ? (
+                    <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
+                      {t.current}
+                    </span>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{formatTime(session.createdAt)}</p>
+                  )}
                 </div>
-              </div>
-              <div className="text-right">
-                {session.current ? (
-                  <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-1 rounded-full">
-                    {t.current}
-                  </span>
-                ) : (
-                  <p className="text-xs text-muted-foreground">{session.time}</p>
-                )}
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 }

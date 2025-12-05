@@ -1,92 +1,31 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { motion } from "framer-motion";
-import { TrendingUp, Flame, Activity, ExternalLink } from "lucide-react";
+import { TrendingUp, Flame, Activity, ExternalLink, Loader2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { cn } from "@/lib/utils";
-
-interface NewsItem {
-  id: number;
-  titleEn: string;
-  titlePt: string;
-  descriptionEn: string;
-  descriptionPt: string;
-  category: "breaking" | "market" | "general";
-  timestamp: string;
-  trend: number;
-  source: string;
-}
-
-const newsData: NewsItem[] = [
-  {
-    id: 1,
-    titleEn: "Bitcoin Surges to New Monthly High",
-    titlePt: "Bitcoin Atinge Nova Máxima Mensal",
-    descriptionEn: "Bitcoin breaks through $45,000 barrier amid renewed institutional interest and positive macroeconomic outlook.",
-    descriptionPt: "Bitcoin ultrapassa a barreira de $45.000 em meio a renovado interesse institucional e perspectiva macroeconômica positiva.",
-    category: "breaking",
-    timestamp: "2 hours ago",
-    trend: 12.5,
-    source: "CryptoSlate",
-  },
-  {
-    id: 2,
-    titleEn: "Ethereum Layer-2 Solutions See Record Adoption",
-    titlePt: "Soluções Ethereum Layer-2 Registram Adoção Recorde",
-    descriptionEn: "Arbitrum and Optimism TVL reaches $5B as developers migrate from Layer-1 due to lower fees.",
-    descriptionPt: "TVL de Arbitrum e Optimism atinge $5B enquanto desenvolvedores migram da Layer-1 devido a taxas mais baixas.",
-    category: "market",
-    timestamp: "4 hours ago",
-    trend: 8.3,
-    source: "Cointelegraph",
-  },
-  {
-    id: 3,
-    titleEn: "XRP Rallies on Favorable Regulatory News",
-    titlePt: "XRP Sobe com Notícias Regulatórias Favoráveis",
-    descriptionEn: "Ripple's native token gains 15% following positive developments in SEC settlement discussions.",
-    descriptionPt: "Token nativo do Ripple ganha 15% após desenvolvimentos positivos em discussões de acordo com a SEC.",
-    category: "breaking",
-    timestamp: "6 hours ago",
-    trend: 15.2,
-    source: "CryptoSlate",
-  },
-  {
-    id: 4,
-    titleEn: "DeFi Protocols Generate Record Revenue",
-    titlePt: "Protocolos DeFi Geram Receita Recorde",
-    descriptionEn: "Top DeFi platforms report $2.3M in weekly revenue as trading volume increases 40% YoY.",
-    descriptionPt: "Principais plataformas DeFi relatam $2,3M em receita semanal conforme volume de negociação aumenta 40% YoY.",
-    category: "market",
-    timestamp: "8 hours ago",
-    trend: 7.1,
-    source: "Cointelegraph",
-  },
-  {
-    id: 5,
-    titleEn: "Solana Network Reaches 600K Daily Active Users",
-    titlePt: "Rede Solana Atinge 600K Usuários Ativos Diários",
-    descriptionEn: "Solana ecosystem demonstrates strong growth momentum with increased validator participation and network stability.",
-    descriptionPt: "Ecossistema Solana demonstra forte impulso de crescimento com aumento na participação de validadores e estabilidade de rede.",
-    category: "general",
-    timestamp: "10 hours ago",
-    trend: 5.8,
-    source: "CryptoSlate",
-  },
-  {
-    id: 6,
-    titleEn: "Staking Rewards Hit Record High",
-    titlePt: "Recompensas de Staking Atingem Máxima Recorde",
-    descriptionEn: "Average staking APY across major networks reaches 12.5% as more users participate in proof-of-stake.",
-    descriptionPt: "APY médio de staking em redes principais atinge 12,5% conforme mais usuários participam de prova de participação.",
-    category: "market",
-    timestamp: "12 hours ago",
-    trend: 9.4,
-    source: "Cointelegraph",
-  },
-];
+import { useEffect, useState } from "react";
+import { getCryptoNews, type CryptoNews } from "@/lib/api";
 
 export default function Feed() {
   const { language, t } = useLanguage();
+  const [news, setNews] = useState<CryptoNews[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const lang = language === "pt-BR" ? "pt" : "en";
+        const data = await getCryptoNews(lang);
+        setNews(data);
+      } catch (error) {
+        console.error("Failed to fetch news:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNews();
+  }, [language]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -110,18 +49,27 @@ export default function Feed() {
     }
   };
 
-  const getTitle = (item: NewsItem) => {
-    return language === "pt-BR" ? item.titlePt : item.titleEn;
-  };
-
-  const getDescription = (item: NewsItem) => {
-    return language === "pt-BR" ? item.descriptionPt : item.descriptionEn;
-  };
-
   const getCategoryLabel = (category: string) => {
     if (category === "breaking") return language === "pt-BR" ? "Destaque" : "Breaking";
     if (category === "market") return language === "pt-BR" ? "Mercado" : "Market";
     return language === "pt-BR" ? "Geral" : "General";
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    
+    if (diffHours < 1) {
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      return language === "pt-BR" ? `${diffMins} min atrás` : `${diffMins} min ago`;
+    }
+    if (diffHours < 24) {
+      return language === "pt-BR" ? `${diffHours}h atrás` : `${diffHours}h ago`;
+    }
+    const diffDays = Math.floor(diffHours / 24);
+    return language === "pt-BR" ? `${diffDays}d atrás` : `${diffDays}d ago`;
   };
 
   return (
@@ -132,58 +80,63 @@ export default function Feed() {
           <p className="text-sm text-muted-foreground font-medium">{t("feed.latest")}</p>
         </div>
 
-        {/* News Feed */}
-        <div className="space-y-4">
-          {newsData.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="glass-card rounded-3xl p-5 hover:bg-white/10 transition-all duration-300 cursor-pointer group active:scale-[0.98]"
-            >
-              <div className="space-y-4">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={cn("p-2 rounded-lg border flex items-center justify-center", getCategoryColor(item.category))}>
-                        {getCategoryIcon(item.category)}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {news.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="glass-card rounded-3xl p-5 hover:bg-white/10 transition-all duration-300 cursor-pointer group active:scale-[0.98]"
+                data-testid={`news-item-${item.id}`}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={cn("p-2 rounded-lg border flex items-center justify-center", getCategoryColor(item.category))}>
+                          {getCategoryIcon(item.category)}
+                        </div>
+                        <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border", getCategoryColor(item.category))}>
+                          {getCategoryLabel(item.category)}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground font-medium">{formatTimestamp(item.timestamp)}</span>
                       </div>
-                      <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border", getCategoryColor(item.category))}>
-                        {getCategoryLabel(item.category)}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground font-medium">{item.timestamp}</span>
+                      <h3 className="font-bold text-base leading-tight group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
                     </div>
-                    <h3 className="font-bold text-base leading-tight group-hover:text-primary transition-colors">
-                      {getTitle(item)}
-                    </h3>
+                    {item.trend > 0 && (
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          +{item.trend.toFixed(1)}%
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-green-400 font-bold text-sm bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      +{item.trend.toFixed(1)}%
-                    </div>
+
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                    {item.description}
+                  </p>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span className="text-xs text-muted-foreground font-medium">{item.source}</span>
+                    <button className="flex items-center gap-1.5 text-xs font-bold text-primary hover:gap-2 transition-all group/btn">
+                      {t("feed.readMore")}
+                      <ExternalLink className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
+                    </button>
                   </div>
                 </div>
-
-                {/* Description */}
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                  {getDescription(item)}
-                </p>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                  <span className="text-xs text-muted-foreground font-medium">{item.source}</span>
-                  <button className="flex items-center gap-1.5 text-xs font-bold text-primary hover:gap-2 transition-all group/btn">
-                    {t("feed.readMore")}
-                    <ExternalLink className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       <BottomNav active="feed" />

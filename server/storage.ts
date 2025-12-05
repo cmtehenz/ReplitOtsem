@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  referralCodes, referrals,
+  referralCodes, referrals, loginSessions, kycDocuments,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -11,7 +11,9 @@ import {
   type WebhookLog, type InsertWebhookLog,
   type Notification, type InsertNotification,
   type ReferralCode, type InsertReferralCode,
-  type Referral, type InsertReferral
+  type Referral, type InsertReferral,
+  type LoginSession, type InsertLoginSession,
+  type KycDocument, type InsertKycDocument
 } from "@shared/schema";
 import { eq, and, desc, or, gte, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
@@ -683,6 +685,155 @@ export class DatabaseStorage implements IStorage {
       .where(eq(referrals.id, id))
       .returning();
     return result[0];
+  }
+
+  // Login Sessions
+  async createLoginSession(session: InsertLoginSession): Promise<LoginSession> {
+    const result = await db.insert(loginSessions).values(session).returning();
+    return result[0];
+  }
+
+  async getUserLoginSessions(userId: string, limit: number = 10): Promise<LoginSession[]> {
+    return await db.select().from(loginSessions)
+      .where(eq(loginSessions.userId, userId))
+      .orderBy(desc(loginSessions.createdAt))
+      .limit(limit);
+  }
+
+  async updateSessionActivity(sessionId: string, userId: string): Promise<void> {
+    await db.update(loginSessions)
+      .set({ lastActiveAt: new Date() })
+      .where(and(
+        eq(loginSessions.sessionId, sessionId),
+        eq(loginSessions.userId, userId)
+      ));
+  }
+
+  async markSessionAsCurrent(sessionId: string, userId: string): Promise<void> {
+    // First, unmark all current sessions
+    await db.update(loginSessions)
+      .set({ isCurrent: false })
+      .where(eq(loginSessions.userId, userId));
+    
+    // Mark the specified session as current
+    await db.update(loginSessions)
+      .set({ isCurrent: true })
+      .where(and(
+        eq(loginSessions.sessionId, sessionId),
+        eq(loginSessions.userId, userId)
+      ));
+  }
+
+  async deleteUserLoginSessions(userId: string): Promise<void> {
+    await db.delete(loginSessions).where(eq(loginSessions.userId, userId));
+  }
+
+  // KYC Documents
+  async createKycDocument(doc: InsertKycDocument): Promise<KycDocument> {
+    const result = await db.insert(kycDocuments).values(doc).returning();
+    return result[0];
+  }
+
+  async getUserKycDocuments(userId: string): Promise<KycDocument[]> {
+    return await db.select().from(kycDocuments)
+      .where(eq(kycDocuments.userId, userId))
+      .orderBy(desc(kycDocuments.createdAt));
+  }
+
+  async updateKycDocument(id: string, updates: Partial<KycDocument>): Promise<KycDocument> {
+    const result = await db.update(kycDocuments)
+      .set(updates)
+      .where(eq(kycDocuments.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async updateUserKycLevel(userId: string, kycLevel: string): Promise<User> {
+    const result = await db.update(users)
+      .set({ 
+        kycLevel,
+        kycVerifiedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  }
+
+  // Transaction Stats
+  async getTransactionStats(userId: string): Promise<{
+    totalIncome: number;
+    totalExpense: number;
+    weeklyData: { day: string; income: number; expense: number }[];
+    categoryBreakdown: { category: string; amount: number; percent: number }[];
+  }> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const userTransactions = await db.select().from(transactions)
+      .where(and(
+        eq(transactions.userId, userId),
+        eq(transactions.status, "completed"),
+        gte(transactions.createdAt, thirtyDaysAgo)
+      ))
+      .orderBy(desc(transactions.createdAt));
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const dailyData: { [key: string]: { income: number; expense: number } } = {};
+    const categoryData: { [key: string]: number } = {};
+
+    // Process transactions
+    for (const tx of userTransactions) {
+      const amount = parseFloat(tx.toAmount || tx.fromAmount || "0");
+      const date = tx.createdAt.toISOString().split('T')[0];
+      
+      if (!dailyData[date]) {
+        dailyData[date] = { income: 0, expense: 0 };
+      }
+
+      if (tx.type === "deposit") {
+        totalIncome += amount;
+        dailyData[date].income += amount;
+        categoryData["Deposits"] = (categoryData["Deposits"] || 0) + amount;
+      } else if (tx.type === "withdrawal") {
+        totalExpense += amount;
+        dailyData[date].expense += amount;
+        categoryData["Withdrawals"] = (categoryData["Withdrawals"] || 0) + amount;
+      } else if (tx.type === "exchange") {
+        const fromAmount = parseFloat(tx.fromAmount || "0");
+        categoryData["Exchanges"] = (categoryData["Exchanges"] || 0) + fromAmount;
+      }
+    }
+
+    // Generate last 7 days data
+    const weeklyData: { day: string; income: number; expense: number }[] = [];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayName = days[date.getDay()];
+      weeklyData.push({
+        day: dayName,
+        income: dailyData[dateStr]?.income || 0,
+        expense: dailyData[dateStr]?.expense || 0
+      });
+    }
+
+    // Calculate category breakdown
+    const totalActivity = Object.values(categoryData).reduce((a, b) => a + b, 0);
+    const categoryBreakdown = Object.entries(categoryData).map(([category, amount]) => ({
+      category,
+      amount,
+      percent: totalActivity > 0 ? Math.round((amount / totalActivity) * 100) : 0
+    }));
+
+    return {
+      totalIncome,
+      totalExpense,
+      weeklyData,
+      categoryBreakdown
+    };
   }
 }
 
