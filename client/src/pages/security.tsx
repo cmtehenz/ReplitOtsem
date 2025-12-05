@@ -268,7 +268,7 @@ function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabl
       exit={{ opacity: 0 }}
       className="p-6 flex flex-col h-full space-y-8"
     >
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 mb-4 border-b border-white/5">
         <button 
           onClick={() => setLocation("/profile")}
           className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
@@ -547,7 +547,7 @@ function ChangePasswordView({ t, setView }: { t: any; setView: (view: SecurityVi
       exit={{ opacity: 0, x: -20 }}
       className="p-6 flex flex-col h-full space-y-8"
     >
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 mb-4 border-b border-white/5">
         <button 
           onClick={() => setView("main")}
           className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
@@ -962,7 +962,7 @@ function Disable2FAView({ t, setView, onComplete }: { t: any; setView: (view: Se
       exit={{ opacity: 0, x: -20 }}
       className="p-6 flex flex-col h-full space-y-8"
     >
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 mb-4 border-b border-white/5">
         <button 
           onClick={() => setView("main")}
           className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
@@ -1087,7 +1087,7 @@ function LoginHistoryView({ t, setView }: { t: any; setView: (view: SecurityView
       exit={{ opacity: 0, x: -20 }}
       className="p-6 flex flex-col h-full space-y-6"
     >
-      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
+      <div className="flex items-center justify-between sticky top-0 z-10 bg-background/50 backdrop-blur-xl p-4 -m-4 mb-4 border-b border-white/5">
         <button 
           onClick={() => setView("main")}
           className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
