@@ -266,6 +266,204 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SECURITY ROUTES ====================
+
+  // Change password
+  app.post("/api/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const changePasswordSchema = z.object({
+        currentPassword: z.string().min(1),
+        newPassword: z.string().min(8).regex(/\d/, "Password must contain at least one number"),
+      });
+
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify current password
+      const isValid = await storage.validatePassword(user, currentPassword);
+      if (!isValid) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Update password
+      await storage.updatePassword(user.id, newPassword);
+
+      // Create security notification
+      await notificationService.createNotification(user.id, "security_alert", {
+        title: "Password Changed",
+        message: "Your password was successfully changed.",
+      });
+
+      res.json({ success: true, message: "Password updated successfully" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // Setup 2FA - Generate secret and backup codes
+  app.post("/api/auth/2fa/setup", requireAuth, async (req, res) => {
+    try {
+      const { TOTP, Secret } = await import("otpauth");
+      
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.twoFactorEnabled) {
+        return res.status(400).json({ error: "2FA is already enabled" });
+      }
+
+      // Generate a new secret
+      const secret = new Secret({ size: 20 });
+      
+      // Create TOTP instance
+      const totp = new TOTP({
+        issuer: "OtsemPay",
+        label: user.email,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+
+      // Generate backup codes
+      const backupCodes: string[] = [];
+      for (let i = 0; i < 6; i++) {
+        const code = crypto.randomBytes(6).toString("hex").toUpperCase();
+        backupCodes.push(`${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}`);
+      }
+
+      // Store secret and hashed backup codes (but don't enable 2FA yet)
+      await storage.setup2FA(user.id, secret.base32, backupCodes);
+
+      res.json({
+        secret: secret.base32,
+        otpAuthUrl: totp.toString(),
+        backupCodes: backupCodes,
+      });
+    } catch (error) {
+      console.error("2FA setup error:", error);
+      res.status(500).json({ error: "Failed to setup 2FA" });
+    }
+  });
+
+  // Verify 2FA code and enable
+  app.post("/api/auth/2fa/verify", requireAuth, async (req, res) => {
+    try {
+      const { TOTP, Secret } = await import("otpauth");
+      
+      const verifySchema = z.object({
+        code: z.string().length(6),
+      });
+
+      const { code } = verifySchema.parse(req.body);
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.twoFactorSecret) {
+        return res.status(400).json({ error: "2FA not set up. Please run setup first." });
+      }
+
+      // Verify the TOTP code
+      const secret = Secret.fromBase32(user.twoFactorSecret);
+      const totp = new TOTP({
+        issuer: "OtsemPay",
+        label: user.email,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+
+      const delta = totp.validate({ token: code, window: 1 });
+      if (delta === null) {
+        return res.status(401).json({ error: "Invalid verification code" });
+      }
+
+      // Enable 2FA
+      await storage.enable2FA(user.id);
+
+      // Create security notification
+      await notificationService.createNotification(user.id, "security_alert", {
+        title: "2FA Enabled",
+        message: "Two-factor authentication has been enabled on your account.",
+      });
+
+      res.json({ success: true, message: "2FA enabled successfully" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
+  // Disable 2FA
+  app.post("/api/auth/2fa/disable", requireAuth, async (req, res) => {
+    try {
+      const disableSchema = z.object({
+        password: z.string().min(1),
+      });
+
+      const { password } = disableSchema.parse(req.body);
+
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Verify password before disabling 2FA
+      const isValid = await storage.validatePassword(user, password);
+      if (!isValid) {
+        return res.status(401).json({ error: "Password is incorrect" });
+      }
+
+      // Disable 2FA
+      await storage.disable2FA(user.id);
+
+      // Create security notification
+      await notificationService.createNotification(user.id, "security_alert", {
+        title: "2FA Disabled",
+        message: "Two-factor authentication has been disabled on your account.",
+      });
+
+      res.json({ success: true, message: "2FA disabled successfully" });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to disable 2FA" });
+    }
+  });
+
+  // Get 2FA status
+  app.get("/api/auth/2fa/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        enabled: user.twoFactorEnabled || false,
+        hasSecret: !!user.twoFactorSecret,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get 2FA status" });
+    }
+  });
+
   // ==================== WALLET ROUTES ====================
 
   // Get user wallets

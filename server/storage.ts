@@ -130,6 +130,82 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
+  async updatePassword(id: string, newPassword: string): Promise<User> {
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const result = await db.update(users)
+      .set({ 
+        password: hashedPassword,
+        passwordChangedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("User not found");
+    }
+    return result[0];
+  }
+
+  async setup2FA(id: string, secret: string, backupCodes: string[]): Promise<User> {
+    // Hash backup codes before storing
+    const hashedBackupCodes = await Promise.all(
+      backupCodes.map(code => bcrypt.hash(code, SALT_ROUNDS))
+    );
+    
+    const result = await db.update(users)
+      .set({ 
+        twoFactorSecret: secret,
+        backupCodes: JSON.stringify(hashedBackupCodes)
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("User not found");
+    }
+    return result[0];
+  }
+
+  async enable2FA(id: string): Promise<User> {
+    const result = await db.update(users)
+      .set({ twoFactorEnabled: true })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("User not found");
+    }
+    return result[0];
+  }
+
+  async disable2FA(id: string): Promise<User> {
+    const result = await db.update(users)
+      .set({ 
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        backupCodes: null
+      })
+      .where(eq(users.id, id))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("User not found");
+    }
+    return result[0];
+  }
+
+  async validateBackupCode(user: User, code: string): Promise<boolean> {
+    if (!user.backupCodes) return false;
+    
+    const hashedCodes: string[] = JSON.parse(user.backupCodes);
+    for (const hashedCode of hashedCodes) {
+      if (await bcrypt.compare(code, hashedCode)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   // Wallets
   async getUserWallets(userId: string): Promise<Wallet[]> {
     return await db.select().from(wallets).where(eq(wallets.userId, userId));

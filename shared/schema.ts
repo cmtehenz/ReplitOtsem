@@ -14,6 +14,11 @@ export const users = pgTable("users", {
   cpf: text("cpf"), // Brazilian CPF for PIX
   profilePhoto: text("profile_photo"), // Base64 or URL
   verified: boolean("verified").default(false),
+  // 2FA fields
+  twoFactorSecret: text("two_factor_secret"), // TOTP secret key
+  twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  backupCodes: text("backup_codes"), // JSON array of hashed backup codes
+  passwordChangedAt: timestamp("password_changed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
