@@ -6,6 +6,7 @@ import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPixDeposit, getWallets, getPixKeys, createPixWithdrawal } from "@/lib/api";
 import { toast } from "sonner";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ActionButtonsProps {
   onSend?: () => void;
@@ -13,6 +14,8 @@ interface ActionButtonsProps {
 }
 
 export function ActionButtons({ onSend, onReceive }: ActionButtonsProps) {
+  const { language } = useLanguage();
+  
   const scrollToExchange = () => {
     const element = document.getElementById('exchange-section');
     if (element) {
@@ -32,7 +35,9 @@ export function ActionButtons({ onSend, onReceive }: ActionButtonsProps) {
         <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-white group-hover:bg-white/20 transition-all duration-300 border border-white/5">
           <RefreshCw className="w-6 h-6" />
         </div>
-        <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">Swap</span>
+        <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">
+          {language === "pt-BR" ? "Trocar" : "Swap"}
+        </span>
       </div>
       <TopUpButton />
     </div>
@@ -44,6 +49,21 @@ function SendPixButton() {
   const [pixKey, setPixKey] = useState("");
   const [amount, setAmount] = useState("");
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
+
+  const t = {
+    pixSend: language === "pt-BR" ? "Enviar Pix" : "Pix Send",
+    sendPix: language === "pt-BR" ? "Enviar Pix" : "Send Pix",
+    available: language === "pt-BR" ? "Disponível" : "Available",
+    pixKeyLabel: language === "pt-BR" ? "Chave Pix (CPF, Email, Telefone)" : "Pix Key (CPF, Email, Phone)",
+    pixKeyPlaceholder: language === "pt-BR" ? "usuario@email.com" : "user@example.com",
+    amountBrl: language === "pt-BR" ? "Valor (BRL)" : "Amount (BRL)",
+    confirmTransfer: language === "pt-BR" ? "Confirmar Transferência" : "Confirm Transfer",
+    enterPixKey: language === "pt-BR" ? "Digite uma chave PIX" : "Please enter a PIX key",
+    minAmount: language === "pt-BR" ? "Valor mínimo é R$ 1,00" : "Minimum amount is R$ 1.00",
+    insufficientBalance: language === "pt-BR" ? "Saldo insuficiente" : "Insufficient balance",
+    comingSoon: language === "pt-BR" ? "Transferências PIX para chaves externas em breve!" : "PIX transfers to external keys coming soon!",
+  };
 
   const { data: wallets } = useQuery({
     queryKey: ["wallets"],
@@ -54,18 +74,18 @@ function SendPixButton() {
 
   const handleSend = () => {
     if (!pixKey.trim()) {
-      toast.error("Please enter a PIX key");
+      toast.error(t.enterPixKey);
       return;
     }
     if (!amount || parseFloat(amount) < 1) {
-      toast.error("Minimum amount is R$ 1.00");
+      toast.error(t.minAmount);
       return;
     }
     if (parseFloat(amount) > parseFloat(brlBalance)) {
-      toast.error("Insufficient balance");
+      toast.error(t.insufficientBalance);
       return;
     }
-    toast.info("PIX transfers to external keys coming soon!");
+    toast.info(t.comingSoon);
     setOpen(false);
     setPixKey("");
     setAmount("");
@@ -78,22 +98,22 @@ function SendPixButton() {
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 border border-primary/20">
             <ArrowUpRight className="w-6 h-6" />
           </div>
-          <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">Pix Send</span>
+          <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{t.pixSend}</span>
         </div>
       </DialogTrigger>
       <DialogContent className="bg-card border-white/10 sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl font-display">Send Pix</DialogTitle>
+          <DialogTitle className="text-center text-xl font-display">{t.sendPix}</DialogTitle>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="text-center text-sm text-muted-foreground">
-            Available: <span className="text-white font-bold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
+            {t.available}: <span className="text-white font-bold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Chave Pix (CPF, Email, Phone)</label>
+            <label className="text-sm text-muted-foreground">{t.pixKeyLabel}</label>
             <input 
               type="text" 
-              placeholder="user@example.com"
+              placeholder={t.pixKeyPlaceholder}
               value={pixKey}
               onChange={(e) => setPixKey(e.target.value)}
               className="w-full bg-background border border-white/10 rounded-xl p-4 text-lg focus:outline-none focus:border-primary/50 transition-colors"
@@ -101,12 +121,12 @@ function SendPixButton() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Amount (BRL)</label>
+            <label className="text-sm text-muted-foreground">{t.amountBrl}</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
               <input 
                 type="number" 
-                placeholder="0.00"
+                placeholder="0,00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 min="1"
@@ -121,7 +141,7 @@ function SendPixButton() {
             onClick={handleSend}
             data-testid="button-confirm-send"
           >
-            Confirm Transfer
+            {t.confirmTransfer}
           </Button>
         </div>
       </DialogContent>
@@ -134,6 +154,21 @@ function ReceivePixButton() {
   const [amount, setAmount] = useState("");
   const [pixData, setPixData] = useState<{ pixCopiaECola: string; txid: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const { language, t } = useLanguage();
+
+  const labels = {
+    pixReceive: language === "pt-BR" ? "Receber Pix" : "Pix Receive",
+    receiveViaPix: language === "pt-BR" ? "Receber via PIX" : "Receive via PIX",
+    pixPayment: language === "pt-BR" ? "Pagamento PIX" : "PIX Payment",
+    amountBrl: language === "pt-BR" ? "Valor (BRL)" : "Amount (BRL)",
+    generatePix: language === "pt-BR" ? "Gerar PIX" : "Generate PIX",
+    scanOrCopy: language === "pt-BR" ? "Escaneie o QR code ou copie a chave abaixo" : "Scan the QR code or copy the key below",
+    pixCopyPaste: language === "pt-BR" ? "PIX Copia e Cola" : "PIX Copy & Paste",
+    copied: language === "pt-BR" ? "Copiado!" : "Copied!",
+    copyPixKey: language === "pt-BR" ? "Copiar Chave PIX" : "Copy PIX Key",
+    minDeposit: language === "pt-BR" ? "Depósito mínimo é R$ 1,00" : "Minimum deposit is R$ 1.00",
+    copiedToClipboard: language === "pt-BR" ? "Copiado para a área de transferência!" : "Copied to clipboard!",
+  };
 
   const depositMutation = useMutation({
     mutationFn: createPixDeposit,
@@ -141,13 +176,13 @@ function ReceivePixButton() {
       setPixData({ pixCopiaECola: data.pixCopiaECola, txid: data.txid });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create deposit");
+      toast.error(error.message || (language === "pt-BR" ? "Falha ao criar depósito" : "Failed to create deposit"));
     },
   });
 
   const handleCreateDeposit = () => {
     if (!amount || parseFloat(amount) < 1) {
-      toast.error("Minimum deposit is R$ 1.00");
+      toast.error(labels.minDeposit);
       return;
     }
     depositMutation.mutate(amount);
@@ -157,7 +192,7 @@ function ReceivePixButton() {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCopiaECola);
       setCopied(true);
-      toast.success("Copied to clipboard!");
+      toast.success(labels.copiedToClipboard);
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -175,25 +210,25 @@ function ReceivePixButton() {
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 border border-primary/20">
             <ArrowDownLeft className="w-6 h-6" />
           </div>
-          <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">Pix Receive</span>
+          <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{labels.pixReceive}</span>
         </div>
       </DialogTrigger>
       <DialogContent className="bg-card border-white/10 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-display">
-            {pixData ? "PIX Payment" : "Receive via PIX"}
+            {pixData ? labels.pixPayment : labels.receiveViaPix}
           </DialogTitle>
         </DialogHeader>
         
         {!pixData ? (
           <div className="space-y-6 py-4">
             <div className="space-y-3">
-              <label className="text-base text-muted-foreground font-bold ml-1">Amount (BRL)</label>
+              <label className="text-base text-muted-foreground font-bold ml-1">{labels.amountBrl}</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                 <input 
                   type="number" 
-                  placeholder="0.00"
+                  placeholder="0,00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   min="1"
@@ -212,7 +247,7 @@ function ReceivePixButton() {
               {depositMutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Generate PIX"
+                labels.generatePix
               )}
             </Button>
           </div>
@@ -224,11 +259,11 @@ function ReceivePixButton() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Scan the QR code or copy the key below</p>
+              <p className="text-sm text-muted-foreground">{labels.scanOrCopy}</p>
               <p className="text-2xl font-bold text-primary">R$ {parseFloat(amount).toFixed(2)}</p>
             </div>
             <div className="bg-background/50 rounded-xl p-4 space-y-2">
-              <p className="text-xs text-muted-foreground">PIX Copy & Paste</p>
+              <p className="text-xs text-muted-foreground">{labels.pixCopyPaste}</p>
               <p className="text-xs font-mono break-all text-muted-foreground/80">{pixData.pixCopiaECola.slice(0, 50)}...</p>
             </div>
             <Button 
@@ -237,7 +272,7 @@ function ReceivePixButton() {
               data-testid="button-copy-receive-pix"
             >
               {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
-              {copied ? "Copied!" : "Copy PIX Key"}
+              {copied ? labels.copied : labels.copyPixKey}
             </Button>
           </div>
         )}
@@ -252,6 +287,24 @@ function TopUpButton() {
   const [amount, setAmount] = useState("");
   const [pixData, setPixData] = useState<{ pixCopiaECola: string; txid: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const { language } = useLanguage();
+
+  const t = {
+    topUp: language === "pt-BR" ? "Adicionar" : "Top Up",
+    topUpWallet: language === "pt-BR" ? "Adicionar Saldo" : "Top Up Wallet",
+    depositBrl: language === "pt-BR" ? "Depositar BRL" : "Deposit BRL",
+    depositUsdt: language === "pt-BR" ? "Depositar USDT" : "Deposit USDT",
+    pixPayment: language === "pt-BR" ? "Pagamento PIX" : "PIX Payment",
+    amountBrl: language === "pt-BR" ? "Valor (BRL)" : "Amount (BRL)",
+    generatePix: language === "pt-BR" ? "Gerar PIX" : "Generate PIX",
+    scanOrCopy: language === "pt-BR" ? "Escaneie o QR code ou copie a chave abaixo" : "Scan the QR code or copy the key below",
+    pixCopyPaste: language === "pt-BR" ? "PIX Copia e Cola" : "PIX Copy & Paste",
+    copied: language === "pt-BR" ? "Copiado!" : "Copied!",
+    copyPixKey: language === "pt-BR" ? "Copiar Chave PIX" : "Copy PIX Key",
+    minDeposit: language === "pt-BR" ? "Depósito mínimo é R$ 1,00" : "Minimum deposit is R$ 1.00",
+    copiedToClipboard: language === "pt-BR" ? "Copiado para a área de transferência!" : "Copied to clipboard!",
+    usdtComingSoon: language === "pt-BR" ? "Depósitos USDT em breve!" : "USDT deposits coming soon!",
+  };
 
   const depositMutation = useMutation({
     mutationFn: createPixDeposit,
@@ -259,13 +312,13 @@ function TopUpButton() {
       setPixData({ pixCopiaECola: data.pixCopiaECola, txid: data.txid });
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to create deposit");
+      toast.error(error.message || (language === "pt-BR" ? "Falha ao criar depósito" : "Failed to create deposit"));
     },
   });
 
   const handleCreateDeposit = () => {
     if (!amount || parseFloat(amount) < 1) {
-      toast.error("Minimum deposit is R$ 1.00");
+      toast.error(t.minDeposit);
       return;
     }
     depositMutation.mutate(amount);
@@ -275,7 +328,7 @@ function TopUpButton() {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCopiaECola);
       setCopied(true);
-      toast.success("Copied to clipboard!");
+      toast.success(t.copiedToClipboard);
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -294,13 +347,13 @@ function TopUpButton() {
           <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center text-white group-hover:bg-white/20 transition-all duration-300 border border-white/5">
             <Plus className="w-6 h-6" />
           </div>
-          <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">Top Up</span>
+          <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">{t.topUp}</span>
         </div>
       </DialogTrigger>
       <DialogContent className="bg-card border-white/10 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center font-display">
-            {showDeposit ? (pixData ? "PIX Payment" : "Deposit BRL") : "Top Up Wallet"}
+            {showDeposit ? (pixData ? t.pixPayment : t.depositBrl) : t.topUpWallet}
           </DialogTitle>
         </DialogHeader>
         
@@ -314,28 +367,28 @@ function TopUpButton() {
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                 <span className="font-bold text-sm">Pix</span>
               </div>
-              <span className="text-sm font-medium">Deposit BRL</span>
+              <span className="text-sm font-medium">{t.depositBrl}</span>
             </button>
             <button 
               className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-card/50 border border-white/5 hover:bg-card hover:border-primary/20 transition-all"
-              onClick={() => toast.info("USDT deposits coming soon!")}
+              onClick={() => toast.info(t.usdtComingSoon)}
               data-testid="button-deposit-usdt"
             >
               <div className="w-12 h-12 rounded-xl bg-[#26A17B]/10 flex items-center justify-center text-[#26A17B]">
                 <span className="font-bold text-lg">T</span>
               </div>
-              <span className="text-sm font-medium">Deposit USDT</span>
+              <span className="text-sm font-medium">{t.depositUsdt}</span>
             </button>
           </div>
         ) : !pixData ? (
           <div className="space-y-6 py-4">
             <div className="space-y-3">
-              <label className="text-base text-muted-foreground font-bold ml-1">Amount (BRL)</label>
+              <label className="text-base text-muted-foreground font-bold ml-1">{t.amountBrl}</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                 <input 
                   type="number" 
-                  placeholder="0.00"
+                  placeholder="0,00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   min="1"
@@ -354,7 +407,7 @@ function TopUpButton() {
               {depositMutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Generate PIX"
+                t.generatePix
               )}
             </Button>
           </div>
@@ -366,11 +419,11 @@ function TopUpButton() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Scan the QR code or copy the key below</p>
+              <p className="text-sm text-muted-foreground">{t.scanOrCopy}</p>
               <p className="text-2xl font-bold text-primary">R$ {parseFloat(amount).toFixed(2)}</p>
             </div>
             <div className="bg-background/50 rounded-xl p-4 space-y-2">
-              <p className="text-xs text-muted-foreground">PIX Copy & Paste</p>
+              <p className="text-xs text-muted-foreground">{t.pixCopyPaste}</p>
               <p className="text-xs font-mono break-all text-muted-foreground/80">{pixData.pixCopiaECola.slice(0, 50)}...</p>
             </div>
             <Button 
@@ -379,7 +432,7 @@ function TopUpButton() {
               data-testid="button-copy-topup-pix"
             >
               {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
-              {copied ? "Copied!" : "Copy PIX Key"}
+              {copied ? t.copied : t.copyPixKey}
             </Button>
           </div>
         )}
