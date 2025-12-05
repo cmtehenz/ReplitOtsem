@@ -594,3 +594,126 @@ export interface TransactionStats {
   weeklyData: { day: string; income: number; expense: number }[];
   categoryBreakdown: { category: string; amount: number; percent: number }[];
 }
+
+export async function getTransactionStats(): Promise<TransactionStats> {
+  const response = await fetch(`${API_BASE}/stats`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch stats");
+  }
+  return response.json();
+}
+
+// ==================== CRYPTO ADDRESSES ====================
+
+export interface CryptoAddress {
+  id: string;
+  userId: string;
+  currency: string;
+  network: string;
+  address: string;
+  memo?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export async function getCryptoAddresses(): Promise<CryptoAddress[]> {
+  const response = await fetch(`${API_BASE}/crypto/addresses`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch addresses");
+  }
+  return response.json();
+}
+
+export async function getOrCreateCryptoAddress(currency: string, network: string): Promise<CryptoAddress> {
+  const response = await fetch(`${API_BASE}/crypto/address`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ currency, network }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to get/create address");
+  }
+  return response.json();
+}
+
+// ==================== REFERRAL REWARDS ====================
+
+export interface ReferralReward {
+  id: string;
+  userId: string;
+  referralId: string;
+  amount: string;
+  currency: string;
+  status: string;
+  paidAt?: string;
+  createdAt: string;
+}
+
+export interface ReferralRewardsResponse {
+  rewards: ReferralReward[];
+  total: number;
+  pending: number;
+  paid: number;
+}
+
+export async function getReferralRewards(): Promise<ReferralRewardsResponse> {
+  const response = await fetch(`${API_BASE}/referral/rewards`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch rewards");
+  }
+  return response.json();
+}
+
+// ==================== EMAIL VERIFICATION ====================
+
+export async function requestEmailVerification(): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/auth/verify-email/request`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to request verification");
+  }
+  return response.json();
+}
+
+export async function verifyEmail(token: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to verify email");
+  }
+  return response.json();
+}
+
+// ==================== PASSWORD RESET ====================
+
+export async function requestPasswordReset(email: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to request reset");
+  }
+  return response.json();
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to reset password");
+  }
+  return response.json();
+}

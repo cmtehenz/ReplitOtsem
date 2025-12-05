@@ -1385,5 +1385,152 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== CRYPTO ADDRESSES ====================
+
+  // Get user's crypto addresses
+  app.get("/api/crypto/addresses", requireAuth, async (req, res) => {
+    try {
+      const addresses = await storage.getUserCryptoAddresses(req.session.userId!);
+      res.json(addresses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get addresses" });
+    }
+  });
+
+  // Get or create address for specific currency/network
+  app.post("/api/crypto/address", requireAuth, async (req, res) => {
+    try {
+      const { currency, network } = req.body;
+      if (!currency || !network) {
+        return res.status(400).json({ error: "Currency and network required" });
+      }
+      const address = await storage.getOrCreateCryptoAddress(req.session.userId!, currency, network);
+      res.json(address);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get/create address" });
+    }
+  });
+
+  // ==================== REFERRAL REWARDS ====================
+
+  // Get user's referral rewards
+  app.get("/api/referral/rewards", requireAuth, async (req, res) => {
+    try {
+      const rewards = await storage.getUserReferralRewards(req.session.userId!);
+      const totals = await storage.getReferralRewardsTotal(req.session.userId!);
+      res.json({ rewards, ...totals });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get rewards" });
+    }
+  });
+
+  // ==================== EMAIL VERIFICATION ====================
+
+  // Request email verification
+  app.post("/api/auth/verify-email/request", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (user.verified) {
+        return res.status(400).json({ error: "Email already verified" });
+      }
+      
+      const verification = await storage.createEmailVerification(user.id, user.email);
+      
+      // In production, send email here
+      // For now, return the token (for testing)
+      console.log(`Email verification token for ${user.email}: ${verification.token}`);
+      
+      res.json({ message: "Verification email sent", token: verification.token });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to send verification email" });
+    }
+  });
+
+  // Verify email with token
+  app.post("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "Token required" });
+      }
+      
+      const verification = await storage.getEmailVerification(token);
+      if (!verification) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+      if (verification.verifiedAt) {
+        return res.status(400).json({ error: "Email already verified" });
+      }
+      if (new Date() > verification.expiresAt) {
+        return res.status(400).json({ error: "Token expired" });
+      }
+      
+      await storage.markEmailVerified(token);
+      await storage.updateUserEmailVerified(verification.userId);
+      
+      res.json({ message: "Email verified successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to verify email" });
+    }
+  });
+
+  // ==================== PASSWORD RESET ====================
+
+  // Request password reset
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists
+        return res.json({ message: "If email exists, reset link will be sent" });
+      }
+      
+      const reset = await storage.createPasswordReset(user.id);
+      
+      // In production, send email here
+      console.log(`Password reset token for ${email}: ${reset.token}`);
+      
+      res.json({ message: "If email exists, reset link will be sent", token: reset.token });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to process request" });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: "Token and new password required" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "Password must be at least 6 characters" });
+      }
+      
+      const reset = await storage.getPasswordReset(token);
+      if (!reset) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+      if (reset.usedAt) {
+        return res.status(400).json({ error: "Token already used" });
+      }
+      
+      await storage.resetUserPassword(reset.userId, newPassword);
+      await storage.markPasswordResetUsed(token);
+      
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   return httpServer;
 }

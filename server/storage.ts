@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { 
   users, wallets, transactions, userPixKeys, pixDeposits, pixWithdrawals, webhookLogs, notifications,
-  referralCodes, referrals, loginSessions, kycDocuments,
+  referralCodes, referrals, loginSessions, kycDocuments, cryptoAddresses, referralRewards, emailVerifications, passwordResets,
   type User, type InsertUser, 
   type Wallet, type InsertWallet, 
   type Transaction, type InsertTransaction,
@@ -13,8 +13,13 @@ import {
   type ReferralCode, type InsertReferralCode,
   type Referral, type InsertReferral,
   type LoginSession, type InsertLoginSession,
-  type KycDocument, type InsertKycDocument
+  type KycDocument, type InsertKycDocument,
+  type CryptoAddress, type InsertCryptoAddress,
+  type ReferralReward, type InsertReferralReward,
+  type EmailVerification, type InsertEmailVerification,
+  type PasswordReset, type InsertPasswordReset
 } from "@shared/schema";
+import crypto from "crypto";
 import { eq, and, desc, or, gte, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
@@ -834,6 +839,183 @@ export class DatabaseStorage implements IStorage {
       weeklyData,
       categoryBreakdown
     };
+  }
+
+  // Crypto Addresses
+  async getUserCryptoAddresses(userId: string): Promise<CryptoAddress[]> {
+    return await db.select().from(cryptoAddresses)
+      .where(and(
+        eq(cryptoAddresses.userId, userId),
+        eq(cryptoAddresses.isActive, true)
+      ))
+      .orderBy(desc(cryptoAddresses.createdAt));
+  }
+
+  async getOrCreateCryptoAddress(userId: string, currency: string, network: string): Promise<CryptoAddress> {
+    // Check if address already exists
+    const existing = await db.select().from(cryptoAddresses)
+      .where(and(
+        eq(cryptoAddresses.userId, userId),
+        eq(cryptoAddresses.currency, currency),
+        eq(cryptoAddresses.network, network),
+        eq(cryptoAddresses.isActive, true)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    // Generate a new address based on user ID and network
+    const address = this.generateCryptoAddress(userId, currency, network);
+    
+    const result = await db.insert(cryptoAddresses).values({
+      userId,
+      currency,
+      network,
+      address,
+      isActive: true
+    }).returning();
+    
+    return result[0];
+  }
+
+  private generateCryptoAddress(userId: string, currency: string, network: string): string {
+    // Generate deterministic but unique addresses for each user/currency/network combo
+    const hash = crypto.createHash('sha256').update(`${userId}-${currency}-${network}`).digest('hex');
+    
+    if (network === 'TRC20' || currency === 'USDT') {
+      // TRON address format: T followed by 33 base58 chars
+      return 'T' + this.toBase58(hash.slice(0, 33)).slice(0, 33);
+    } else if (network === 'ERC20') {
+      // Ethereum address format: 0x followed by 40 hex chars
+      return '0x' + hash.slice(0, 40);
+    } else if (currency === 'BTC' || network === 'BTC') {
+      // Bitcoin address format (SegWit): bc1q followed by alphanumeric
+      return 'bc1q' + hash.slice(0, 38).toLowerCase();
+    }
+    
+    // Fallback
+    return '0x' + hash.slice(0, 40);
+  }
+
+  private toBase58(hex: string): string {
+    const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let result = '';
+    for (let i = 0; i < hex.length; i += 2) {
+      const byte = parseInt(hex.substr(i, 2), 16);
+      result += alphabet[byte % 58];
+    }
+    return result;
+  }
+
+  // Referral Rewards
+  async createReferralReward(reward: InsertReferralReward): Promise<ReferralReward> {
+    const result = await db.insert(referralRewards).values(reward).returning();
+    return result[0];
+  }
+
+  async getUserReferralRewards(userId: string): Promise<ReferralReward[]> {
+    return await db.select().from(referralRewards)
+      .where(eq(referralRewards.userId, userId))
+      .orderBy(desc(referralRewards.createdAt));
+  }
+
+  async getReferralRewardsTotal(userId: string): Promise<{ total: number; pending: number; paid: number }> {
+    const rewards = await this.getUserReferralRewards(userId);
+    return {
+      total: rewards.reduce((sum, r) => sum + parseFloat(r.amount), 0),
+      pending: rewards.filter(r => r.status === 'pending').reduce((sum, r) => sum + parseFloat(r.amount), 0),
+      paid: rewards.filter(r => r.status === 'paid').reduce((sum, r) => sum + parseFloat(r.amount), 0)
+    };
+  }
+
+  async markReferralRewardPaid(id: string): Promise<ReferralReward> {
+    const result = await db.update(referralRewards)
+      .set({ status: 'paid', paidAt: new Date() })
+      .where(eq(referralRewards.id, id))
+      .returning();
+    return result[0];
+  }
+
+  // Email Verification
+  async createEmailVerification(userId: string, email: string): Promise<EmailVerification> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    
+    const result = await db.insert(emailVerifications).values({
+      userId,
+      email,
+      token,
+      expiresAt
+    }).returning();
+    
+    return result[0];
+  }
+
+  async getEmailVerification(token: string): Promise<EmailVerification | undefined> {
+    const result = await db.select().from(emailVerifications)
+      .where(eq(emailVerifications.token, token))
+      .limit(1);
+    return result[0];
+  }
+
+  async markEmailVerified(token: string): Promise<EmailVerification | undefined> {
+    const result = await db.update(emailVerifications)
+      .set({ verifiedAt: new Date() })
+      .where(eq(emailVerifications.token, token))
+      .returning();
+    return result[0];
+  }
+
+  async updateUserEmailVerified(userId: string): Promise<User> {
+    const result = await db.update(users)
+      .set({ verified: true })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  }
+
+  // Password Reset
+  async createPasswordReset(userId: string): Promise<PasswordReset> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    
+    const result = await db.insert(passwordResets).values({
+      userId,
+      token,
+      expiresAt
+    }).returning();
+    
+    return result[0];
+  }
+
+  async getPasswordReset(token: string): Promise<PasswordReset | undefined> {
+    const result = await db.select().from(passwordResets)
+      .where(and(
+        eq(passwordResets.token, token),
+        gte(passwordResets.expiresAt, new Date())
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async markPasswordResetUsed(token: string): Promise<void> {
+    await db.update(passwordResets)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResets.token, token));
+  }
+
+  async resetUserPassword(userId: string, newPassword: string): Promise<User> {
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const result = await db.update(users)
+      .set({ 
+        password: hashedPassword,
+        passwordChangedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
   }
 }
 

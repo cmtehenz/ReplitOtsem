@@ -264,3 +264,64 @@ export const kycDocuments = pgTable("kyc_documents", {
 export const insertKycDocumentSchema = createInsertSchema(kycDocuments).omit({ id: true, createdAt: true, reviewedAt: true });
 export type InsertKycDocument = z.infer<typeof insertKycDocumentSchema>;
 export type KycDocument = typeof kycDocuments.$inferSelect;
+
+// Crypto addresses - stores user crypto wallet addresses for deposits
+export const cryptoAddresses = pgTable("crypto_addresses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  currency: text("currency").notNull(), // USDT, BTC, ETH, etc.
+  network: text("network").notNull(), // TRC20, ERC20, BTC, etc.
+  address: text("address").notNull(),
+  memo: text("memo"), // For networks that require memo/tag
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCryptoAddressSchema = createInsertSchema(cryptoAddresses).omit({ id: true, createdAt: true });
+export type InsertCryptoAddress = z.infer<typeof insertCryptoAddressSchema>;
+export type CryptoAddress = typeof cryptoAddresses.$inferSelect;
+
+// Referral rewards - tracks rewards earned from referrals
+export const referralRewards = pgTable("referral_rewards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  referralId: varchar("referral_id").notNull().references(() => referrals.id),
+  amount: decimal("amount", { precision: 18, scale: 2 }).notNull(),
+  currency: text("currency").default("BRL"),
+  status: text("status").default("pending"), // pending, paid, cancelled
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReferralRewardSchema = createInsertSchema(referralRewards).omit({ id: true, createdAt: true, paidAt: true });
+export type InsertReferralReward = z.infer<typeof insertReferralRewardSchema>;
+export type ReferralReward = typeof referralRewards.$inferSelect;
+
+// Email verification tokens
+export const emailVerifications = pgTable("email_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  email: text("email").notNull(),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertEmailVerificationSchema = createInsertSchema(emailVerifications).omit({ id: true, createdAt: true, verifiedAt: true });
+export type InsertEmailVerification = z.infer<typeof insertEmailVerificationSchema>;
+export type EmailVerification = typeof emailVerifications.$inferSelect;
+
+// Password reset tokens
+export const passwordResets = pgTable("password_resets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  token: text("token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPasswordResetSchema = createInsertSchema(passwordResets).omit({ id: true, createdAt: true, usedAt: true });
+export type InsertPasswordReset = z.infer<typeof insertPasswordResetSchema>;
+export type PasswordReset = typeof passwordResets.$inferSelect;

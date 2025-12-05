@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowUpRight, ArrowDownLeft, Plus, ArrowLeftRight, Copy, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createPixDeposit, getPixKeys, createPixWithdrawal, getWallets, type PixKey } from "@/lib/api";
+import { createPixDeposit, getPixKeys, createPixWithdrawal, getWallets, getOrCreateCryptoAddress, type PixKey } from "@/lib/api";
 import { toast } from "sonner";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -286,23 +286,41 @@ function ReceiveButton() {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<"BRL" | "USDT" | "BTC">("BRL");
+  const [walletAddresses, setWalletAddresses] = useState<Record<string, string>>({
+    BRL: "PIX",
+    USDT: "",
+    BTC: "",
+  });
+  const [loadingAddress, setLoadingAddress] = useState(false);
   const { t, language } = useLanguage();
 
-  const walletAddresses = {
-    BRL: "PIX",
-    USDT: "0x1234...5678", // Placeholder - would come from user profile
-    BTC: "bc1q...xyz", // Placeholder - would come from user profile
+  const currencyConfig = {
+    BRL: { icon: "R$", color: "bg-green-500/20 text-green-400 border-green-500/20", network: "" },
+    USDT: { icon: "T", color: "bg-[#26A17B]/20 text-[#26A17B] border-[#26A17B]/20", network: "TRC20" },
+    BTC: { icon: "₿", color: "bg-orange-500/20 text-orange-400 border-orange-500/20", network: "BTC" },
   };
 
-  const currencyConfig = {
-    BRL: { icon: "R$", color: "bg-green-500/20 text-green-400 border-green-500/20" },
-    USDT: { icon: "T", color: "bg-[#26A17B]/20 text-[#26A17B] border-[#26A17B]/20" },
-    BTC: { icon: "₿", color: "bg-orange-500/20 text-orange-400 border-orange-500/20" },
-  };
+  useEffect(() => {
+    if (open && selectedCurrency !== "BRL" && !walletAddresses[selectedCurrency]) {
+      setLoadingAddress(true);
+      getOrCreateCryptoAddress(selectedCurrency, currencyConfig[selectedCurrency].network)
+        .then((address) => {
+          setWalletAddresses(prev => ({ ...prev, [selectedCurrency]: address.address }));
+        })
+        .catch(() => {
+          toast.error(language === "pt-BR" ? "Falha ao carregar endereço" : "Failed to load address");
+        })
+        .finally(() => setLoadingAddress(false));
+    }
+  }, [open, selectedCurrency]);
 
   const handleCopy = () => {
     if (selectedCurrency === "BRL") {
       toast.info(language === "pt-BR" ? "Use o botão Depositar para adicionar BRL via PIX" : "Use the Deposit button to add BRL via PIX");
+      return;
+    }
+    if (!walletAddresses[selectedCurrency]) {
+      toast.error(language === "pt-BR" ? "Endereço não disponível" : "Address not available");
       return;
     }
     navigator.clipboard.writeText(walletAddresses[selectedCurrency]);
@@ -373,7 +391,14 @@ function ReceiveButton() {
                 {language === "pt-BR" ? "Ir para Depósito" : "Go to Deposit"}
               </Button>
             </div>
-          ) : (
+          ) : loadingAddress ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+              <p className="text-sm text-muted-foreground">
+                {language === "pt-BR" ? "Gerando endereço..." : "Generating address..."}
+              </p>
+            </div>
+          ) : walletAddresses[selectedCurrency] ? (
             <>
               <div className="flex justify-center">
                 <div className="bg-white p-4 rounded-2xl">
@@ -382,19 +407,24 @@ function ReceiveButton() {
               </div>
               
               <div className="bg-background/50 rounded-xl p-4 space-y-2">
-                <p className="text-xs text-muted-foreground font-bold">
-                  {language === "pt-BR" ? "Endereço da carteira" : "Wallet address"}
-                </p>
-                <p className="text-sm font-mono break-all text-muted-foreground/80">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground font-bold">
+                    {language === "pt-BR" ? "Endereço da carteira" : "Wallet address"}
+                  </p>
+                  <span className="text-xs text-primary font-bold">
+                    {selectedCurrency === "USDT" ? "TRC20" : "Bitcoin"}
+                  </span>
+                </div>
+                <p className="text-sm font-mono break-all text-white">
                   {walletAddresses[selectedCurrency]}
                 </p>
               </div>
 
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                <p className="text-xs text-yellow-400 text-center">
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+                <p className="text-xs text-primary text-center">
                   {language === "pt-BR" 
-                    ? "Funcionalidade de recebimento de cripto em breve!"
-                    : "Crypto receiving functionality coming soon!"}
+                    ? `Envie apenas ${selectedCurrency} para este endereço. Outras moedas serão perdidas.`
+                    : `Only send ${selectedCurrency} to this address. Other coins will be lost.`}
                 </p>
               </div>
 
@@ -407,6 +437,12 @@ function ReceiveButton() {
                 {copied ? t("pix.copied") : (language === "pt-BR" ? "Copiar Endereço" : "Copy Address")}
               </Button>
             </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8">
+              <p className="text-sm text-muted-foreground text-center">
+                {language === "pt-BR" ? "Erro ao gerar endereço. Tente novamente." : "Error generating address. Please try again."}
+              </p>
+            </div>
           )}
         </div>
       </DialogContent>
