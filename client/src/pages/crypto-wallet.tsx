@@ -91,7 +91,7 @@ export default function CryptoWalletPage() {
     transactionSuccess: string;
     viewOnExplorer: string;
     invalidAddress: string;
-    enterPassword: string;
+    confirmWithPassword: string;
     done: string;
     scanToReceive: string;
     copyAddress: string;
@@ -146,7 +146,7 @@ export default function CryptoWalletPage() {
       transactionSuccess: "Transaction Successful!",
       viewOnExplorer: "View on Explorer",
       invalidAddress: "Invalid address",
-      enterPassword: "Enter your password to confirm",
+      confirmWithPassword: "Enter your password to confirm",
       done: "Done",
       scanToReceive: "Scan to receive USDT",
       copyAddress: "Copy Address",
@@ -201,7 +201,7 @@ export default function CryptoWalletPage() {
       transactionSuccess: "Transação Concluída!",
       viewOnExplorer: "Ver no Explorer",
       invalidAddress: "Endereço inválido",
-      enterPassword: "Digite sua senha para confirmar",
+      confirmWithPassword: "Digite sua senha para confirmar",
       done: "Concluído",
       scanToReceive: "Escaneie para receber USDT",
       copyAddress: "Copiar Endereço",
@@ -1055,7 +1055,7 @@ export default function CryptoWalletPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">{text.enterPassword}</label>
+                  <label className="text-sm text-muted-foreground">{text.confirmWithPassword}</label>
                   <input
                     type="password"
                     value={sendPassword}
