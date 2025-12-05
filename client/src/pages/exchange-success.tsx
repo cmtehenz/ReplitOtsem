@@ -1,20 +1,73 @@
 import { motion } from "framer-motion";
-import { CheckCircle2, Share2, ArrowRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import Confetti from "react-confetti";
 import { useEffect, useState } from "react";
 import { useWindowSize } from "react-use";
+import { useLanguage } from "@/context/LanguageContext";
+
+interface ExchangeData {
+  fromAmount: string;
+  fromCurrency: string;
+  toAmount: string;
+  toCurrency: string;
+  rate: string;
+  fee: string;
+  feePercent: string;
+  transactionId: string;
+}
 
 export default function ExchangeSuccess() {
   const [, setLocation] = useLocation();
   const [showConfetti, setShowConfetti] = useState(true);
   const { width, height } = useWindowSize();
+  const { language } = useLanguage();
+
+  const [exchangeData, setExchangeData] = useState<ExchangeData | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 5000);
+    
+    const storedData = sessionStorage.getItem("lastExchange");
+    if (storedData) {
+      try {
+        setExchangeData(JSON.parse(storedData));
+      } catch (e) {
+        console.error("Failed to parse exchange data");
+      }
+    }
+    
     return () => clearTimeout(timer);
   }, []);
+
+  const t = {
+    title: language === "pt-BR" ? "Conversão Realizada!" : "Exchange Successful!",
+    converted: language === "pt-BR" ? "Você converteu com sucesso" : "You successfully converted",
+    to: language === "pt-BR" ? "para" : "to",
+    rate: language === "pt-BR" ? "Taxa" : "Rate",
+    fee: language === "pt-BR" ? "Tarifa" : "Fee",
+    transactionId: language === "pt-BR" ? "ID da Transação" : "Transaction ID",
+    backHome: language === "pt-BR" ? "Voltar ao Início" : "Back to Home",
+    viewReceipt: language === "pt-BR" ? "Ver Comprovante" : "View Receipt",
+  };
+
+  const formatCurrency = (amount: string, currency: string) => {
+    const value = parseFloat(amount);
+    if (currency === "BRL") {
+      return `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+    }
+    return `${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ${currency}`;
+  };
+
+  const displayFromAmount = exchangeData?.fromAmount || "500.00";
+  const displayFromCurrency = exchangeData?.fromCurrency || "BRL";
+  const displayToAmount = exchangeData?.toAmount || "97.08";
+  const displayToCurrency = exchangeData?.toCurrency || "USDT";
+  const displayRate = exchangeData?.rate || "5.15";
+  const displayFee = exchangeData?.fee || "2.50";
+  const displayFeePercent = exchangeData?.feePercent || "0.5";
+  const displayTxId = exchangeData?.transactionId || `EX-${Date.now().toString(36).toUpperCase()}`;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -34,27 +87,27 @@ export default function ExchangeSuccess() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-3xl font-display font-bold">Exchange Successful!</h1>
+          <h1 className="text-3xl font-display font-bold" data-testid="text-exchange-success">{t.title}</h1>
           <p className="text-muted-foreground">
-            You successfully converted <br />
-            <span className="text-white font-medium">R$ 500,00</span> to <span className="text-[#26A17B] font-medium">97.08 USDT</span>
+            {t.converted} <br />
+            <span className="text-white font-medium">{formatCurrency(displayFromAmount, displayFromCurrency)}</span> {t.to} <span className="text-[#26A17B] font-medium">{formatCurrency(displayToAmount, displayToCurrency)}</span>
           </p>
         </div>
 
         <div className="bg-card border border-white/5 rounded-2xl p-6 space-y-4">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Rate</span>
-            <span className="font-medium">1 USDT = R$ 5,15</span>
+            <span className="text-muted-foreground">{t.rate}</span>
+            <span className="font-medium">1 {displayToCurrency} = R$ {parseFloat(displayRate).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
           </div>
           <div className="w-full h-px bg-white/5" />
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Fee</span>
-            <span className="font-medium">R$ 2,50 (0.5%)</span>
+            <span className="text-muted-foreground">{t.fee}</span>
+            <span className="font-medium">R$ {parseFloat(displayFee).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ({displayFeePercent}%)</span>
           </div>
           <div className="w-full h-px bg-white/5" />
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Transaction ID</span>
-            <span className="font-mono text-xs">#EX-8923-2025</span>
+            <span className="text-muted-foreground">{t.transactionId}</span>
+            <span className="font-mono text-xs">#{displayTxId}</span>
           </div>
         </div>
 
@@ -62,15 +115,17 @@ export default function ExchangeSuccess() {
           <Button 
             onClick={() => setLocation("/")}
             className="w-full h-14 text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl"
+            data-testid="button-back-home"
           >
-            Back to Home
+            {t.backHome}
           </Button>
           <Button 
             variant="outline" 
             className="w-full h-14 text-lg border-white/10 hover:bg-white/5 rounded-xl"
             onClick={() => setLocation("/activity")}
+            data-testid="button-view-receipt"
           >
-            View Receipt
+            {t.viewReceipt}
           </Button>
         </div>
       </motion.div>
