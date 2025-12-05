@@ -1565,6 +1565,61 @@ export async function registerRoutes(
     }
   });
 
+  // Claim pending referral rewards
+  app.post("/api/referral/rewards/claim", requireAuth, async (req, res) => {
+    try {
+      const totals = await storage.getReferralRewardsTotal(req.session.userId!);
+      const pendingAmount = totals.pending || 0;
+      
+      if (pendingAmount <= 0) {
+        return res.status(400).json({ error: "No pending rewards to claim" });
+      }
+
+      // Mark all pending rewards as paid
+      const rewards = await storage.getUserReferralRewards(req.session.userId!);
+      const pendingRewards = rewards.filter(r => r.status === "pending");
+      
+      for (const reward of pendingRewards) {
+        await storage.updateReferralRewardStatus(reward.id, "paid");
+      }
+
+      // Credit the user's BRL wallet
+      const wallet = await storage.getWallet(req.session.userId!, "BRL");
+      if (wallet) {
+        const newBalance = (parseFloat(wallet.balance) + pendingAmount).toFixed(2);
+        await storage.updateWalletBalance(req.session.userId!, "BRL", newBalance);
+        
+        // Create transaction record
+        await storage.createTransaction({
+          userId: req.session.userId!,
+          type: "referral",
+          amount: pendingAmount.toFixed(2),
+          currency: "BRL",
+          description: `Referral rewards payout (${pendingRewards.length} referrals)`,
+          status: "completed",
+        });
+
+        // Send notification
+        await storage.createNotification({
+          userId: req.session.userId!,
+          type: "referral_payout",
+          title: "Referral Rewards Paid",
+          message: `R$ ${pendingAmount.toFixed(2)} in referral rewards has been added to your wallet`,
+          data: JSON.stringify({ amount: pendingAmount, rewardsCount: pendingRewards.length }),
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        amount: pendingAmount,
+        message: `R$ ${pendingAmount.toFixed(2)} added to your wallet`
+      });
+    } catch (error) {
+      console.error("Claim rewards error:", error);
+      res.status(500).json({ error: "Failed to claim rewards" });
+    }
+  });
+
   // ==================== EMAIL VERIFICATION ====================
 
   // Request email verification

@@ -664,6 +664,17 @@ export async function getReferralRewards(): Promise<ReferralRewardsResponse> {
   return response.json();
 }
 
+export async function claimReferralRewards(): Promise<{ success: boolean; amount: number; message: string }> {
+  const response = await fetch(`${API_BASE}/referral/rewards/claim`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to claim rewards");
+  }
+  return response.json();
+}
+
 // ==================== EMAIL VERIFICATION ====================
 
 export async function requestEmailVerification(): Promise<{ message: string }> {
