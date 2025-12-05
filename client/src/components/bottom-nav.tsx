@@ -8,8 +8,8 @@ export function BottomNav({ active }: { active: string }) {
   const { t } = useLanguage();
   
   return (
-    <nav className="fixed bottom-0 left-0 right-0 glass border-t border-white/5 pb-safe z-50 backdrop-blur-xl">
-      <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4">
+    <nav className="fixed inset-x-0 bottom-0 glass border-t border-white/5 z-50 backdrop-blur-xl bg-background/90">
+      <div className="max-w-md mx-auto flex justify-around items-center h-20 px-4 pb-safe">
         <NavButton icon={Menu} label={t("nav.home")} active={active === "home"} onClick={() => setLocation("/")} />
         <NavButton icon={Wallet} label={t("nav.wallet")} active={active === "wallet"} onClick={() => setLocation("/wallet")} />
         <div 

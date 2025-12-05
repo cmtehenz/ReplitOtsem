@@ -80,4 +80,13 @@
   .hover-scale {
     @apply transition-transform duration-300 hover:scale-[1.02] active:scale-[0.98];
   }
+
+  /* Safe area utilities for iOS */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
 }
