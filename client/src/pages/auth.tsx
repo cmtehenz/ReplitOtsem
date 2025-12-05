@@ -329,7 +329,7 @@ export default function AuthPage() {
                       className="text-xs text-primary hover:underline font-medium"
                       data-testid="button-forgot-password"
                     >
-                      {language === "pt-BR" ? "Esqueceu a senha?" : "Forgot password?"}
+                      {t("auth.forgotPassword")}
                     </button>
                   )}
                 </div>

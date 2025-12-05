@@ -30,7 +30,7 @@ export default function PixKeys() {
     mutationFn: addPixKey,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pix-keys"] });
-      toast.success("PIX key added successfully!");
+      toast.success(t("pixKeys.addSuccess"));
       setNewKeyValue("");
       setNewKeyName("");
       setDialogOpen(false);
@@ -44,7 +44,7 @@ export default function PixKeys() {
     mutationFn: deletePixKey,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pix-keys"] });
-      toast.success("PIX key removed");
+      toast.success(t("pixKeys.deleteSuccess"));
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to remove PIX key");
@@ -81,7 +81,7 @@ export default function PixKeys() {
 
   const handleAddKey = () => {
     if (!newKeyValue.trim()) {
-      toast.error("Please enter a key value");
+      toast.error(t("pixKeys.enterValue"));
       return;
     }
     addMutation.mutate({
@@ -132,15 +132,15 @@ export default function PixKeys() {
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm font-display">Why register keys?</h3>
+              <h3 className="font-bold text-sm font-display">{t("pixKeys.whyRegister")}</h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Registering keys allows you to withdraw BRL to your bank account instantly using PIX.
+                {t("pixKeys.whyRegisterDesc")}
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h2 className="font-bold text-muted-foreground text-xs uppercase tracking-widest px-1">Your Registered Keys</h2>
+            <h2 className="font-bold text-muted-foreground text-xs uppercase tracking-widest px-1">{t("pixKeys.yourKeys")}</h2>
             
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
@@ -148,8 +148,8 @@ export default function PixKeys() {
               </div>
             ) : keys?.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <p className="text-sm">No PIX keys registered yet</p>
-                <p className="text-xs mt-1">Add a key to enable withdrawals</p>
+                <p className="text-sm">{t("pixKeys.noKeys")}</p>
+                <p className="text-xs mt-1">{t("pixKeys.noKeysDesc")}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -213,7 +213,7 @@ export default function PixKeys() {
             </DialogTrigger>
             <DialogContent className="bg-card border-white/10 rounded-3xl sm:max-w-md">
               <DialogHeader>
-                <DialogTitle className="text-center font-display text-2xl">Register New Key</DialogTitle>
+                <DialogTitle className="text-center font-display text-2xl">{t("pixKeys.registerNew")}</DialogTitle>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -234,7 +234,7 @@ export default function PixKeys() {
                   ))}
                 </div>
                 <div className="space-y-3">
-                  <label className="text-base text-muted-foreground font-bold ml-1">Key Value</label>
+                  <label className="text-base text-muted-foreground font-bold ml-1">{t("pixKeys.keyValue")}</label>
                   <input 
                     type="text" 
                     placeholder={
@@ -250,10 +250,10 @@ export default function PixKeys() {
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-base text-muted-foreground font-bold ml-1">Name (optional)</label>
+                  <label className="text-base text-muted-foreground font-bold ml-1">{t("pixKeys.keyName")}</label>
                   <input 
                     type="text" 
-                    placeholder="My personal key..."
+                    placeholder={t("pixKeys.keyNamePlaceholder")}
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
                     className="w-full bg-background/50 border border-white/10 rounded-2xl p-5 text-lg focus:outline-none focus:border-primary/50 focus:bg-background/70 transition-all font-medium"
@@ -269,7 +269,7 @@ export default function PixKeys() {
                   {addMutation.isPending ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    "Register Key"
+                    t("pixKeys.registerButton")
                   )}
                 </Button>
               </div>

@@ -504,3 +504,16 @@ export async function validateReferralCode(code: string): Promise<{ valid: boole
   }
   return response.json();
 }
+
+// ==================== SESSION MANAGEMENT ====================
+
+export async function logoutAllSessions(): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/auth/logout-all`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to logout all sessions");
+  }
+  return response.json();
+}

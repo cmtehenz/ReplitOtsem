@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 type Language = "en" | "pt-BR";
 
@@ -22,10 +22,14 @@ const translations: Record<Language, Record<string, string>> = {
     "wallet.title": "Wallet",
     "wallet.subtitle": "",
     "wallet.balance": "Total Balance",
+    "wallet.totalBalance": "Total Balance",
     "wallet.deposit": "Deposit",
     "wallet.send": "Send",
     "wallet.receive": "Receive",
     "wallet.assets": "Your Assets",
+    "wallet.yourAssets": "Your Assets",
+    "wallet.thisMonth": "this month",
+    "wallet.exchange": "Exchange",
     
     // Auth
     "auth.login": "Sign In",
@@ -45,6 +49,21 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.cpfHelp": "Required for PIX withdrawals to your own account",
     "auth.noAccount": "Don't have an account?",
     "auth.hasAccount": "Already have an account?",
+    "auth.forgotPassword": "Forgot password?",
+    "auth.twoFactorTitle": "Two-Factor Authentication",
+    "auth.twoFactorDescription": "Enter the 6-digit code from your authenticator app",
+    "auth.twoFactorBackupHint": "You can also use a backup code",
+    "auth.verify": "Verify",
+    "auth.backToLogin": "Back to login",
+    
+    // Forgot Password
+    "forgotPassword.title": "Reset Password",
+    "forgotPassword.description": "Enter your email address and we'll send you a link to reset your password",
+    "forgotPassword.sendLink": "Send Reset Link",
+    "forgotPassword.backToLogin": "Back to Login",
+    "forgotPassword.emailSent": "Check Your Email",
+    "forgotPassword.checkInbox": "We've sent password reset instructions to your email",
+    "forgotPassword.sentTo": "Sent to:",
     
     // Feed
     "feed.title": "Feed",
@@ -80,6 +99,8 @@ const translations: Record<Language, Record<string, string>> = {
     "cards.title": "Cards",
     "cards.comingSoon": "Coming Soon",
     "cards.message": "Soon you will be able to spend crypto assets globally online and in-store using Otsem Card",
+    "cards.holder": "Card Holder",
+    "cards.expires": "Expires",
     
     // Referral
     "referral.title": "Referral Program",
@@ -133,9 +154,58 @@ const translations: Record<Language, Record<string, string>> = {
     "personalInfo.emailInvalid": "Please enter a valid email",
     "personalInfo.photoTooLarge": "Photo must be less than 2MB",
     
+    // PIX
+    "pix.deposit": "Deposit via PIX",
+    "pix.withdraw": "Withdraw via PIX",
+    "pix.payment": "PIX Payment",
+    "pix.generateQr": "Generate PIX",
+    "pix.copyPaste": "PIX Copy & Paste",
+    "pix.copied": "Copied!",
+    "pix.copyKey": "Copy PIX Key",
+    "pix.scanQr": "Scan the QR code or copy the key below",
+    "pix.amountBrl": "Amount (BRL)",
+    "pix.minDeposit": "Minimum deposit is R$ 1.00",
+    "pix.minWithdraw": "Minimum withdrawal is R$ 1.00",
+    "pix.selectKey": "Select PIX Key",
+    "pix.noKeys": "No PIX keys registered",
+    "pix.noKeysDesc": "Add a key in your profile to enable withdrawals",
+    "pix.available": "Available",
+    "pix.withdrawButton": "Withdraw",
+    "pix.insufficientBalance": "Insufficient balance",
+    "pix.selectKeyError": "Please select a PIX key",
+    "pix.withdrawSuccess": "Withdrawal processed successfully!",
+    
+    // PIX Keys
+    "pixKeys.title": "Saved Pix Keys",
+    "pixKeys.whyRegister": "Why register keys?",
+    "pixKeys.whyRegisterDesc": "Registering keys allows you to withdraw BRL to your bank account instantly using PIX.",
+    "pixKeys.yourKeys": "Your Registered Keys",
+    "pixKeys.noKeys": "No PIX keys registered yet",
+    "pixKeys.noKeysDesc": "Add a key to enable withdrawals",
+    "pixKeys.registerNew": "Register New Key",
+    "pixKeys.keyValue": "Key Value",
+    "pixKeys.keyName": "Name (optional)",
+    "pixKeys.keyNamePlaceholder": "My personal key...",
+    "pixKeys.registerButton": "Register Key",
+    "pixKeys.addSuccess": "PIX key added successfully!",
+    "pixKeys.deleteSuccess": "PIX key removed",
+    "pixKeys.enterValue": "Please enter a key value",
+    
     // Common
     "common.processing": "Processing...",
     "common.retry": "Try Again",
+    "common.loading": "Loading...",
+    "common.error": "An error occurred",
+    "common.success": "Success!",
+    "common.cancel": "Cancel",
+    "common.confirm": "Confirm",
+    "common.save": "Save",
+    "common.delete": "Delete",
+    "common.edit": "Edit",
+    "common.back": "Back",
+    "common.next": "Next",
+    "common.done": "Done",
+    "common.close": "Close",
   },
   "pt-BR": {
     // Navigation
@@ -148,10 +218,14 @@ const translations: Record<Language, Record<string, string>> = {
     "wallet.title": "Carteira",
     "wallet.subtitle": "",
     "wallet.balance": "Saldo Total",
+    "wallet.totalBalance": "Saldo Total",
     "wallet.deposit": "Depositar",
     "wallet.send": "Enviar",
     "wallet.receive": "Receber",
     "wallet.assets": "Seus Ativos",
+    "wallet.yourAssets": "Seus Ativos",
+    "wallet.thisMonth": "este mês",
+    "wallet.exchange": "Câmbio",
     
     // Auth
     "auth.login": "Entrar",
@@ -171,6 +245,21 @@ const translations: Record<Language, Record<string, string>> = {
     "auth.cpfHelp": "Necessário para saques PIX para sua própria conta",
     "auth.noAccount": "Não tem uma conta?",
     "auth.hasAccount": "Já tem uma conta?",
+    "auth.forgotPassword": "Esqueceu a senha?",
+    "auth.twoFactorTitle": "Autenticação de Dois Fatores",
+    "auth.twoFactorDescription": "Digite o código de 6 dígitos do seu app autenticador",
+    "auth.twoFactorBackupHint": "Você também pode usar um código de backup",
+    "auth.verify": "Verificar",
+    "auth.backToLogin": "Voltar ao login",
+    
+    // Forgot Password
+    "forgotPassword.title": "Redefinir Senha",
+    "forgotPassword.description": "Digite seu email e enviaremos um link para redefinir sua senha",
+    "forgotPassword.sendLink": "Enviar Link",
+    "forgotPassword.backToLogin": "Voltar ao Login",
+    "forgotPassword.emailSent": "Verifique seu Email",
+    "forgotPassword.checkInbox": "Enviamos instruções de redefinição de senha para seu email",
+    "forgotPassword.sentTo": "Enviado para:",
     
     // Feed
     "feed.title": "Feed",
@@ -206,6 +295,8 @@ const translations: Record<Language, Record<string, string>> = {
     "cards.title": "Cartões",
     "cards.comingSoon": "Em Breve",
     "cards.message": "Em breve você poderá gastar ativos cripto globalmente online e nas lojas usando o Cartão Otsem",
+    "cards.holder": "Titular",
+    "cards.expires": "Validade",
     
     // Referral
     "referral.title": "Programa de Indicação",
@@ -259,21 +350,77 @@ const translations: Record<Language, Record<string, string>> = {
     "personalInfo.emailInvalid": "Por favor, insira um email válido",
     "personalInfo.photoTooLarge": "Foto deve ter menos de 2MB",
     
+    // PIX
+    "pix.deposit": "Depositar via PIX",
+    "pix.withdraw": "Sacar via PIX",
+    "pix.payment": "Pagamento PIX",
+    "pix.generateQr": "Gerar PIX",
+    "pix.copyPaste": "PIX Copia e Cola",
+    "pix.copied": "Copiado!",
+    "pix.copyKey": "Copiar Chave PIX",
+    "pix.scanQr": "Escaneie o QR code ou copie a chave abaixo",
+    "pix.amountBrl": "Valor (BRL)",
+    "pix.minDeposit": "Depósito mínimo é R$ 1,00",
+    "pix.minWithdraw": "Saque mínimo é R$ 1,00",
+    "pix.selectKey": "Selecionar Chave PIX",
+    "pix.noKeys": "Nenhuma chave PIX cadastrada",
+    "pix.noKeysDesc": "Adicione uma chave no seu perfil para habilitar saques",
+    "pix.available": "Disponível",
+    "pix.withdrawButton": "Sacar",
+    "pix.insufficientBalance": "Saldo insuficiente",
+    "pix.selectKeyError": "Por favor, selecione uma chave PIX",
+    "pix.withdrawSuccess": "Saque processado com sucesso!",
+    
+    // PIX Keys
+    "pixKeys.title": "Chaves Pix Salvas",
+    "pixKeys.whyRegister": "Por que cadastrar chaves?",
+    "pixKeys.whyRegisterDesc": "Cadastrar chaves permite sacar BRL para sua conta bancária instantaneamente via PIX.",
+    "pixKeys.yourKeys": "Suas Chaves Cadastradas",
+    "pixKeys.noKeys": "Nenhuma chave PIX cadastrada",
+    "pixKeys.noKeysDesc": "Adicione uma chave para habilitar saques",
+    "pixKeys.registerNew": "Cadastrar Nova Chave",
+    "pixKeys.keyValue": "Valor da Chave",
+    "pixKeys.keyName": "Nome (opcional)",
+    "pixKeys.keyNamePlaceholder": "Minha chave pessoal...",
+    "pixKeys.registerButton": "Cadastrar Chave",
+    "pixKeys.addSuccess": "Chave PIX adicionada com sucesso!",
+    "pixKeys.deleteSuccess": "Chave PIX removida",
+    "pixKeys.enterValue": "Por favor, insira o valor da chave",
+    
     // Common
     "common.processing": "Processando...",
     "common.retry": "Tentar Novamente",
+    "common.loading": "Carregando...",
+    "common.error": "Ocorreu um erro",
+    "common.success": "Sucesso!",
+    "common.cancel": "Cancelar",
+    "common.confirm": "Confirmar",
+    "common.save": "Salvar",
+    "common.delete": "Excluir",
+    "common.edit": "Editar",
+    "common.back": "Voltar",
+    "common.next": "Próximo",
+    "common.done": "Concluir",
+    "common.close": "Fechar",
   },
 };
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    const saved = localStorage.getItem("language");
-    return (saved as Language) || "en";
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("otsem-language");
+      return (saved as Language) || "en";
+    }
+    return "en";
   });
 
-  const handleSetLanguage = (lang: Language) => {
-    setLanguage(lang);
-    localStorage.setItem("language", lang);
+  useEffect(() => {
+    localStorage.setItem("otsem-language", language);
+  }, [language]);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem("otsem-language", lang);
   };
 
   const t = (key: string): string => {
@@ -281,7 +428,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );

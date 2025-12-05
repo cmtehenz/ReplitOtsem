@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
-import { get2FAStatus, setup2FA, verify2FA, disable2FA, changePassword } from "@/lib/api";
+import { get2FAStatus, setup2FA, verify2FA, disable2FA, changePassword, logoutAllSessions, logout } from "@/lib/api";
 
 type SecurityView = "main" | "change-password" | "setup-2fa" | "disable-2fa" | "login-history";
 
@@ -185,6 +185,23 @@ export default function Security() {
 }
 
 function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabled, isBiometricEnabled, setIsBiometricEnabled }: any) {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  const handleLogoutAll = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logoutAllSessions();
+      toast.success(t.signOutAll + " - Success");
+      // Logout current session and redirect
+      await logout();
+      setLocation("/auth");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to logout all sessions");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -329,10 +346,16 @@ function MainSecurityView({ t, setLocation, setView, is2FAEnabled, setIs2FAEnabl
 
       <Button 
         variant="outline" 
-        className="w-full h-14 rounded-2xl text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/40 font-bold text-base mt-auto"
+        onClick={handleLogoutAll}
+        disabled={isLoggingOut}
+        className="w-full h-14 rounded-2xl text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/40 font-bold text-base mt-auto disabled:opacity-50"
         data-testid="button-signout-all"
       >
-        <LogOut className="w-5 h-5 mr-2" />
+        {isLoggingOut ? (
+          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+        ) : (
+          <LogOut className="w-5 h-5 mr-2" />
+        )}
         {t.signOutAll}
       </Button>
     </motion.div>

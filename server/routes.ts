@@ -260,6 +260,64 @@ export async function registerRoutes(
     });
   });
 
+  // Logout all sessions
+  app.post("/api/auth/logout-all", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      
+      // Disconnect WebSocket
+      notificationWS.disconnectUser(userId);
+      
+      // Delete all sessions for this user from the database
+      await pool.query("DELETE FROM session WHERE sess->>'userId' = $1", [userId]);
+      
+      // Send security notification
+      await notificationService.notifySecurityAlert(userId, "All sessions have been signed out from your account.");
+      
+      res.json({ message: "All sessions logged out successfully" });
+    } catch (error) {
+      console.error("Logout all error:", error);
+      res.status(500).json({ error: "Failed to logout all sessions" });
+    }
+  });
+
+  // Forgot password - request reset link
+  app.post("/api/auth/forgot-password", authLimiter, async (req, res) => {
+    try {
+      const forgotSchema = z.object({
+        email: z.string().email(),
+      });
+
+      const { email } = forgotSchema.parse(req.body);
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      
+      // Always return success to prevent email enumeration
+      // In production, you would send an actual email here
+      if (user) {
+        // Generate reset token (in production, save this and send via email)
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        console.log(`Password reset requested for ${email}. Token: ${resetToken}`);
+        
+        // In a real implementation:
+        // 1. Save the reset token with expiration to database
+        // 2. Send email with reset link containing the token
+        // For now, we just log it and return success
+      }
+      
+      res.json({ 
+        message: "If an account with that email exists, we've sent password reset instructions.",
+        success: true 
+      });
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to process request" });
+    }
+  });
+
   // Get current user
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     try {

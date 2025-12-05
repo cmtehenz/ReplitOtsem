@@ -11,6 +11,7 @@ import Profile from "@/pages/profile";
 import Activity from "@/pages/activity";
 import KYCVerification from "@/pages/kyc";
 import Auth from "@/pages/auth";
+import ForgotPassword from "@/pages/forgot-password";
 import ReferralProgram from "@/pages/referral";
 import TransactionDetails from "@/pages/transaction-details";
 import PixKeys from "@/pages/pix-keys";
@@ -48,6 +49,7 @@ function Router() {
     <Switch>
       <Route path="/welcome" component={Welcome} />
       <Route path="/auth" component={Auth} />
+      <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/">
         {() => <ProtectedRoute component={Dashboard} />}
       </Route>

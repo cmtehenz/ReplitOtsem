@@ -38,7 +38,7 @@ function DepositButton() {
 
   const handleCreateDeposit = () => {
     if (!amount || parseFloat(amount) < 1) {
-      toast.error("Minimum deposit is R$ 1.00");
+      toast.error(t("pix.minDeposit"));
       return;
     }
     depositMutation.mutate(amount);
@@ -48,7 +48,7 @@ function DepositButton() {
     if (pixData) {
       navigator.clipboard.writeText(pixData.pixCopiaECola);
       setCopied(true);
-      toast.success("Copied to clipboard!");
+      toast.success(t("pix.copied"));
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -74,14 +74,14 @@ function DepositButton() {
       <DialogContent className="bg-card border-white/10 rounded-3xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-2xl">
-            {pixData ? "PIX Payment" : "Deposit via PIX"}
+            {pixData ? t("pix.payment") : t("pix.deposit")}
           </DialogTitle>
         </DialogHeader>
         
         {!pixData ? (
           <div className="space-y-6 py-4">
             <div className="space-y-3">
-              <label className="text-base text-muted-foreground font-bold ml-1">Amount (BRL)</label>
+              <label className="text-base text-muted-foreground font-bold ml-1">{t("pix.amountBrl")}</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                 <input 
@@ -105,7 +105,7 @@ function DepositButton() {
               {depositMutation.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                "Generate PIX"
+                t("pix.generateQr")
               )}
             </Button>
           </div>
@@ -117,11 +117,11 @@ function DepositButton() {
               </div>
             </div>
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Scan the QR code or copy the key below</p>
+              <p className="text-sm text-muted-foreground">{t("pix.scanQr")}</p>
               <p className="text-2xl font-bold text-primary">R$ {parseFloat(amount).toFixed(2)}</p>
             </div>
             <div className="bg-background/50 rounded-xl p-4 space-y-2">
-              <p className="text-xs text-muted-foreground">PIX Copy & Paste</p>
+              <p className="text-xs text-muted-foreground">{t("pix.copyPaste")}</p>
               <p className="text-xs font-mono break-all text-muted-foreground/80">{pixData.pixCopiaECola.slice(0, 50)}...</p>
             </div>
             <Button 
@@ -130,7 +130,7 @@ function DepositButton() {
               data-testid="button-copy-pix"
             >
               {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
-              {copied ? "Copied!" : "Copy PIX Key"}
+              {copied ? t("pix.copied") : t("pix.copyKey")}
             </Button>
           </div>
         )}
@@ -164,7 +164,7 @@ function WithdrawButton() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallets"] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      toast.success("Withdrawal processed successfully!");
+      toast.success(t("pix.withdrawSuccess"));
       handleClose();
     },
     onError: (error: any) => {
@@ -174,15 +174,15 @@ function WithdrawButton() {
 
   const handleWithdraw = () => {
     if (!selectedKey) {
-      toast.error("Please select a PIX key");
+      toast.error(t("pix.selectKeyError"));
       return;
     }
     if (!amount || parseFloat(amount) < 1) {
-      toast.error("Minimum withdrawal is R$ 1.00");
+      toast.error(t("pix.minWithdraw"));
       return;
     }
     if (parseFloat(amount) > parseFloat(brlBalance)) {
-      toast.error("Insufficient balance");
+      toast.error(t("pix.insufficientBalance"));
       return;
     }
     withdrawMutation.mutate({ pixKeyId: selectedKey, amount });
@@ -208,23 +208,23 @@ function WithdrawButton() {
       </DialogTrigger>
       <DialogContent className="bg-card border-white/10 rounded-3xl sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center font-display text-2xl">Withdraw via PIX</DialogTitle>
+          <DialogTitle className="text-center font-display text-2xl">{t("pix.withdraw")}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
           <div className="text-center text-sm text-muted-foreground">
-            Available: <span className="text-white font-bold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
+            {t("pix.available")}: <span className="text-white font-bold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
           </div>
 
           {(!pixKeys || pixKeys.length === 0) ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No PIX keys registered</p>
-              <p className="text-xs text-muted-foreground mt-1">Add a key in your profile to enable withdrawals</p>
+              <p className="text-muted-foreground">{t("pix.noKeys")}</p>
+              <p className="text-xs text-muted-foreground mt-1">{t("pix.noKeysDesc")}</p>
             </div>
           ) : (
             <>
               <div className="space-y-3">
-                <label className="text-base text-muted-foreground font-bold ml-1">Select PIX Key</label>
+                <label className="text-base text-muted-foreground font-bold ml-1">{t("pix.selectKey")}</label>
                 <div className="space-y-2">
                   {pixKeys.map((key) => (
                     <button
@@ -245,7 +245,7 @@ function WithdrawButton() {
               </div>
 
               <div className="space-y-3">
-                <label className="text-base text-muted-foreground font-bold ml-1">Amount (BRL)</label>
+                <label className="text-base text-muted-foreground font-bold ml-1">{t("pix.amountBrl")}</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
                   <input 
@@ -271,7 +271,7 @@ function WithdrawButton() {
                 {withdrawMutation.isPending ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  "Withdraw"
+                  t("pix.withdrawButton")
                 )}
               </Button>
             </>
@@ -314,7 +314,7 @@ function ExchangeButton() {
         <ArrowLeftRight className="w-6 h-6" />
       </div>
       <span className="text-xs font-medium text-muted-foreground group-hover:text-white transition-colors">
-        Exchange
+        {t("wallet.exchange")}
       </span>
     </button>
   );

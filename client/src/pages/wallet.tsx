@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { ArrowDownLeft, Plus, Send, TrendingUp, Loader2 } from "lucide-react";
+import { ArrowDownLeft, Plus, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { BottomNav } from "@/components/bottom-nav";
 import { useQuery } from "@tanstack/react-query";
-import { getWallets } from "@/lib/api";
+import { getWallets, getRates } from "@/lib/api";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLocation } from "wouter";
 
@@ -44,6 +44,16 @@ export default function Wallet() {
     queryFn: getWallets,
   });
 
+  const { data: rates } = useQuery({
+    queryKey: ["rates"],
+    queryFn: getRates,
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+
+  const usdtRate = rates?.usdtBrl?.buy || 5.15;
+  const btcRate = usdtRate * 65000;
+
   const calculateTotalBRL = () => {
     if (!wallets) return 0;
     let total = 0;
@@ -52,9 +62,9 @@ export default function Wallet() {
       if (wallet.currency === "BRL") {
         total += balance;
       } else if (wallet.currency === "USDT") {
-        total += balance * 5.15;
+        total += balance * usdtRate;
       } else if (wallet.currency === "BTC") {
-        total += balance * 340000;
+        total += balance * btcRate;
       }
     });
     return total;
@@ -71,7 +81,7 @@ export default function Wallet() {
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
       <div className="max-w-md mx-auto p-6 space-y-8">
         <h1 className="font-display font-bold text-2xl tracking-tight">
-          {t("wallet.title") || "Wallet"}
+          {t("wallet.title")}
         </h1>
 
         {isLoading ? (
@@ -83,7 +93,7 @@ export default function Wallet() {
             <div className="glass-card rounded-3xl p-6 space-y-6">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">
-                  {t("wallet.totalBalance") || "Total Balance"}
+                  {t("wallet.totalBalance")}
                 </p>
                 <h2 className="text-2xl font-bold font-display tracking-tight mt-1" data-testid="text-total-balance">
                   {formatCurrency(calculateTotalBRL())}
@@ -96,36 +106,36 @@ export default function Wallet() {
                   className="bg-gradient-to-br from-primary to-[#7c3aed] text-white hover:from-primary hover:to-[#6d28d9] border border-primary/40 h-12 rounded-xl font-bold text-sm shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 transition-all active:scale-[0.98]"
                   data-testid="button-wallet-deposit"
                 >
-                  <Plus className="w-5 h-5 mr-1" /> {t("wallet.deposit") || "Deposit"}
+                  <Plus className="w-5 h-5 mr-1" /> {t("wallet.deposit")}
                 </Button>
                 <Button 
                   onClick={() => setLocation("/")}
                   className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-12 rounded-xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 transition-all active:scale-[0.98]"
                   data-testid="button-wallet-send"
                 >
-                  <Send className="w-5 h-5 mr-1" /> {t("wallet.send") || "Send"}
+                  <Send className="w-5 h-5 mr-1" /> {t("wallet.send")}
                 </Button>
                 <Button 
                   onClick={() => setLocation("/")}
                   className="bg-white/10 text-white hover:bg-white/20 border border-white/20 h-12 rounded-xl font-bold text-sm shadow-lg shadow-white/5 hover:shadow-xl hover:shadow-white/10 transition-all active:scale-[0.98]"
                   data-testid="button-wallet-receive"
                 >
-                  <ArrowDownLeft className="w-5 h-5 mr-1" /> {t("wallet.receive") || "Receive"}
+                  <ArrowDownLeft className="w-5 h-5 mr-1" /> {t("wallet.receive")}
                 </Button>
               </div>
             </div>
 
             <div className="space-y-4">
               <h3 className="font-display font-medium text-lg tracking-tight">
-                {t("wallet.yourAssets") || "Your Assets"}
+                {t("wallet.yourAssets")}
               </h3>
               <div className="space-y-3">
                 {wallets?.map((wallet, i) => {
                   const config = currencyConfig[wallet.currency] || currencyConfig.BRL;
                   const balance = parseFloat(wallet.balance);
                   let valueBRL = balance;
-                  if (wallet.currency === "USDT") valueBRL = balance * 5.15;
-                  if (wallet.currency === "BTC") valueBRL = balance * 340000;
+                  if (wallet.currency === "USDT") valueBRL = balance * usdtRate;
+                  if (wallet.currency === "BTC") valueBRL = balance * btcRate;
 
                   return (
                     <motion.div
