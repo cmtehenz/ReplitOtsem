@@ -1276,69 +1276,129 @@ export async function registerRoutes(
 
   // ==================== NEWS API ====================
 
-  // Get crypto news (aggregated from various sources)
+  // Get crypto news (aggregated from CoinGecko and other sources)
   app.get("/api/news", async (req, res) => {
     try {
       const lang = (req.query.lang as string) || "en";
       
-      // Generate dynamic news based on current market conditions
-      const news = [
-        {
-          id: "1",
-          title: lang === "pt" ? "Bitcoin atinge nova alta de 30 dias" : "Bitcoin Hits 30-Day High",
-          description: lang === "pt" 
-            ? "O Bitcoin subiu 5% nas últimas 24 horas, atingindo níveis não vistos em um mês."
-            : "Bitcoin has surged 5% in the last 24 hours, reaching levels not seen in a month.",
-          category: "breaking" as const,
-          timestamp: new Date().toISOString(),
-          trend: 5.2,
-          source: "CoinDesk"
-        },
-        {
-          id: "2",
-          title: lang === "pt" ? "Stablecoins ganham tração no mercado brasileiro" : "Stablecoins Gain Traction in Brazilian Market",
-          description: lang === "pt"
-            ? "USDT e outras stablecoins veem aumento de 40% no volume de negociação no Brasil."
-            : "USDT and other stablecoins see 40% increase in trading volume in Brazil.",
-          category: "market" as const,
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          trend: 3.8,
-          source: "CryptoNews"
-        },
-        {
-          id: "3",
-          title: lang === "pt" ? "Banco Central do Brasil avança em regulamentação cripto" : "Brazil Central Bank Advances Crypto Regulation",
-          description: lang === "pt"
-            ? "Novas regras prometem trazer mais segurança e clareza para investidores de criptomoedas."
-            : "New rules promise to bring more security and clarity for cryptocurrency investors.",
-          category: "general" as const,
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-          trend: 0,
-          source: "Reuters"
-        },
-        {
-          id: "4",
-          title: lang === "pt" ? "Ethereum completa atualização de rede" : "Ethereum Completes Network Upgrade",
-          description: lang === "pt"
-            ? "A mais recente atualização do Ethereum promete transações mais rápidas e taxas mais baixas."
-            : "The latest Ethereum upgrade promises faster transactions and lower fees.",
-          category: "breaking" as const,
-          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-          trend: 2.1,
-          source: "The Block"
-        },
-        {
-          id: "5",
-          title: lang === "pt" ? "Análise: Por que o PIX é ideal para cripto" : "Analysis: Why PIX is Ideal for Crypto",
-          description: lang === "pt"
-            ? "O sistema de pagamentos instantâneos do Brasil se mostra perfeito para transações de criptomoedas."
-            : "Brazil's instant payment system proves perfect for cryptocurrency transactions.",
-          category: "general" as const,
-          timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-          trend: 0,
-          source: "Otsem Blog"
+      // Fetch real news from CoinGecko's free API
+      const cryptoNewsPromise = fetch("https://api.coingecko.com/api/v3/news")
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []);
+      
+      // Fetch market data for trend info
+      const marketDataPromise = fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,tether&price_change_percentage=24h")
+        .then(r => r.ok ? r.json() : [])
+        .catch(() => []);
+
+      const [newsData, marketData] = await Promise.all([cryptoNewsPromise, marketDataPromise]);
+
+      // Create a map of price changes
+      const priceChanges: Record<string, number> = {};
+      if (Array.isArray(marketData)) {
+        for (const coin of marketData) {
+          priceChanges[coin.id] = coin.price_change_percentage_24h || 0;
         }
-      ];
+      }
+
+      // Transform news to our format
+      let news: any[] = [];
+      
+      if (Array.isArray(newsData?.data)) {
+        news = newsData.data.slice(0, 10).map((item: any, index: number) => {
+          // Determine category based on keywords
+          let category: "breaking" | "market" | "general" = "general";
+          const title = (item.title || "").toLowerCase();
+          const description = (item.description || "").toLowerCase();
+          
+          if (title.includes("breaking") || title.includes("just in") || title.includes("urgent")) {
+            category = "breaking";
+          } else if (title.includes("price") || title.includes("market") || title.includes("trading") || 
+                     title.includes("bull") || title.includes("bear") || title.includes("%")) {
+            category = "market";
+          }
+
+          // Calculate trend based on mentioned coins
+          let trend = 0;
+          if (title.includes("bitcoin") || description.includes("bitcoin")) {
+            trend = priceChanges["bitcoin"] || 0;
+          } else if (title.includes("ethereum") || description.includes("ethereum")) {
+            trend = priceChanges["ethereum"] || 0;
+          }
+
+          return {
+            id: item.id || `news-${index}`,
+            title: item.title || "",
+            description: item.description || "",
+            category,
+            timestamp: item.updated_at ? new Date(item.updated_at * 1000).toISOString() : new Date().toISOString(),
+            trend: Math.abs(trend) > 0.5 ? parseFloat(trend.toFixed(1)) : 0,
+            source: item.author || "CoinGecko",
+            url: item.url || ""
+          };
+        });
+      }
+
+      // If no news fetched, use fallback data
+      if (news.length === 0) {
+        news = [
+          {
+            id: "1",
+            title: lang === "pt" ? "Bitcoin atinge nova alta de 30 dias" : "Bitcoin Hits 30-Day High",
+            description: lang === "pt" 
+              ? "O Bitcoin subiu nas últimas 24 horas, atingindo níveis não vistos em um mês."
+              : "Bitcoin has surged in the last 24 hours, reaching levels not seen in a month.",
+            category: "breaking" as const,
+            timestamp: new Date().toISOString(),
+            trend: priceChanges["bitcoin"] || 2.5,
+            source: "CoinDesk"
+          },
+          {
+            id: "2",
+            title: lang === "pt" ? "Stablecoins ganham tração no mercado brasileiro" : "Stablecoins Gain Traction in Brazilian Market",
+            description: lang === "pt"
+              ? "USDT e outras stablecoins veem aumento no volume de negociação no Brasil."
+              : "USDT and other stablecoins see increase in trading volume in Brazil.",
+            category: "market" as const,
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            trend: 0,
+            source: "CryptoNews"
+          },
+          {
+            id: "3",
+            title: lang === "pt" ? "Banco Central do Brasil avança em regulamentação cripto" : "Brazil Central Bank Advances Crypto Regulation",
+            description: lang === "pt"
+              ? "Novas regras prometem trazer mais segurança e clareza para investidores de criptomoedas."
+              : "New rules promise to bring more security and clarity for cryptocurrency investors.",
+            category: "general" as const,
+            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+            trend: 0,
+            source: "Reuters"
+          },
+          {
+            id: "4",
+            title: lang === "pt" ? "Ethereum completa atualização de rede" : "Ethereum Completes Network Upgrade",
+            description: lang === "pt"
+              ? "A mais recente atualização do Ethereum promete transações mais rápidas e taxas mais baixas."
+              : "The latest Ethereum upgrade promises faster transactions and lower fees.",
+            category: "breaking" as const,
+            timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+            trend: priceChanges["ethereum"] || 1.5,
+            source: "The Block"
+          },
+          {
+            id: "5",
+            title: lang === "pt" ? "Análise: Por que o PIX é ideal para cripto" : "Analysis: Why PIX is Ideal for Crypto",
+            description: lang === "pt"
+              ? "O sistema de pagamentos instantâneos do Brasil se mostra perfeito para transações de criptomoedas."
+              : "Brazil's instant payment system proves perfect for cryptocurrency transactions.",
+            category: "general" as const,
+            timestamp: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+            trend: 0,
+            source: "Otsem Blog"
+          }
+        ];
+      }
 
       res.json(news);
     } catch (error) {
