@@ -130,33 +130,46 @@ function SendPixButton() {
 }
 
 function ReceivePixButton() {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [pixData, setPixData] = useState<{ pixCopiaECola: string; txid: string } | null>(null);
   const [copied, setCopied] = useState(false);
-  const pixCode = "00020126330014BR.GOV.BCB.PIX0111user@email.com5204000053039865802BR5913User Name6008Brasilia62070503***63041234";
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(pixCode);
-    setCopied(true);
-    toast.success("PIX code copied!");
-    setTimeout(() => setCopied(false), 2000);
+  const depositMutation = useMutation({
+    mutationFn: createPixDeposit,
+    onSuccess: (data) => {
+      setPixData({ pixCopiaECola: data.pixCopiaECola, txid: data.txid });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create deposit");
+    },
+  });
+
+  const handleCreateDeposit = () => {
+    if (!amount || parseFloat(amount) < 1) {
+      toast.error("Minimum deposit is R$ 1.00");
+      return;
+    }
+    depositMutation.mutate(amount);
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Receive PIX',
-          text: `PIX Code: ${pixCode}`,
-        });
-      } catch (err) {
-        handleCopy();
-      }
-    } else {
-      handleCopy();
+  const handleCopy = () => {
+    if (pixData) {
+      navigator.clipboard.writeText(pixData.pixCopiaECola);
+      setCopied(true);
+      toast.success("Copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
+  const handleClose = () => {
+    setOpen(false);
+    setAmount("");
+    setPixData(null);
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); else setOpen(true); }}>
       <DialogTrigger asChild>
         <div className="flex flex-col items-center gap-2 group cursor-pointer" data-testid="button-pix-receive">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 border border-primary/20">
@@ -167,38 +180,67 @@ function ReceivePixButton() {
       </DialogTrigger>
       <DialogContent className="bg-card border-white/10 sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl font-display">Receive Pix</DialogTitle>
+          <DialogTitle className="text-center text-xl font-display">
+            {pixData ? "PIX Payment" : "Receive via PIX"}
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center space-y-6 py-6">
-          <div className="bg-white p-4 rounded-xl">
-            <QRCode 
-              value={pixCode}
-              size={200}
-              level="M"
-            />
-          </div>
-          <p className="text-center text-sm text-muted-foreground max-w-[200px]">
-            Scan this QR code to receive payments instantly via Pix.
-          </p>
-          <div className="w-full flex gap-2">
+        
+        {!pixData ? (
+          <div className="space-y-6 py-4">
+            <div className="space-y-3">
+              <label className="text-base text-muted-foreground font-bold ml-1">Amount (BRL)</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
+                <input 
+                  type="number" 
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min="1"
+                  step="0.01"
+                  className="w-full bg-background/50 border border-white/10 rounded-2xl p-5 pl-12 text-2xl focus:outline-none focus:border-primary/50 focus:bg-background/70 transition-all font-medium"
+                  data-testid="input-receive-amount"
+                />
+              </div>
+            </div>
             <Button 
-              variant="outline" 
-              className="flex-1 h-12 border-white/10 hover:bg-white/5 hover:text-white"
+              onClick={handleCreateDeposit}
+              disabled={depositMutation.isPending}
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-[#7c3aed] text-white text-lg font-bold"
+              data-testid="button-generate-receive-pix"
+            >
+              {depositMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                "Generate PIX"
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6 py-4">
+            <div className="flex justify-center">
+              <div className="bg-white p-4 rounded-2xl">
+                <QRCode value={pixData.pixCopiaECola} size={200} />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">Scan the QR code or copy the key below</p>
+              <p className="text-2xl font-bold text-primary">R$ {parseFloat(amount).toFixed(2)}</p>
+            </div>
+            <div className="bg-background/50 rounded-xl p-4 space-y-2">
+              <p className="text-xs text-muted-foreground">PIX Copy & Paste</p>
+              <p className="text-xs font-mono break-all text-muted-foreground/80">{pixData.pixCopiaECola.slice(0, 50)}...</p>
+            </div>
+            <Button 
               onClick={handleCopy}
-              data-testid="button-copy-pix-receive"
+              className="w-full h-14 rounded-2xl bg-white/10 text-white text-lg font-bold hover:bg-white/20"
+              data-testid="button-copy-receive-pix"
             >
-              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-              {copied ? "Copied!" : "Copy Key"}
-            </Button>
-            <Button 
-              className="flex-1 h-12 bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={handleShare}
-              data-testid="button-share-pix"
-            >
-              Share
+              {copied ? <Check className="w-5 h-5 mr-2" /> : <Copy className="w-5 h-5 mr-2" />}
+              {copied ? "Copied!" : "Copy PIX Key"}
             </Button>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

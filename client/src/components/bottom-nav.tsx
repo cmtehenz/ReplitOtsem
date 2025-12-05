@@ -14,7 +14,7 @@ export function BottomNav({ active }: { active: string }) {
         <NavButton icon={Wallet} label={t("nav.wallet")} active={active === "wallet"} onClick={() => setLocation("/wallet")} />
         <div 
           className="relative -top-6 group cursor-pointer"
-          onClick={() => setLocation("/")}
+          onClick={() => document.getElementById("exchange-section")?.scrollIntoView({ behavior: "smooth" }) || setLocation("/")}
         >
           <div className="absolute inset-0 bg-primary blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-300" />
           <div className="relative w-14 h-14 bg-gradient-to-br from-primary to-[#7c3aed] rounded-2xl rotate-45 flex items-center justify-center shadow-lg border border-white/20 group-hover:scale-105 transition-transform duration-300">

@@ -1,19 +1,18 @@
 import { BottomNav } from "@/components/bottom-nav";
 import { motion } from "framer-motion";
-import { Wifi, Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
+import { Wifi, CreditCard } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Cards() {
-  const [showDetails, setShowDetails] = useState(false);
   const { t } = useLanguage();
+  const { user } = useAuth();
   
   return (
     <div className="min-h-screen bg-otsem-gradient text-foreground pb-32">
       <div className="max-w-md mx-auto p-6 flex flex-col h-full">
         <h1 className="font-display font-bold text-2xl mb-12">{t("cards.title")}</h1>
 
-        {/* Card Visual */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -38,31 +37,28 @@ export default function Cards() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <p className="font-mono text-xl tracking-widest drop-shadow-md">
-                    {showDetails ? "4829 1029 4829 1023" : "•••• •••• •••• 1023"}
+                    •••• •••• •••• ••••
                   </p>
-                  <button onClick={() => setShowDetails(!showDetails)} className="w-10 h-10 rounded-lg hover:bg-white/20 flex items-center justify-center transition-all opacity-90 hover:opacity-100">
-                    {showDetails ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
-                  </button>
                 </div>
                 <div className="flex justify-between items-end text-sm">
                   <div>
-                    <p className="text-[10px] uppercase opacity-80 mb-0.5">Card Holder</p>
-                    <p className="font-medium tracking-wide font-display">ALEX MORGAN</p>
+                    <p className="text-[10px] uppercase opacity-80 mb-0.5">{t("cards.holder") || "Card Holder"}</p>
+                    <p className="font-medium tracking-wide font-display">
+                      {(user?.name || user?.username || "YOUR NAME").toUpperCase()}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase opacity-80 mb-0.5">Expires</p>
-                    <p className="font-medium tracking-wide font-display">12/28</p>
+                    <p className="text-[10px] uppercase opacity-80 mb-0.5">{t("cards.expires") || "Expires"}</p>
+                    <p className="font-medium tracking-wide font-display">--/--</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
-          {/* Shine effect */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform ease-in-out" />
         </motion.div>
 
-        {/* Coming Soon Message */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -71,7 +67,7 @@ export default function Cards() {
         >
           <div className="glass-card rounded-3xl p-8 border border-white/10 space-y-4">
             <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center border border-accent/20">
-              <span className="text-2xl">✨</span>
+              <CreditCard className="w-6 h-6 text-accent" />
             </div>
             <h2 className="text-2xl font-display font-bold tracking-tight">{t("cards.comingSoon")}</h2>
             <p className="text-muted-foreground leading-relaxed">
