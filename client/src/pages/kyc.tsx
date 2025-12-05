@@ -1,12 +1,13 @@
 import { PageContainer } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Camera, Upload, CheckCircle2, Loader2, ShieldCheck, ChevronRight, FileText, CreditCard, Car, X, Image, AlertCircle, Clock, Check } from "lucide-react";
-import { useState, useRef } from "react";
+import { ArrowLeft, Camera, Upload, CheckCircle2, Loader2, ShieldCheck, ChevronRight, FileText, CreditCard, Car, X, Image, AlertCircle, Clock, Check, Video } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
+import { submitKycDocument } from "@/lib/api";
 
 type Step = "intro" | "select-document" | "upload-front" | "upload-back" | "selfie" | "review" | "pending" | "success";
 type DocumentType = "passport" | "drivers_license" | "national_id";
@@ -136,6 +137,69 @@ export default function KYCVerification() {
     }
   };
 
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraType, setCameraType] = useState<"front" | "back" | "selfie">("front");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const startCamera = useCallback(async (type: "front" | "back" | "selfie") => {
+    setCameraType(type);
+    try {
+      const facingMode = type === "selfie" ? "user" : "environment";
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setShowCamera(true);
+    } catch (err) {
+      console.error("Camera access denied:", err);
+      toast.error(language === "pt-BR" ? "Acesso à câmera negado" : "Camera access denied");
+      handleSimulatedCapture(type);
+    }
+  }, [language]);
+
+  const stopCamera = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+  }, []);
+
+  const captureFromCamera = useCallback(() => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        if (cameraType === "selfie") {
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+        }
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL("image/jpeg", 0.9);
+        
+        if (cameraType === "front") {
+          setFrontImage(imageData);
+        } else if (cameraType === "back") {
+          setBackImage(imageData);
+        } else {
+          setSelfieImage(imageData);
+        }
+        toast.success(t.documentUploaded);
+        stopCamera();
+      }
+    }
+  }, [cameraType, stopCamera, t.documentUploaded]);
+
   const handleSimulatedCapture = (type: "front" | "back" | "selfie") => {
     setIsUploading(true);
     setTimeout(() => {
@@ -152,7 +216,13 @@ export default function KYCVerification() {
     }, 1500);
   };
 
-  const handleNext = () => {
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
+
+  const handleNext = async () => {
     if (step === "upload-front") {
       if (documentType === "passport") {
         setStep("selfie");
@@ -165,10 +235,20 @@ export default function KYCVerification() {
       setStep("review");
     } else if (step === "review") {
       setIsUploading(true);
-      setTimeout(() => {
-        setIsUploading(false);
+      try {
+        const kycData = {
+          documentType,
+          frontImage,
+          backImage: documentType !== "passport" ? backImage : null,
+          selfieImage,
+        };
+        await submitKycDocument(documentType || "national_id", JSON.stringify(kycData));
         setStep("pending");
-      }, 2000);
+      } catch (error: any) {
+        toast.error(error.message || (language === "pt-BR" ? "Erro ao enviar documentos" : "Failed to submit documents"));
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -229,7 +309,7 @@ export default function KYCVerification() {
               description={t.uploadFrontDesc}
               image={frontImage}
               isUploading={isUploading}
-              onCapture={() => handleSimulatedCapture("front")}
+              onCapture={() => startCamera("front")}
               onUpload={(e) => handleFileUpload(e, "front")}
               onRetake={() => setFrontImage(null)}
               onNext={handleNext}
@@ -245,7 +325,7 @@ export default function KYCVerification() {
               description={t.uploadBackDesc}
               image={backImage}
               isUploading={isUploading}
-              onCapture={() => handleSimulatedCapture("back")}
+              onCapture={() => startCamera("back")}
               onUpload={(e) => handleFileUpload(e, "back")}
               onRetake={() => setBackImage(null)}
               onNext={handleNext}
@@ -259,7 +339,7 @@ export default function KYCVerification() {
               t={t}
               image={selfieImage}
               isUploading={isUploading}
-              onCapture={() => handleSimulatedCapture("selfie")}
+              onCapture={() => startCamera("selfie")}
               onRetake={() => setSelfieImage(null)}
               onNext={handleNext}
             />
@@ -289,6 +369,77 @@ export default function KYCVerification() {
 
           {step === "success" && (
             <SuccessStep key="success" t={t} setLocation={setLocation} />
+          )}
+        </AnimatePresence>
+
+        {/* Hidden canvas for capturing images */}
+        <canvas ref={canvasRef} className="hidden" />
+
+        {/* Camera Modal */}
+        <AnimatePresence>
+          {showCamera && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black z-50 flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4">
+                <button
+                  onClick={stopCamera}
+                  className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"
+                  data-testid="button-close-camera"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <p className="text-sm font-bold">
+                  {cameraType === "selfie" 
+                    ? t.takeSelfie 
+                    : cameraType === "front" ? t.uploadFront : t.uploadBack}
+                </p>
+                <div className="w-10" />
+              </div>
+
+              <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={cn(
+                    "max-h-full max-w-full object-contain",
+                    cameraType === "selfie" && "scale-x-[-1]"
+                  )}
+                />
+                
+                {/* Frame overlay for documents */}
+                {cameraType !== "selfie" && (
+                  <div className="absolute inset-8 border-2 border-white/50 rounded-xl pointer-events-none">
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-primary rounded-tl-lg" />
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-lg" />
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-lg" />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-lg" />
+                  </div>
+                )}
+
+                {/* Oval frame for selfie */}
+                {cameraType === "selfie" && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-64 h-80 border-4 border-primary rounded-[50%] opacity-70" />
+                  </div>
+                )}
+              </div>
+
+              <div className="p-8 flex justify-center">
+                <button
+                  onClick={captureFromCamera}
+                  className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 backdrop-blur-md hover:bg-white/40 transition-all active:scale-95"
+                  data-testid="button-shutter"
+                >
+                  <div className="w-16 h-16 bg-white rounded-full" />
+                </button>
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
