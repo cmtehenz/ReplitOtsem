@@ -69,6 +69,8 @@ Required secrets (stored in Replit Secrets):
 - `POST /api/auth/2fa/setup` - Setup 2FA (generate QR code and backup codes)
 - `POST /api/auth/2fa/verify` - Verify 2FA code and enable
 - `POST /api/auth/2fa/disable` - Disable 2FA
+- `GET /api/auth/login-history` - Get user's login session history
+- `POST /api/auth/logout-all-sessions` - Logout from all devices
 
 ### Wallets & Transactions
 - `GET /api/wallets` - Get user's wallet balances
@@ -107,8 +109,16 @@ Required secrets (stored in Replit Secrets):
 - `pix_withdrawals` - PIX withdrawal requests and status
 - `notifications` - Real-time notifications for account activities
 - `webhook_logs` - Idempotency tracking for webhooks
+- `login_sessions` - Login history with device/IP/location tracking
+- `kyc_documents` - KYC document submissions and review status
 
 ## Recent Changes
+- 2024-12-05: Added login session tracking with device, IP, location metadata
+- 2024-12-05: Created backend APIs for login history, crypto news, and transaction statistics
+- 2024-12-05: Updated feed page to use real crypto news API
+- 2024-12-05: Updated security page to display actual login history from database
+- 2024-12-05: Updated stats page to use real transaction data
+- 2024-12-05: Fixed receive button to show proper currency selection dialog
 - 2024-12-05: Implemented KYC-based transaction limits (Basic: R$50k/month, Full: unlimited)
 - 2024-12-05: Added KYC status display in profile page with real-time limit tracking
 - 2024-12-05: Enforced limits on exchange and withdrawal endpoints
