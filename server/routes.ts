@@ -97,6 +97,7 @@ export async function registerRoutes(
         password: z.string().min(6),
         name: z.string().min(2),
         cpf: z.string().optional(),
+        referralCode: z.string().optional(), // Anonymous referral code
       });
 
       const data = registerSchema.parse(req.body);
@@ -112,7 +113,34 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email already registered" });
       }
 
-      const user = await storage.createUser(data);
+      // Validate referral code if provided
+      let referralCodeRecord = null;
+      if (data.referralCode) {
+        referralCodeRecord = await storage.getReferralCodeByCode(data.referralCode);
+        // Silently ignore invalid codes - don't expose whether code exists
+      }
+
+      const user = await storage.createUser({
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        cpf: data.cpf,
+      });
+
+      // Create referral record if valid code was used (anonymously)
+      if (referralCodeRecord) {
+        try {
+          await storage.createReferral(
+            referralCodeRecord.userId, // The referrer
+            user.id, // The new user
+            referralCodeRecord.id
+          );
+        } catch (err) {
+          // Silently fail - don't block registration
+          console.error("Failed to create referral record:", err);
+        }
+      }
       
       // Set session
       req.session.userId = user.id;
@@ -1013,6 +1041,43 @@ export async function registerRoutes(
       res.json({ message: "All notifications marked as read" });
     } catch (error) {
       res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // ==================== REFERRAL ROUTES ====================
+
+  // Get or create user's referral code
+  app.get("/api/referral/code", requireAuth, async (req, res) => {
+    try {
+      const code = await storage.createReferralCode(req.session.userId!);
+      res.json({ code: code.code });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get referral code" });
+    }
+  });
+
+  // Get referral stats for current user
+  app.get("/api/referral/stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getReferralStats(req.session.userId!);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get referral stats" });
+    }
+  });
+
+  // Validate a referral code (for UI validation during signup)
+  app.post("/api/referral/validate", async (req, res) => {
+    try {
+      const { code } = req.body;
+      if (!code) {
+        return res.json({ valid: false });
+      }
+      const codeRecord = await storage.getReferralCodeByCode(code);
+      // Only return whether valid - don't expose any info about the referrer
+      res.json({ valid: !!codeRecord });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to validate code" });
     }
   });
 
