@@ -402,7 +402,20 @@ function SelectDocumentStep({ t, onSelect }: { t: any; onSelect: (type: Document
   );
 }
 
-function UploadDocumentStep({ t, title, description, image, isUploading, onCapture, onUpload, onRetake, onNext, fileInputRef }: any) {
+interface UploadDocumentStepProps {
+  t: Record<string, string>;
+  title: string;
+  description: string;
+  image: string | null;
+  isUploading: boolean;
+  onCapture: () => void;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRetake: () => void;
+  onNext: () => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+function UploadDocumentStep({ t, title, description, image, isUploading, onCapture, onUpload, onRetake, onNext, fileInputRef }: UploadDocumentStepProps) {
   return (
     <motion.div 
       initial={{ opacity: 0, x: 20 }}
