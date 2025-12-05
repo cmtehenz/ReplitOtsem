@@ -19,12 +19,18 @@ export const users = pgTable("users", {
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
   backupCodes: text("backup_codes"), // JSON array of hashed backup codes
   passwordChangedAt: timestamp("password_changed_at"),
+  // KYC fields
+  kycLevel: text("kyc_level").default("none"), // none, basic, full
+  kycVerifiedAt: timestamp("kyc_verified_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, verified: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// KYC level enum
+export const kycLevelEnum = pgEnum("kyc_level", ["none", "basic", "full"]);
 
 // Currency types
 export const currencyEnum = pgEnum("currency", ["BRL", "USDT", "BTC"]);

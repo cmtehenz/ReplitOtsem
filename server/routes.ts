@@ -544,6 +544,41 @@ export async function registerRoutes(
     }
   });
 
+  // Get KYC status and limits
+  app.get("/api/kyc/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const kycLevel = user.kycLevel || "none";
+      const monthlyVolume = await storage.getMonthlyTransactionVolume(req.session.userId!);
+      
+      let limit = 0;
+      let remaining = 0;
+      
+      if (kycLevel === "basic") {
+        limit = 50000;
+        remaining = Math.max(0, limit - monthlyVolume);
+      } else if (kycLevel === "full") {
+        limit = -1; // Unlimited
+        remaining = -1;
+      }
+
+      res.json({
+        kycLevel,
+        kycVerifiedAt: user.kycVerifiedAt,
+        monthlyLimit: limit,
+        monthlyUsed: monthlyVolume,
+        monthlyRemaining: remaining,
+        isUnlimited: kycLevel === "full",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get KYC status" });
+    }
+  });
+
   // Execute exchange
   app.post("/api/exchange", requireAuth, async (req, res) => {
     try {
@@ -563,6 +598,30 @@ export async function registerRoutes(
       }
 
       const rate = await getUsdtBrlRate();
+
+      // Calculate amount in BRL for limit checking
+      let amountBRL = amount;
+      if (data.fromCurrency === "USDT") {
+        amountBRL = amount * rate;
+      }
+
+      // Check KYC limits
+      const kycCheck = await storage.checkKycLimit(req.session.userId!, amountBRL);
+      if (!kycCheck.allowed) {
+        if (kycCheck.kycLevel === "none") {
+          return res.status(403).json({ 
+            error: "KYC verification required to make exchanges",
+            kycLevel: kycCheck.kycLevel,
+            requiresKyc: true
+          });
+        }
+        return res.status(403).json({ 
+          error: `Monthly limit exceeded. Remaining: R$ ${kycCheck.remaining.toFixed(2)}. Upgrade to Full KYC for unlimited transactions.`,
+          kycLevel: kycCheck.kycLevel,
+          remaining: kycCheck.remaining,
+          limit: kycCheck.limit
+        });
+      }
 
       const validation = validateExchangeAmount(
         amount,
@@ -777,6 +836,25 @@ export async function registerRoutes(
 
       const { pixKeyId, amount } = withdrawSchema.parse(req.body);
       const userId = req.session.userId!;
+      const amountNum = parseFloat(amount);
+
+      // Check KYC limits
+      const kycCheck = await storage.checkKycLimit(userId, amountNum);
+      if (!kycCheck.allowed) {
+        if (kycCheck.kycLevel === "none") {
+          return res.status(403).json({ 
+            error: "KYC verification required to make withdrawals",
+            kycLevel: kycCheck.kycLevel,
+            requiresKyc: true
+          });
+        }
+        return res.status(403).json({ 
+          error: `Monthly limit exceeded. Remaining: R$ ${kycCheck.remaining.toFixed(2)}. Upgrade to Full KYC for unlimited transactions.`,
+          kycLevel: kycCheck.kycLevel,
+          remaining: kycCheck.remaining,
+          limit: kycCheck.limit
+        });
+      }
 
       // Get PIX key
       const pixKey = await storage.getPixKey(pixKeyId);
@@ -786,7 +864,7 @@ export async function registerRoutes(
 
       // Check balance
       const wallet = await storage.getWallet(userId, "BRL");
-      if (!wallet || parseFloat(wallet.balance) < parseFloat(amount)) {
+      if (!wallet || parseFloat(wallet.balance) < amountNum) {
         return res.status(400).json({ error: "Insufficient balance" });
       }
 

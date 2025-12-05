@@ -10,7 +10,7 @@ import {
   type WebhookLog, type InsertWebhookLog,
   type Notification, type InsertNotification
 } from "@shared/schema";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc, or, gte, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 12;
@@ -492,6 +492,95 @@ export class DatabaseStorage implements IStorage {
     await db.update(notifications)
       .set({ read: true })
       .where(eq(notifications.userId, userId));
+  }
+
+  // KYC & Limits
+  async updateKycLevel(userId: string, level: "none" | "basic" | "full"): Promise<User> {
+    const result = await db.update(users)
+      .set({ 
+        kycLevel: level,
+        kycVerifiedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!result[0]) {
+      throw new Error("User not found");
+    }
+    return result[0];
+  }
+
+  async getMonthlyTransactionVolume(userId: string): Promise<number> {
+    // Get the first day of current month
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Sum all completed exchange and withdrawal transactions this month
+    const result = await db.select({
+      total: sql<string>`COALESCE(SUM(
+        CASE 
+          WHEN from_currency = 'BRL' THEN COALESCE(from_amount, 0)
+          WHEN from_currency = 'USDT' THEN COALESCE(from_amount, 0) * 5.15
+          WHEN from_currency = 'BTC' THEN COALESCE(from_amount, 0) * 340000
+          ELSE 0
+        END
+      ), 0)`
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        eq(transactions.status, "completed"),
+        or(
+          eq(transactions.type, "exchange"),
+          eq(transactions.type, "withdrawal")
+        ),
+        gte(transactions.createdAt, firstDayOfMonth)
+      )
+    );
+    
+    return parseFloat(result[0]?.total || "0");
+  }
+
+  async checkKycLimit(userId: string, amountBRL: number): Promise<{ allowed: boolean; remaining: number; limit: number; kycLevel: string }> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const kycLevel = user.kycLevel || "none";
+    
+    // Full KYC has no limits
+    if (kycLevel === "full") {
+      return { 
+        allowed: true, 
+        remaining: Infinity, 
+        limit: Infinity,
+        kycLevel 
+      };
+    }
+    
+    // No KYC - cannot transact
+    if (kycLevel === "none") {
+      return { 
+        allowed: false, 
+        remaining: 0, 
+        limit: 0,
+        kycLevel 
+      };
+    }
+    
+    // Basic KYC - R$ 50,000 monthly limit
+    const BASIC_LIMIT = 50000;
+    const monthlyVolume = await this.getMonthlyTransactionVolume(userId);
+    const remaining = Math.max(0, BASIC_LIMIT - monthlyVolume);
+    
+    return {
+      allowed: amountBRL <= remaining,
+      remaining,
+      limit: BASIC_LIMIT,
+      kycLevel
+    };
   }
 }
 
