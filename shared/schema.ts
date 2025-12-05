@@ -231,3 +231,36 @@ export const referrals = pgTable("referrals", {
 export const insertReferralSchema = createInsertSchema(referrals).omit({ id: true, createdAt: true });
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
+
+// Login sessions - tracks user login history
+export const loginSessions = pgTable("login_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deviceInfo: text("device_info"), // Browser/device identifier
+  ipAddress: text("ip_address"),
+  location: text("location"), // Parsed from IP (city, country)
+  sessionId: text("session_id"), // Reference to express session
+  isCurrent: boolean("is_current").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
+});
+
+export const insertLoginSessionSchema = createInsertSchema(loginSessions).omit({ id: true, createdAt: true, lastActiveAt: true });
+export type InsertLoginSession = z.infer<typeof insertLoginSessionSchema>;
+export type LoginSession = typeof loginSessions.$inferSelect;
+
+// KYC documents - stores submitted KYC documents
+export const kycDocuments = pgTable("kyc_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  documentType: text("document_type").notNull(), // selfie, id_front, id_back, proof_of_address
+  documentUrl: text("document_url").notNull(), // S3 or storage URL
+  status: text("status").default("pending"), // pending, approved, rejected
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+});
+
+export const insertKycDocumentSchema = createInsertSchema(kycDocuments).omit({ id: true, createdAt: true, reviewedAt: true });
+export type InsertKycDocument = z.infer<typeof insertKycDocumentSchema>;
+export type KycDocument = typeof kycDocuments.$inferSelect;

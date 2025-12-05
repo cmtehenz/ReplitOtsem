@@ -517,3 +517,80 @@ export async function logoutAllSessions(): Promise<{ message: string }> {
   }
   return response.json();
 }
+
+export interface LoginSession {
+  id: string;
+  deviceInfo: string | null;
+  ipAddress: string | null;
+  location: string | null;
+  isCurrent: boolean;
+  createdAt: string;
+  lastActiveAt: string;
+}
+
+export async function getLoginHistory(): Promise<LoginSession[]> {
+  const response = await fetch(`${API_BASE}/auth/login-history`);
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+  if (!response.ok) {
+    throw new Error("Failed to get login history");
+  }
+  return response.json();
+}
+
+// ==================== KYC SUBMISSION ====================
+
+export async function submitKycDocument(documentType: string, documentData: string): Promise<{ id: string; status: string }> {
+  const response = await fetch(`${API_BASE}/kyc/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ documentType, documentData }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to submit KYC document");
+  }
+  return response.json();
+}
+
+export async function completeKycVerification(): Promise<{ success: boolean; kycLevel: string }> {
+  const response = await fetch(`${API_BASE}/kyc/complete`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to complete KYC verification");
+  }
+  return response.json();
+}
+
+// ==================== CRYPTO NEWS ====================
+
+export interface CryptoNews {
+  id: string;
+  title: string;
+  description: string;
+  category: "breaking" | "market" | "general";
+  timestamp: string;
+  trend: number;
+  source: string;
+  url?: string;
+}
+
+export async function getCryptoNews(language: string = "en"): Promise<CryptoNews[]> {
+  const response = await fetch(`${API_BASE}/news?lang=${language}`);
+  if (!response.ok) {
+    throw new Error("Failed to fetch news");
+  }
+  return response.json();
+}
+
+// ==================== STATS ====================
+
+export interface TransactionStats {
+  totalIncome: number;
+  totalExpense: number;
+  weeklyData: { day: string; income: number; expense: number }[];
+  categoryBreakdown: { category: string; amount: number; percent: number }[];
+}
