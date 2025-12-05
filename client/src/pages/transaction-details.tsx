@@ -1,5 +1,5 @@
 import { PageContainer } from "@/components/page-container";
-import { ArrowLeft, Share2, CheckCircle2, Copy, ArrowUpRight, ArrowDownLeft, Download, Receipt, Check, RefreshCw, XCircle } from "lucide-react";
+import { ArrowLeft, Share2, CheckCircle2, Copy, ArrowUpRight, ArrowDownLeft, Download, Receipt, Check, RefreshCw, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, useRoute } from "wouter";
 import { cn } from "@/lib/utils";
@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getTransactions } from "@/lib/api";
 import { format } from "date-fns";
 import { useLanguage } from "@/context/LanguageContext";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 
 export default function TransactionDetails() {
@@ -15,6 +15,9 @@ export default function TransactionDetails() {
   const [, params] = useRoute("/transaction/:id");
   const { t, language } = useLanguage();
   const [copied, setCopied] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
   
   const { data: transactions } = useQuery({
     queryKey: ["transactions"],
@@ -28,6 +31,145 @@ export default function TransactionDetails() {
     setCopied(true);
     toast.success(language === "pt-BR" ? "Copiado!" : "Copied!");
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const generatePdfHtml = () => {
+    if (!transaction) return "";
+    
+    const displayAmount = transaction.type === "deposit" || transaction.type === "exchange"
+      ? transaction.toAmount
+      : transaction.fromAmount;
+    const displayCurrency = transaction.type === "deposit" || transaction.type === "exchange"
+      ? transaction.toCurrency
+      : transaction.fromCurrency;
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Otsem Pay - ${language === "pt-BR" ? "Comprovante" : "Receipt"}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: white; padding: 40px; }
+          .receipt { max-width: 400px; margin: 0 auto; background: linear-gradient(145deg, #1a1a2e, #16161f); border-radius: 24px; padding: 32px; border: 1px solid rgba(139, 92, 246, 0.2); }
+          .header { text-align: center; margin-bottom: 24px; border-bottom: 2px dashed rgba(255,255,255,0.1); padding-bottom: 24px; }
+          .logo { font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #8b5cf6, #d4a574); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+          .date { color: #888; font-size: 12px; }
+          .amount { text-align: center; padding: 24px 0; }
+          .amount-value { font-size: 40px; font-weight: bold; }
+          .status { display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-top: 8px; }
+          .status.completed { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+          .status.pending { background: rgba(234, 179, 8, 0.2); color: #eab308; }
+          .details { border-top: 2px dashed rgba(255,255,255,0.1); padding-top: 24px; }
+          .row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+          .row:last-child { border-bottom: none; }
+          .label { color: #888; font-size: 14px; }
+          .value { font-weight: 600; font-size: 14px; text-align: right; }
+          .footer { text-align: center; margin-top: 24px; padding-top: 16px; border-top: 2px dashed rgba(255,255,255,0.1); }
+          .footer p { color: #666; font-size: 11px; }
+          .tx-id { font-family: monospace; font-size: 10px; color: #8b5cf6; word-break: break-all; }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="header">
+            <div class="logo">Otsem Pay</div>
+            <p class="date">${format(new Date(transaction.createdAt), "MMMM dd, yyyy • HH:mm")}</p>
+          </div>
+          <div class="amount">
+            <div class="amount-value">${displayCurrency === "BRL" ? "R$ " : ""}${parseFloat(displayAmount || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ${displayCurrency !== "BRL" ? displayCurrency : ""}</div>
+            <span class="status ${transaction.status}">${getStatusText(transaction.status)}</span>
+          </div>
+          <div class="details">
+            <div class="row">
+              <span class="label">${language === "pt-BR" ? "Tipo" : "Type"}</span>
+              <span class="value">${getTypeText(transaction.type)}</span>
+            </div>
+            <div class="row">
+              <span class="label">${language === "pt-BR" ? "Descrição" : "Description"}</span>
+              <span class="value">${transaction.description}</span>
+            </div>
+            ${transaction.type === "exchange" && transaction.fromAmount ? `
+            <div class="row">
+              <span class="label">${language === "pt-BR" ? "Valor Pago" : "Amount Paid"}</span>
+              <span class="value">${parseFloat(transaction.fromAmount).toFixed(2)} ${transaction.fromCurrency}</span>
+            </div>
+            ` : ""}
+            <div class="row">
+              <span class="label">${language === "pt-BR" ? "ID da Transação" : "Transaction ID"}</span>
+              <span class="value tx-id">${transaction.id}</span>
+            </div>
+          </div>
+          <div class="footer">
+            <p>${language === "pt-BR" ? "Este é um comprovante eletrônico gerado automaticamente." : "This is an automatically generated electronic receipt."}</p>
+            <p style="margin-top: 8px;">© Otsem Pay - ${new Date().getFullYear()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleDownloadPdf = () => {
+    setIsGeneratingPdf(true);
+    
+    try {
+      const html = generatePdfHtml();
+      const printWindow = window.open("", "_blank");
+      
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        
+        setTimeout(() => {
+          printWindow.print();
+          setIsGeneratingPdf(false);
+        }, 250);
+      } else {
+        toast.error(language === "pt-BR" ? "Popup bloqueado. Permita popups para baixar." : "Popup blocked. Please allow popups to download.");
+        setIsGeneratingPdf(false);
+      }
+    } catch (error) {
+      toast.error(language === "pt-BR" ? "Erro ao gerar PDF" : "Failed to generate PDF");
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!transaction) return;
+    setIsSharing(true);
+    
+    const displayAmount = transaction.type === "deposit" || transaction.type === "exchange"
+      ? transaction.toAmount
+      : transaction.fromAmount;
+    const displayCurrency = transaction.type === "deposit" || transaction.type === "exchange"
+      ? transaction.toCurrency
+      : transaction.fromCurrency;
+    
+    const shareText = language === "pt-BR" 
+      ? `Otsem Pay - Comprovante\n${getTypeText(transaction.type)}\nValor: ${displayCurrency === "BRL" ? "R$ " : ""}${parseFloat(displayAmount || "0").toFixed(2)} ${displayCurrency}\nData: ${format(new Date(transaction.createdAt), "dd/MM/yyyy HH:mm")}\nID: ${transaction.id.slice(0, 12)}...`
+      : `Otsem Pay - Receipt\n${getTypeText(transaction.type)}\nAmount: ${displayCurrency === "BRL" ? "R$ " : ""}${parseFloat(displayAmount || "0").toFixed(2)} ${displayCurrency}\nDate: ${format(new Date(transaction.createdAt), "MM/dd/yyyy HH:mm")}\nID: ${transaction.id.slice(0, 12)}...`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Otsem Pay - " + (language === "pt-BR" ? "Comprovante" : "Receipt"),
+          text: shareText,
+        });
+        toast.success(language === "pt-BR" ? "Compartilhado!" : "Shared!");
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        toast.success(language === "pt-BR" ? "Copiado para área de transferência!" : "Copied to clipboard!");
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        await navigator.clipboard.writeText(shareText);
+        toast.success(language === "pt-BR" ? "Copiado para área de transferência!" : "Copied to clipboard!");
+      }
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -148,10 +290,12 @@ export default function TransactionDetails() {
           </button>
           <h1 className="font-display font-bold text-lg tracking-wide">{t("transaction.receipt")}</h1>
           <button 
-            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30"
+            onClick={handleShare}
+            disabled={isSharing}
+            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all border border-white/5 hover:border-primary/30 disabled:opacity-50"
             data-testid="button-share"
           >
-            <Share2 className="w-5 h-5" />
+            {isSharing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Share2 className="w-5 h-5" />}
           </button>
         </div>
 
@@ -230,10 +374,16 @@ export default function TransactionDetails() {
           <div className="grid grid-cols-2 gap-4 w-full mt-auto pt-4">
             <Button 
               variant="outline" 
-              className="h-14 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-base"
+              className="h-14 rounded-2xl border-white/10 hover:bg-white/5 font-bold text-base disabled:opacity-50"
+              onClick={handleDownloadPdf}
+              disabled={isGeneratingPdf}
               data-testid="button-save-pdf"
             >
-              <Download className="w-5 h-5 mr-2" />
+              {isGeneratingPdf ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5 mr-2" />
+              )}
               {t("transaction.savePdf")}
             </Button>
             <Button 
