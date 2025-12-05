@@ -182,6 +182,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "deposit_failed",
   "withdrawal_pending",
   "withdrawal_completed",
+  "transfer_sent",
   "withdrawal_failed",
   "exchange_completed",
   "exchange_failed",

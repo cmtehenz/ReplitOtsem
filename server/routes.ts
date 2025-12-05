@@ -1070,6 +1070,87 @@ export async function registerRoutes(
     }
   });
 
+  // Send PIX to external key (not registered)
+  app.post("/api/pix/send-external", requireAuth, pixLimiter, async (req, res) => {
+    try {
+      const sendSchema = z.object({
+        keyType: z.enum(["cpf", "email", "phone", "random"]),
+        keyValue: z.string().min(1),
+        amount: z.string().refine((val) => parseFloat(val) >= 1, "Minimum amount is R$ 1.00"),
+        recipientName: z.string().optional(),
+      });
+
+      const { keyType, keyValue, amount, recipientName } = sendSchema.parse(req.body);
+      const userId = req.session.userId!;
+      const amountNum = parseFloat(amount);
+
+      // Check balance
+      const wallet = await storage.getWallet(userId, "BRL");
+      if (!wallet || parseFloat(wallet.balance) < amountNum) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      // Debit the wallet first
+      await storage.debitWallet(userId, "BRL", amount);
+
+      // Create a transaction record
+      const transaction = await storage.createTransaction({
+        userId,
+        type: "withdrawal",
+        status: "processing",
+        fromCurrency: "BRL",
+        toCurrency: null,
+        fromAmount: amount,
+        toAmount: null,
+        description: `PIX transfer to ${keyType.toUpperCase()}: ${keyValue}`,
+        externalId: null,
+      });
+
+      try {
+        // Call Inter API to process the PIX
+        const { InterAPI } = await import("./inter-api");
+        const interApi = new InterAPI();
+
+        const result = await interApi.initiatePixPayment({
+          keyType,
+          keyValue,
+          amount: amountNum,
+          description: `PIX transfer from Otsem Pay`,
+        });
+
+        // Update transaction as completed
+        await storage.updateTransactionStatus(transaction.id, "completed");
+
+        // Send notification for successful transfer
+        notificationService.notifyPixTransferSent(userId, amountNum, keyValue)
+          .catch(err => console.error("Failed to send transfer notification:", err));
+
+        res.json({
+          success: true,
+          transactionId: transaction.id,
+          endToEndId: result.endToEndId,
+          message: "PIX sent successfully",
+        });
+      } catch (apiError: any) {
+        console.error("Inter API external send error:", apiError.response?.data || apiError.message);
+
+        // Mark as failed and refund
+        await storage.updateTransactionStatus(transaction.id, "failed");
+        await storage.creditWallet(userId, "BRL", amount);
+
+        res.status(500).json({
+          error: "Transfer failed",
+          reason: "Unable to process PIX transfer. Your balance has been refunded.",
+        });
+      }
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors[0].message });
+      }
+      res.status(500).json({ error: "Failed to process transfer" });
+    }
+  });
+
   // ==================== NOTIFICATION ROUTES ====================
 
   // Get user notifications

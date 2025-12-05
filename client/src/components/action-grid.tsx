@@ -143,8 +143,12 @@ function WithdrawButton() {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [sendMode, setSendMode] = useState<"myKeys" | "external">("myKeys");
+  const [externalKeyType, setExternalKeyType] = useState<"cpf" | "email" | "phone" | "random">("cpf");
+  const [externalKeyValue, setExternalKeyValue] = useState("");
+  const [recipientName, setRecipientName] = useState("");
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const { data: pixKeys } = useQuery({
     queryKey: ["pix-keys"],
@@ -172,6 +176,30 @@ function WithdrawButton() {
     },
   });
 
+  const externalSendMutation = useMutation({
+    mutationFn: async (data: { keyType: string; keyValue: string; amount: string; recipientName: string }) => {
+      const response = await fetch("/api/pix/send-external", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Transfer failed");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast.success(language === "pt-BR" ? "PIX enviado com sucesso!" : "PIX sent successfully!");
+      handleClose();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Transfer failed");
+    },
+  });
+
   const handleWithdraw = () => {
     if (!selectedKey) {
       toast.error(t("pix.selectKeyError"));
@@ -188,10 +216,48 @@ function WithdrawButton() {
     withdrawMutation.mutate({ pixKeyId: selectedKey, amount });
   };
 
+  const handleExternalSend = () => {
+    if (!externalKeyValue) {
+      toast.error(language === "pt-BR" ? "Insira a chave PIX" : "Enter PIX key");
+      return;
+    }
+    if (!amount || parseFloat(amount) < 1) {
+      toast.error(t("pix.minWithdraw"));
+      return;
+    }
+    if (parseFloat(amount) > parseFloat(brlBalance)) {
+      toast.error(t("pix.insufficientBalance"));
+      return;
+    }
+    externalSendMutation.mutate({
+      keyType: externalKeyType,
+      keyValue: externalKeyValue,
+      amount,
+      recipientName: recipientName || "Destinatário",
+    });
+  };
+
   const handleClose = () => {
     setOpen(false);
     setAmount("");
     setSelectedKey(null);
+    setExternalKeyValue("");
+    setRecipientName("");
+    setSendMode("myKeys");
+  };
+
+  const keyTypeLabels = {
+    cpf: "CPF",
+    email: "E-mail",
+    phone: language === "pt-BR" ? "Telefone" : "Phone",
+    random: language === "pt-BR" ? "Chave Aleatória" : "Random Key",
+  };
+
+  const keyTypePlaceholders = {
+    cpf: "000.000.000-00",
+    email: "email@example.com",
+    phone: "+55 11 99999-9999",
+    random: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
   };
 
   return (
@@ -206,7 +272,7 @@ function WithdrawButton() {
           </span>
         </button>
       </DialogTrigger>
-      <DialogContent className="bg-card border-white/10 rounded-3xl sm:max-w-md">
+      <DialogContent className="bg-card border-white/10 rounded-3xl sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center font-display text-2xl">{t("pix.withdraw")}</DialogTitle>
         </DialogHeader>
@@ -216,32 +282,140 @@ function WithdrawButton() {
             {t("pix.available")}: <span className="text-white font-bold">R$ {parseFloat(brlBalance).toFixed(2)}</span>
           </div>
 
-          {(!pixKeys || pixKeys.length === 0) ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">{t("pix.noKeys")}</p>
-              <p className="text-xs text-muted-foreground mt-1">{t("pix.noKeysDesc")}</p>
-            </div>
+          <div className="flex gap-2 p-1 bg-background/50 rounded-xl">
+            <button
+              onClick={() => setSendMode("myKeys")}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
+                sendMode === "myKeys" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
+              }`}
+              data-testid="tab-my-keys"
+            >
+              {language === "pt-BR" ? "Minhas Chaves" : "My Keys"}
+            </button>
+            <button
+              onClick={() => setSendMode("external")}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
+                sendMode === "external" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
+              }`}
+              data-testid="tab-external"
+            >
+              {language === "pt-BR" ? "Chave Externa" : "External Key"}
+            </button>
+          </div>
+
+          {sendMode === "myKeys" ? (
+            <>
+              {(!pixKeys || pixKeys.length === 0) ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">{t("pix.noKeys")}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t("pix.noKeysDesc")}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <label className="text-base text-muted-foreground font-bold ml-1">{t("pix.selectKey")}</label>
+                    <div className="space-y-2">
+                      {pixKeys.map((key) => (
+                        <button
+                          key={key.id}
+                          onClick={() => setSelectedKey(key.id)}
+                          className={`w-full p-4 rounded-xl text-left transition-all ${
+                            selectedKey === key.id 
+                              ? "bg-primary/20 border-2 border-primary" 
+                              : "bg-white/5 border border-white/10 hover:bg-white/10"
+                          }`}
+                          data-testid={`button-select-key-${key.id}`}
+                        >
+                          <p className="font-bold text-sm">{key.name || key.keyType.toUpperCase()}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{key.keyValue}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="text-base text-muted-foreground font-bold ml-1">{t("pix.amountBrl")}</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>
+                      <input 
+                        type="number" 
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        min="1"
+                        max={brlBalance}
+                        step="0.01"
+                        className="w-full bg-background/50 border border-white/10 rounded-2xl p-5 pl-12 text-2xl focus:outline-none focus:border-primary/50 transition-all font-medium"
+                        data-testid="input-withdraw-amount"
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleWithdraw}
+                    disabled={withdrawMutation.isPending || !selectedKey || !amount}
+                    className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-[#7c3aed] text-white text-lg font-bold"
+                    data-testid="button-confirm-withdraw"
+                  >
+                    {withdrawMutation.isPending ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      t("pix.withdrawButton")
+                    )}
+                  </Button>
+                </>
+              )}
+            </>
           ) : (
             <>
               <div className="space-y-3">
-                <label className="text-base text-muted-foreground font-bold ml-1">{t("pix.selectKey")}</label>
-                <div className="space-y-2">
-                  {pixKeys.map((key) => (
+                <label className="text-base text-muted-foreground font-bold ml-1">
+                  {language === "pt-BR" ? "Tipo de Chave" : "Key Type"}
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["cpf", "email", "phone", "random"] as const).map((type) => (
                     <button
-                      key={key.id}
-                      onClick={() => setSelectedKey(key.id)}
-                      className={`w-full p-4 rounded-xl text-left transition-all ${
-                        selectedKey === key.id 
-                          ? "bg-primary/20 border-2 border-primary" 
-                          : "bg-white/5 border border-white/10 hover:bg-white/10"
+                      key={type}
+                      onClick={() => setExternalKeyType(type)}
+                      className={`p-3 rounded-xl text-sm font-bold transition-all ${
+                        externalKeyType === type
+                          ? "bg-primary/20 border-2 border-primary text-primary"
+                          : "bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10"
                       }`}
-                      data-testid={`button-select-key-${key.id}`}
+                      data-testid={`button-keytype-${type}`}
                     >
-                      <p className="font-bold text-sm">{key.name || key.keyType.toUpperCase()}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{key.keyValue}</p>
+                      {keyTypeLabels[type]}
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-base text-muted-foreground font-bold ml-1">
+                  {language === "pt-BR" ? "Chave PIX" : "PIX Key"}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder={keyTypePlaceholders[externalKeyType]}
+                  value={externalKeyValue}
+                  onChange={(e) => setExternalKeyValue(e.target.value)}
+                  className="w-full bg-background/50 border border-white/10 rounded-2xl p-4 focus:outline-none focus:border-primary/50 transition-all"
+                  data-testid="input-external-key"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-base text-muted-foreground font-bold ml-1">
+                  {language === "pt-BR" ? "Nome do Destinatário (opcional)" : "Recipient Name (optional)"}
+                </label>
+                <input 
+                  type="text" 
+                  placeholder={language === "pt-BR" ? "Nome completo" : "Full name"}
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  className="w-full bg-background/50 border border-white/10 rounded-2xl p-4 focus:outline-none focus:border-primary/50 transition-all"
+                  data-testid="input-recipient-name"
+                />
               </div>
 
               <div className="space-y-3">
@@ -257,21 +431,21 @@ function WithdrawButton() {
                     max={brlBalance}
                     step="0.01"
                     className="w-full bg-background/50 border border-white/10 rounded-2xl p-5 pl-12 text-2xl focus:outline-none focus:border-primary/50 transition-all font-medium"
-                    data-testid="input-withdraw-amount"
+                    data-testid="input-external-amount"
                   />
                 </div>
               </div>
 
               <Button 
-                onClick={handleWithdraw}
-                disabled={withdrawMutation.isPending || !selectedKey || !amount}
+                onClick={handleExternalSend}
+                disabled={externalSendMutation.isPending || !externalKeyValue || !amount}
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary to-[#7c3aed] text-white text-lg font-bold"
-                data-testid="button-confirm-withdraw"
+                data-testid="button-send-external"
               >
-                {withdrawMutation.isPending ? (
+                {externalSendMutation.isPending ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  t("pix.withdrawButton")
+                  language === "pt-BR" ? "Enviar PIX" : "Send PIX"
                 )}
               </Button>
             </>

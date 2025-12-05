@@ -128,6 +128,16 @@ class NotificationService {
     );
   }
 
+  async notifyPixTransferSent(userId: string, amount: number, recipient: string) {
+    return this.createAndSend(
+      userId,
+      "transfer_sent",
+      "PIX Transfer Sent",
+      `R$ ${amount.toFixed(2)} was sent via PIX to ${recipient}`,
+      { amount: amount.toString(), recipient, currency: "BRL" }
+    );
+  }
+
   async notifySecurityAlert(userId: string, message: string) {
     return this.createAndSend(
       userId,
