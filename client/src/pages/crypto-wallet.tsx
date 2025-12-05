@@ -1,0 +1,702 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { ArrowLeft, Copy, Check, Eye, EyeOff, Shield, Key, Wallet, AlertTriangle, Download, ChevronRight, RefreshCw } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import { getCryptoWallet, createCryptoWallet, confirmWalletBackup, importCryptoWallet, getCryptoBalances, getSupportedNetworks, type CryptoWallet, type CryptoBalances, type NetworkInfo } from "../lib/api";
+import { toast } from "sonner";
+
+type Step = "initial" | "create-password" | "show-seed" | "verify-seed" | "import" | "complete";
+
+export default function CryptoWalletPage() {
+  const [, navigate] = useLocation();
+  const { language } = useLanguage();
+  const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState<CryptoWallet | null>(null);
+  const [balances, setBalances] = useState<CryptoBalances | null>(null);
+  const [networks, setNetworks] = useState<Record<string, NetworkInfo>>({});
+  const [step, setStep] = useState<Step>("initial");
+  const [password, setPassword] = useState("");
+  const [mnemonic, setMnemonic] = useState<string[]>([]);
+  const [showMnemonic, setShowMnemonic] = useState(false);
+  const [copiedMnemonic, setCopiedMnemonic] = useState(false);
+  const [verifyWords, setVerifyWords] = useState<{ index: number; word: string }[]>([]);
+  const [userInputs, setUserInputs] = useState<string[]>(["", "", ""]);
+  const [importMnemonic, setImportMnemonic] = useState("");
+  const [importPassword, setImportPassword] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [refreshingBalances, setRefreshingBalances] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>("ethereum");
+
+  const t: Record<string, {
+    title: string;
+    subtitle: string;
+    createWallet: string;
+    importWallet: string;
+    createDescription: string;
+    importDescription: string;
+    enterPassword: string;
+    passwordInfo: string;
+    continue: string;
+    yourRecoveryPhrase: string;
+    recoveryWarning: string;
+    showPhrase: string;
+    hidePhrase: string;
+    copyPhrase: string;
+    copied: string;
+    iHaveBackedUp: string;
+    verifyBackup: string;
+    verifyDescription: string;
+    word: string;
+    verify: string;
+    importTitle: string;
+    enterRecoveryPhrase: string;
+    enterPasswordImport: string;
+    import: string;
+    walletReady: string;
+    evmAddress: string;
+    tronAddress: string;
+    yourAddresses: string;
+    receiveUsdt: string;
+    balance: string;
+    refreshBalances: string;
+    backupNotice: string;
+    backupNoticeDesc: string;
+    backupNow: string;
+    networks: string;
+    noWallet: string;
+    createOrImport: string;
+  }> = {
+    en: {
+      title: "Crypto Wallet",
+      subtitle: "Your non-custodial blockchain wallet",
+      createWallet: "Create New Wallet",
+      importWallet: "Import Existing Wallet",
+      createDescription: "Generate a new 12-word recovery phrase for your wallet",
+      importDescription: "Restore your wallet using an existing recovery phrase",
+      enterPassword: "Enter Password",
+      passwordInfo: "Your password encrypts your recovery phrase. You'll need it to sign transactions.",
+      continue: "Continue",
+      yourRecoveryPhrase: "Your Recovery Phrase",
+      recoveryWarning: "Write down these 12 words in order and store them safely. Anyone with access to this phrase can access your funds.",
+      showPhrase: "Show Phrase",
+      hidePhrase: "Hide Phrase",
+      copyPhrase: "Copy to Clipboard",
+      copied: "Copied!",
+      iHaveBackedUp: "I've Backed Up My Recovery Phrase",
+      verifyBackup: "Verify Your Backup",
+      verifyDescription: "Enter the requested words to confirm you've saved your recovery phrase",
+      word: "Word",
+      verify: "Verify & Complete",
+      importTitle: "Import Wallet",
+      enterRecoveryPhrase: "Enter your 12-word recovery phrase",
+      enterPasswordImport: "Enter your account password to encrypt the wallet",
+      import: "Import Wallet",
+      walletReady: "Wallet Ready",
+      evmAddress: "EVM Address (Ethereum, Polygon, BSC, etc.)",
+      tronAddress: "Tron Address",
+      yourAddresses: "Your Wallet Addresses",
+      receiveUsdt: "Receive USDT",
+      balance: "Balance",
+      refreshBalances: "Refresh Balances",
+      backupNotice: "Backup Required",
+      backupNoticeDesc: "Please backup your recovery phrase to secure your funds",
+      backupNow: "Backup Now",
+      networks: "Supported Networks",
+      noWallet: "No wallet yet",
+      createOrImport: "Create a new wallet or import an existing one to get started",
+    },
+    "pt-BR": {
+      title: "Carteira Crypto",
+      subtitle: "Sua carteira blockchain não-custodial",
+      createWallet: "Criar Nova Carteira",
+      importWallet: "Importar Carteira",
+      createDescription: "Gere uma nova frase de recuperação de 12 palavras",
+      importDescription: "Restaure sua carteira usando uma frase de recuperação existente",
+      enterPassword: "Digite sua Senha",
+      passwordInfo: "Sua senha criptografa sua frase de recuperação. Você precisará dela para assinar transações.",
+      continue: "Continuar",
+      yourRecoveryPhrase: "Sua Frase de Recuperação",
+      recoveryWarning: "Anote estas 12 palavras em ordem e guarde-as com segurança. Qualquer pessoa com acesso a esta frase pode acessar seus fundos.",
+      showPhrase: "Mostrar Frase",
+      hidePhrase: "Ocultar Frase",
+      copyPhrase: "Copiar",
+      copied: "Copiado!",
+      iHaveBackedUp: "Salvei Minha Frase de Recuperação",
+      verifyBackup: "Verifique Seu Backup",
+      verifyDescription: "Digite as palavras solicitadas para confirmar que você salvou sua frase",
+      word: "Palavra",
+      verify: "Verificar e Concluir",
+      importTitle: "Importar Carteira",
+      enterRecoveryPhrase: "Digite sua frase de recuperação de 12 palavras",
+      enterPasswordImport: "Digite sua senha da conta para criptografar a carteira",
+      import: "Importar Carteira",
+      walletReady: "Carteira Pronta",
+      evmAddress: "Endereço EVM (Ethereum, Polygon, BSC, etc.)",
+      tronAddress: "Endereço Tron",
+      yourAddresses: "Seus Endereços",
+      receiveUsdt: "Receber USDT",
+      balance: "Saldo",
+      refreshBalances: "Atualizar Saldos",
+      backupNotice: "Backup Necessário",
+      backupNoticeDesc: "Por favor, faça backup da sua frase de recuperação para proteger seus fundos",
+      backupNow: "Fazer Backup",
+      networks: "Redes Suportadas",
+      noWallet: "Nenhuma carteira ainda",
+      createOrImport: "Crie uma nova carteira ou importe uma existente para começar",
+    },
+  };
+  const text = t[language];
+
+  useEffect(() => {
+    loadWallet();
+    loadNetworks();
+  }, []);
+
+  const loadWallet = async () => {
+    try {
+      setLoading(true);
+      const w = await getCryptoWallet();
+      setWallet(w);
+      if (w) {
+        setStep("complete");
+        loadBalances();
+      }
+    } catch (error) {
+      console.error("Failed to load wallet:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadBalances = async () => {
+    try {
+      setRefreshingBalances(true);
+      const b = await getCryptoBalances();
+      setBalances(b);
+    } catch (error) {
+      console.error("Failed to load balances:", error);
+    } finally {
+      setRefreshingBalances(false);
+    }
+  };
+
+  const loadNetworks = async () => {
+    try {
+      const n = await getSupportedNetworks();
+      setNetworks(n);
+    } catch (error) {
+      console.error("Failed to load networks:", error);
+    }
+  };
+
+  const handleCreateWallet = async () => {
+    if (!password) {
+      toast.error("Please enter your password");
+      return;
+    }
+    
+    try {
+      setProcessing(true);
+      const result = await createCryptoWallet(password);
+      setMnemonic(result.mnemonic.split(" "));
+      setWallet({
+        evmAddress: result.evmAddress,
+        tronAddress: result.tronAddress,
+        seedBackedUp: false,
+        createdAt: new Date().toISOString(),
+      });
+      setStep("show-seed");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCopyMnemonic = async () => {
+    await navigator.clipboard.writeText(mnemonic.join(" "));
+    setCopiedMnemonic(true);
+    toast.success(text.copied);
+    setTimeout(() => setCopiedMnemonic(false), 2000);
+  };
+
+  const handleBackedUp = () => {
+    const indices = [];
+    const usedIndices = new Set<number>();
+    while (indices.length < 3) {
+      const randomIndex = Math.floor(Math.random() * 12);
+      if (!usedIndices.has(randomIndex)) {
+        usedIndices.add(randomIndex);
+        indices.push(randomIndex);
+      }
+    }
+    indices.sort((a, b) => a - b);
+    setVerifyWords(indices.map(i => ({ index: i, word: mnemonic[i] })));
+    setUserInputs(["", "", ""]);
+    setStep("verify-seed");
+  };
+
+  const handleVerify = async () => {
+    const isCorrect = verifyWords.every((vw, i) => 
+      userInputs[i].toLowerCase().trim() === vw.word.toLowerCase()
+    );
+    
+    if (!isCorrect) {
+      toast.error("Incorrect words. Please check your backup and try again.");
+      return;
+    }
+    
+    try {
+      setProcessing(true);
+      await confirmWalletBackup();
+      setWallet(prev => prev ? { ...prev, seedBackedUp: true } : null);
+      setMnemonic([]);
+      setStep("complete");
+      toast.success("Wallet backup confirmed!");
+      loadBalances();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importMnemonic.trim()) {
+      toast.error("Please enter your recovery phrase");
+      return;
+    }
+    if (!importPassword) {
+      toast.error("Please enter your password");
+      return;
+    }
+    
+    const words = importMnemonic.trim().split(/\s+/);
+    if (words.length !== 12) {
+      toast.error("Recovery phrase must be exactly 12 words");
+      return;
+    }
+    
+    try {
+      setProcessing(true);
+      const result = await importCryptoWallet(importMnemonic.trim(), importPassword);
+      setWallet({
+        evmAddress: result.evmAddress,
+        tronAddress: result.tronAddress,
+        seedBackedUp: true,
+        createdAt: new Date().toISOString(),
+      });
+      setStep("complete");
+      toast.success("Wallet imported successfully!");
+      loadBalances();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const copyAddress = async (address: string, type: string) => {
+    await navigator.clipboard.writeText(address);
+    setCopiedAddress(type);
+    toast.success("Address copied!");
+    setTimeout(() => setCopiedAddress(null), 2000);
+  };
+
+  const formatBalance = (balance: string | undefined) => {
+    if (!balance) return "0.00";
+    const num = parseFloat(balance);
+    return num.toFixed(6);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border/50">
+        <div className="flex items-center gap-4 p-4">
+          <button
+            onClick={() => navigate("/")}
+            className="w-10 h-10 rounded-full bg-card flex items-center justify-center"
+            data-testid="button-back"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-lg font-bold">{text.title}</h1>
+            <p className="text-sm text-muted-foreground">{text.subtitle}</p>
+          </div>
+        </div>
+      </header>
+
+      <main className="p-4 max-w-lg mx-auto">
+        {step === "initial" && (
+          <div className="space-y-6">
+            <div className="text-center py-8">
+              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Wallet className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold">{text.noWallet}</h2>
+              <p className="text-muted-foreground mt-2">{text.createOrImport}</p>
+            </div>
+
+            <button
+              onClick={() => setStep("create-password")}
+              className="w-full bg-card rounded-2xl p-4 flex items-center gap-4 hover:bg-card/80 transition-colors"
+              data-testid="button-create-wallet"
+            >
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Key className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="font-semibold">{text.createWallet}</h3>
+                <p className="text-sm text-muted-foreground">{text.createDescription}</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+
+            <button
+              onClick={() => setStep("import")}
+              className="w-full bg-card rounded-2xl p-4 flex items-center gap-4 hover:bg-card/80 transition-colors"
+              data-testid="button-import-wallet"
+            >
+              <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center">
+                <Download className="w-6 h-6 text-accent" />
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="font-semibold">{text.importWallet}</h3>
+                <p className="text-sm text-muted-foreground">{text.importDescription}</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+        )}
+
+        {step === "create-password" && (
+          <div className="space-y-6">
+            <div className="text-center py-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold">{text.enterPassword}</h2>
+              <p className="text-muted-foreground mt-2">{text.passwordInfo}</p>
+            </div>
+
+            <div className="space-y-4">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your account password"
+                className="w-full h-12 px-4 bg-card rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                data-testid="input-password"
+              />
+
+              <button
+                onClick={handleCreateWallet}
+                disabled={!password || processing}
+                className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50"
+                data-testid="button-continue"
+              >
+                {processing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Creating...
+                  </span>
+                ) : (
+                  text.continue
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "show-seed" && (
+          <div className="space-y-6">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-400">{text.recoveryWarning}</p>
+            </div>
+
+            <div className="text-center py-2">
+              <h2 className="text-xl font-bold">{text.yourRecoveryPhrase}</h2>
+            </div>
+
+            <div className="relative">
+              <div className={`grid grid-cols-3 gap-2 ${!showMnemonic ? 'blur-lg' : ''}`}>
+                {mnemonic.map((word, i) => (
+                  <div
+                    key={i}
+                    className="bg-card rounded-lg p-2 text-center"
+                    data-testid={`seed-word-${i}`}
+                  >
+                    <span className="text-xs text-muted-foreground">{i + 1}.</span>{" "}
+                    <span className="font-mono">{word}</span>
+                  </div>
+                ))}
+              </div>
+
+              {!showMnemonic && (
+                <button
+                  onClick={() => setShowMnemonic(true)}
+                  className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-xl"
+                  data-testid="button-show-phrase"
+                >
+                  <div className="flex items-center gap-2 text-primary">
+                    <Eye className="w-5 h-5" />
+                    <span>{text.showPhrase}</span>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowMnemonic(!showMnemonic)}
+                className="flex-1 h-10 bg-card rounded-xl flex items-center justify-center gap-2"
+                data-testid="button-toggle-phrase"
+              >
+                {showMnemonic ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showMnemonic ? text.hidePhrase : text.showPhrase}
+              </button>
+              <button
+                onClick={handleCopyMnemonic}
+                className="flex-1 h-10 bg-card rounded-xl flex items-center justify-center gap-2"
+                data-testid="button-copy-phrase"
+              >
+                {copiedMnemonic ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                {copiedMnemonic ? text.copied : text.copyPhrase}
+              </button>
+            </div>
+
+            <button
+              onClick={handleBackedUp}
+              className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-semibold"
+              data-testid="button-backed-up"
+            >
+              {text.iHaveBackedUp}
+            </button>
+          </div>
+        )}
+
+        {step === "verify-seed" && (
+          <div className="space-y-6">
+            <div className="text-center py-4">
+              <h2 className="text-xl font-bold">{text.verifyBackup}</h2>
+              <p className="text-muted-foreground mt-2">{text.verifyDescription}</p>
+            </div>
+
+            <div className="space-y-4">
+              {verifyWords.map((vw, i) => (
+                <div key={i} className="space-y-2">
+                  <label className="text-sm text-muted-foreground">
+                    {text.word} #{vw.index + 1}
+                  </label>
+                  <input
+                    type="text"
+                    value={userInputs[i]}
+                    onChange={(e) => {
+                      const newInputs = [...userInputs];
+                      newInputs[i] = e.target.value;
+                      setUserInputs(newInputs);
+                    }}
+                    placeholder={`Enter word ${vw.index + 1}`}
+                    className="w-full h-12 px-4 bg-card rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono"
+                    data-testid={`input-verify-word-${i}`}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={handleVerify}
+              disabled={userInputs.some(u => !u.trim()) || processing}
+              className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50"
+              data-testid="button-verify"
+            >
+              {processing ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Verifying...
+                </span>
+              ) : (
+                text.verify
+              )}
+            </button>
+          </div>
+        )}
+
+        {step === "import" && (
+          <div className="space-y-6">
+            <div className="text-center py-4">
+              <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+                <Download className="w-8 h-8 text-accent" />
+              </div>
+              <h2 className="text-xl font-bold">{text.importTitle}</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">{text.enterRecoveryPhrase}</label>
+                <textarea
+                  value={importMnemonic}
+                  onChange={(e) => setImportMnemonic(e.target.value)}
+                  placeholder="word1 word2 word3 ..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-card rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono text-sm resize-none"
+                  data-testid="input-import-mnemonic"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">{text.enterPasswordImport}</label>
+                <input
+                  type="password"
+                  value={importPassword}
+                  onChange={(e) => setImportPassword(e.target.value)}
+                  placeholder="Your account password"
+                  className="w-full h-12 px-4 bg-card rounded-xl border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  data-testid="input-import-password"
+                />
+              </div>
+
+              <button
+                onClick={handleImport}
+                disabled={!importMnemonic.trim() || !importPassword || processing}
+                className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-semibold disabled:opacity-50"
+                data-testid="button-import"
+              >
+                {processing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Importing...
+                  </span>
+                ) : (
+                  text.import
+                )}
+              </button>
+
+              <button
+                onClick={() => setStep("initial")}
+                className="w-full h-10 text-muted-foreground"
+                data-testid="button-back-import"
+              >
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "complete" && wallet && (
+          <div className="space-y-6">
+            {!wallet.seedBackedUp && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
+                <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="font-semibold text-amber-400">{text.backupNotice}</h4>
+                  <p className="text-sm text-amber-300/80 mt-1">{text.backupNoticeDesc}</p>
+                  <button
+                    onClick={() => setStep("show-seed")}
+                    className="mt-2 text-sm text-amber-400 font-semibold"
+                    data-testid="button-backup-now"
+                  >
+                    {text.backupNow} →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="text-center py-4">
+              <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-500" />
+              </div>
+              <h2 className="text-xl font-bold">{text.walletReady}</h2>
+            </div>
+
+            <div className="bg-card rounded-2xl p-4 space-y-4">
+              <h3 className="font-semibold">{text.yourAddresses}</h3>
+              
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">{text.evmAddress}</label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs bg-background rounded-lg p-2 overflow-hidden text-ellipsis">
+                      {wallet.evmAddress}
+                    </code>
+                    <button
+                      onClick={() => copyAddress(wallet.evmAddress, "evm")}
+                      className="w-8 h-8 rounded-lg bg-background flex items-center justify-center"
+                      data-testid="button-copy-evm"
+                    >
+                      {copiedAddress === "evm" ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">{text.tronAddress}</label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs bg-background rounded-lg p-2 overflow-hidden text-ellipsis">
+                      {wallet.tronAddress}
+                    </code>
+                    <button
+                      onClick={() => copyAddress(wallet.tronAddress, "tron")}
+                      className="w-8 h-8 rounded-lg bg-background flex items-center justify-center"
+                      data-testid="button-copy-tron"
+                    >
+                      {copiedAddress === "tron" ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-2xl p-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">{text.balance} (USDT)</h3>
+                <button
+                  onClick={loadBalances}
+                  disabled={refreshingBalances}
+                  className="text-sm text-primary flex items-center gap-1"
+                  data-testid="button-refresh-balances"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshingBalances ? 'animate-spin' : ''}`} />
+                  {text.refreshBalances}
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {Object.entries(networks).map(([key, network]) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                  >
+                    <span className="text-sm">{network.name}</span>
+                    <span className="font-mono text-sm">
+                      {balances?.balances[key] ? formatBalance(balances.balances[key]) : "0.00"} USDT
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

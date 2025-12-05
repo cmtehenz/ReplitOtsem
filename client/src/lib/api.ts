@@ -927,3 +927,97 @@ export async function loginWithBiometric(email?: string): Promise<any> {
 export function isBiometricSupported(): boolean {
   return window.PublicKeyCredential !== undefined;
 }
+
+// ==================== CRYPTO WALLET ====================
+
+export interface CryptoWallet {
+  evmAddress: string;
+  tronAddress: string;
+  seedBackedUp: boolean;
+  createdAt: string;
+}
+
+export interface CryptoWalletCreated {
+  mnemonic: string;
+  evmAddress: string;
+  tronAddress: string;
+  message: string;
+}
+
+export interface CryptoBalances {
+  balances: Record<string, string>;
+  evmAddress: string;
+  tronAddress: string;
+}
+
+export interface NetworkInfo {
+  name: string;
+  chainId: number;
+  rpcUrl: string;
+  usdtContract: string;
+  explorerUrl: string;
+  type: string;
+}
+
+export async function getCryptoWallet(): Promise<CryptoWallet | null> {
+  const response = await fetch(`${API_BASE}/crypto/wallet`);
+  if (!response.ok) {
+    throw new Error("Failed to get crypto wallet");
+  }
+  const data = await response.json();
+  return data.wallet === null ? null : data;
+}
+
+export async function createCryptoWallet(password: string): Promise<CryptoWalletCreated> {
+  const response = await fetch(`${API_BASE}/crypto/wallet/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create wallet");
+  }
+  return response.json();
+}
+
+export async function confirmWalletBackup(): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE}/crypto/wallet/confirm-backup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to confirm backup");
+  }
+  return response.json();
+}
+
+export async function importCryptoWallet(mnemonic: string, password: string): Promise<{ evmAddress: string; tronAddress: string; message: string }> {
+  const response = await fetch(`${API_BASE}/crypto/wallet/import`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mnemonic, password }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to import wallet");
+  }
+  return response.json();
+}
+
+export async function getCryptoBalances(): Promise<CryptoBalances> {
+  const response = await fetch(`${API_BASE}/crypto/balances`);
+  if (!response.ok) {
+    throw new Error("Failed to get crypto balances");
+  }
+  return response.json();
+}
+
+export async function getSupportedNetworks(): Promise<Record<string, NetworkInfo>> {
+  const response = await fetch(`${API_BASE}/crypto/networks`);
+  if (!response.ok) {
+    throw new Error("Failed to get supported networks");
+  }
+  return response.json();
+}

@@ -26,6 +26,7 @@ import Welcome from "@/pages/welcome";
 import VerifyEmail from "@/pages/verify-email";
 import ResetPassword from "@/pages/reset-password";
 import AssetDetails from "@/pages/asset-details";
+import CryptoWallet from "@/pages/crypto-wallet";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -101,6 +102,9 @@ function Router() {
       </Route>
       <Route path="/asset/:currency">
         {() => <ProtectedRoute component={AssetDetails} />}
+      </Route>
+      <Route path="/crypto-wallet">
+        {() => <ProtectedRoute component={CryptoWallet} />}
       </Route>
       <Route component={NotFound} />
     </Switch>
