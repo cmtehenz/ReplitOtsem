@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Copy, Check, Eye, EyeOff, Shield, Key, Wallet, AlertTriangle, Download, ChevronRight, RefreshCw, Send, QrCode, ArrowUpRight, ExternalLink, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Copy, Check, Eye, EyeOff, Shield, Key, Wallet, AlertTriangle, Download, ChevronRight, RefreshCw, Send, QrCode, ArrowUpRight, ExternalLink, X, Loader2, History, BookUser, Plus, Trash2, ArrowDownLeft, ArrowUpRightFromCircle, Fuel } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
-import { getCryptoWallet, createCryptoWallet, confirmWalletBackup, importCryptoWallet, getCryptoBalances, getSupportedNetworks, validateCryptoAddress, estimateCryptoGas, sendCryptoUsdt, type CryptoWallet, type CryptoBalances, type NetworkInfo, type GasEstimate, type SendTransactionResult } from "../lib/api";
+import { getCryptoWallet, createCryptoWallet, confirmWalletBackup, importCryptoWallet, getCryptoBalances, getSupportedNetworks, validateCryptoAddress, estimateCryptoGas, sendCryptoUsdt, getNativeBalances, getCryptoTransactions, getAddressBook, addAddressBookEntry, deleteAddressBookEntry, type CryptoWallet, type CryptoBalances, type NetworkInfo, type GasEstimate, type SendTransactionResult, type NativeBalances, type CryptoTransaction, type AddressBookEntry } from "../lib/api";
 import { toast } from "sonner";
 import QRCode from "react-qr-code";
 
@@ -41,6 +41,13 @@ export default function CryptoWalletPage() {
   const [sendResult, setSendResult] = useState<SendTransactionResult | null>(null);
   const [addressValid, setAddressValid] = useState<boolean | null>(null);
   const [validatingAddress, setValidatingAddress] = useState(false);
+  const [nativeBalances, setNativeBalances] = useState<NativeBalances | null>(null);
+  const [transactions, setTransactions] = useState<CryptoTransaction[]>([]);
+  const [addressBook, setAddressBook] = useState<AddressBookEntry[]>([]);
+  const [showAddressBook, setShowAddressBook] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [activeTab, setActiveTab] = useState<"balances" | "history">("balances");
 
   const t: Record<string, {
     title: string;
@@ -96,6 +103,18 @@ export default function CryptoWalletPage() {
     scanToReceive: string;
     copyAddress: string;
     close: string;
+    history: string;
+    noTransactions: string;
+    sent: string;
+    received: string;
+    addressBook: string;
+    noSavedAddresses: string;
+    addContact: string;
+    contactName: string;
+    saveContact: string;
+    cancel: string;
+    gasBalance: string;
+    balances: string;
   }> = {
     en: {
       title: "Crypto Wallet",
@@ -151,6 +170,18 @@ export default function CryptoWalletPage() {
       scanToReceive: "Scan to receive USDT",
       copyAddress: "Copy Address",
       close: "Close",
+      history: "Transaction History",
+      noTransactions: "No transactions yet",
+      sent: "Sent",
+      received: "Received",
+      addressBook: "Address Book",
+      noSavedAddresses: "No saved addresses",
+      addContact: "Add Contact",
+      contactName: "Contact Name",
+      saveContact: "Save Contact",
+      cancel: "Cancel",
+      gasBalance: "Gas Balance",
+      balances: "Balances",
     },
     "pt-BR": {
       title: "Carteira Crypto",
@@ -206,6 +237,18 @@ export default function CryptoWalletPage() {
       scanToReceive: "Escaneie para receber USDT",
       copyAddress: "Copiar Endereço",
       close: "Fechar",
+      history: "Histórico de Transações",
+      noTransactions: "Nenhuma transação ainda",
+      sent: "Enviado",
+      received: "Recebido",
+      addressBook: "Agenda de Endereços",
+      noSavedAddresses: "Nenhum endereço salvo",
+      addContact: "Adicionar Contato",
+      contactName: "Nome do Contato",
+      saveContact: "Salvar Contato",
+      cancel: "Cancelar",
+      gasBalance: "Saldo de Gas",
+      balances: "Saldos",
     },
   };
   const text = t[language];
@@ -222,13 +265,20 @@ export default function CryptoWalletPage() {
       setWallet(w);
       if (w) {
         setStep("complete");
-        loadBalances();
+        loadAllData();
       }
     } catch (error) {
       console.error("Failed to load wallet:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadAllData = async () => {
+    loadBalances();
+    loadNativeBalances();
+    loadTransactions();
+    loadAddressBook();
   };
 
   const loadBalances = async () => {
@@ -241,6 +291,67 @@ export default function CryptoWalletPage() {
     } finally {
       setRefreshingBalances(false);
     }
+  };
+
+  const loadNativeBalances = async () => {
+    try {
+      const nb = await getNativeBalances();
+      setNativeBalances(nb);
+    } catch (error) {
+      console.error("Failed to load native balances:", error);
+    }
+  };
+
+  const loadTransactions = async () => {
+    try {
+      const txs = await getCryptoTransactions();
+      setTransactions(txs);
+    } catch (error) {
+      console.error("Failed to load transactions:", error);
+    }
+  };
+
+  const loadAddressBook = async () => {
+    try {
+      const book = await getAddressBook();
+      setAddressBook(book);
+    } catch (error) {
+      console.error("Failed to load address book:", error);
+    }
+  };
+
+  const handleAddContact = async () => {
+    if (!newContactName.trim() || !sendAddress.trim()) {
+      toast.error("Please enter a name and address");
+      return;
+    }
+    
+    try {
+      await addAddressBookEntry(newContactName, sendAddress, sendNetwork);
+      toast.success("Contact saved!");
+      setShowAddContact(false);
+      setNewContactName("");
+      loadAddressBook();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleDeleteContact = async (id: string) => {
+    try {
+      await deleteAddressBookEntry(id);
+      loadAddressBook();
+      toast.success("Contact deleted");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const selectContact = (entry: AddressBookEntry) => {
+    setSendAddress(entry.address);
+    setSendNetwork(entry.network);
+    setShowAddressBook(false);
+    setAddressValid(true);
   };
 
   const loadNetworks = async () => {
@@ -822,33 +933,130 @@ export default function CryptoWalletPage() {
               </button>
             </div>
 
-            <div className="bg-card rounded-2xl p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold">{text.balance} (USDT)</h3>
+            <div className="bg-card rounded-2xl overflow-hidden">
+              <div className="flex border-b border-border">
                 <button
-                  onClick={loadBalances}
-                  disabled={refreshingBalances}
-                  className="text-sm text-primary flex items-center gap-1"
-                  data-testid="button-refresh-balances"
+                  onClick={() => setActiveTab("balances")}
+                  className={`flex-1 py-3 px-4 text-sm font-medium flex items-center justify-center gap-2 ${
+                    activeTab === "balances" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"
+                  }`}
+                  data-testid="tab-balances"
                 >
-                  <RefreshCw className={`w-4 h-4 ${refreshingBalances ? 'animate-spin' : ''}`} />
-                  {text.refreshBalances}
+                  <Wallet className="w-4 h-4" />
+                  {text.balances}
+                </button>
+                <button
+                  onClick={() => setActiveTab("history")}
+                  className={`flex-1 py-3 px-4 text-sm font-medium flex items-center justify-center gap-2 ${
+                    activeTab === "history" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-muted-foreground"
+                  }`}
+                  data-testid="tab-history"
+                >
+                  <History className="w-4 h-4" />
+                  {text.history}
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {Object.entries(networks).map(([key, network]) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between py-2 border-b border-border last:border-0"
-                  >
-                    <span className="text-sm">{network.name}</span>
-                    <span className="font-mono text-sm">
-                      {balances?.balances[key] ? formatBalance(balances.balances[key]) : "0.00"} USDT
-                    </span>
+              {activeTab === "balances" && (
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">{text.balance} (USDT)</h3>
+                    <button
+                      onClick={loadAllData}
+                      disabled={refreshingBalances}
+                      className="text-sm text-primary flex items-center gap-1"
+                      data-testid="button-refresh-balances"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${refreshingBalances ? 'animate-spin' : ''}`} />
+                      {text.refreshBalances}
+                    </button>
                   </div>
-                ))}
-              </div>
+
+                  <div className="space-y-2">
+                    {Object.entries(networks).map(([key, network]) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                      >
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">{network.name}</span>
+                          {nativeBalances?.balances[key] && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                              <Fuel className="w-3 h-3" />
+                              {parseFloat(nativeBalances.balances[key].balance).toFixed(4)} {nativeBalances.balances[key].symbol}
+                            </div>
+                          )}
+                        </div>
+                        <span className="font-mono text-sm">
+                          {balances?.balances[key] ? formatBalance(balances.balances[key]) : "0.00"} USDT
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "history" && (
+                <div className="p-4 space-y-4">
+                  <h3 className="font-semibold">{text.history}</h3>
+                  
+                  {transactions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">{text.noTransactions}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {transactions.map((tx) => (
+                        <div
+                          key={tx.id}
+                          className="flex items-center gap-3 py-3 border-b border-border last:border-0"
+                        >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            tx.type === "send" ? "bg-red-500/10" : "bg-green-500/10"
+                          }`}>
+                            {tx.type === "send" ? (
+                              <ArrowUpRightFromCircle className="w-5 h-5 text-red-500" />
+                            ) : (
+                              <ArrowDownLeft className="w-5 h-5 text-green-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">
+                                {tx.type === "send" ? text.sent : text.received}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {networks[tx.network]?.name || tx.network}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {tx.type === "send" ? tx.toAddress : tx.fromAddress}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`text-sm font-medium ${
+                              tx.type === "send" ? "text-red-400" : "text-green-400"
+                            }`}>
+                              {tx.type === "send" ? "-" : "+"}{tx.amount} {tx.token}
+                            </span>
+                            {tx.explorerUrl && (
+                              <a
+                                href={tx.explorerUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary flex items-center gap-1 justify-end mt-0.5"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -959,7 +1167,53 @@ export default function CryptoWalletPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">{text.recipientAddress}</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm text-muted-foreground">{text.recipientAddress}</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddressBook(!showAddressBook)}
+                      className="text-xs text-primary flex items-center gap-1"
+                      data-testid="button-toggle-address-book"
+                    >
+                      <BookUser className="w-3 h-3" />
+                      {text.addressBook}
+                    </button>
+                  </div>
+                  
+                  {showAddressBook && (
+                    <div className="bg-background rounded-xl border border-border p-3 space-y-2 mb-2">
+                      {addressBook.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">{text.noSavedAddresses}</p>
+                      ) : (
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {addressBook.filter(e => e.network === sendNetwork || 
+                            (networks[e.network]?.type === networks[sendNetwork]?.type)
+                          ).map((entry) => (
+                            <div
+                              key={entry.id}
+                              className="flex items-center justify-between p-2 rounded-lg hover:bg-card cursor-pointer group"
+                              onClick={() => selectContact(entry)}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{entry.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{entry.address}</p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteContact(entry.id);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-red-500"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className="relative">
                     <input
                       type="text"
@@ -990,6 +1244,48 @@ export default function CryptoWalletPage() {
                   </div>
                   {addressValid === false && (
                     <p className="text-xs text-red-500">{text.invalidAddress}</p>
+                  )}
+                  
+                  {addressValid === true && sendAddress && !addressBook.some(e => e.address === sendAddress) && (
+                    <div>
+                      {showAddContact ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={newContactName}
+                            onChange={(e) => setNewContactName(e.target.value)}
+                            placeholder={text.contactName}
+                            className="flex-1 h-8 px-3 bg-background rounded-lg border border-border text-sm"
+                            data-testid="input-contact-name"
+                          />
+                          <button
+                            onClick={handleAddContact}
+                            className="px-3 h-8 bg-primary text-primary-foreground rounded-lg text-sm"
+                            data-testid="button-save-contact"
+                          >
+                            {text.saveContact}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowAddContact(false);
+                              setNewContactName("");
+                            }}
+                            className="px-2 h-8 text-muted-foreground text-sm"
+                          >
+                            {text.cancel}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowAddContact(true)}
+                          className="text-xs text-primary flex items-center gap-1"
+                          data-testid="button-add-contact"
+                        >
+                          <Plus className="w-3 h-3" />
+                          {text.addContact}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
